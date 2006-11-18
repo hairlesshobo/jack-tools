@@ -1,0 +1,39 @@
+.TH JACK.PLAY "1" 0.3 "November 2005"
+.SH NAME
+jack.play \- JACK Sound File Player
+.SH SYNOPSIS
+.BR jack.play
+.RI [ options ]
+.I sound-file...
+.SH OPTIONS
+.TP
+.B \-b
+Set the disk buffer size in frames (default=4096).  This value must be
+a power of two.  If the JACK period size at any time exceeds this
+value the player will halt.
+.TP
+.B \-i
+Set the initial disk seek in frames (default=0).
+.TP
+.B \-m
+Set the minimal disk transfer size in frames (default=32). This is an
+optimization switch.
+.TP
+.B \-t
+Run in JACK transport aware mode.
+.SH DESCRIPTION
+.B jack.play
+is a light-weight 
+.B JACK
+sound file player. It creates as many output ports as there are
+channels in the input file.  It implements no connection logic, use
+.BR jack.plumbing (1)
+instead.
+.PP
+.B jack.play 
+will read files in any format supported by
+.BR libsndfile .
+.SH AUTHOR
+Rohan Drape <http://www.slavepianos.org/rd/>.
+.SH SEE ALSO
+.BR jackd "(1), " libsndfile "(3) <http://www.zip.com.au/~erikd/libsndfile/>"

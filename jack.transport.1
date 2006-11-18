@@ -1,0 +1,38 @@
+.TH JACK.TRANSPORT "1" 0.1 "March 2006"
+.SH NAME
+jack.transport \- Minimalist Jack Transport Interface
+.SH SYNOPSIS
+.BR jack.transport
+.SH DESCRIPTION
+.B jack.transport
+is a minimalist 
+.B Jack
+transport control interface using ncurses.  It displays the transport
+state and current time, and provides standard operating keys.
+.SH COMMANDS
+.TP
+.B s
+Start and stop transport.  Aliased to [space].
+.TP
+.B l
+Locate to entered time.  Starting to type a number will also enter
+locate mode.
+.TP
+.B i
+Set skip increment to entered interval.
+.TP
+.B z
+Locate to start (zero).
+.TP
+.B r
+Erase and refresh screen.
+.TP
+.B >
+Skip forwards.  Aliased to . and [right-arrow].
+.TP
+.B <
+Skip backwards.  Aliased to , and [left-arrow].
+.SH AUTHOR
+Rohan Drape <http://www.slavepianos.org/rd/>.
+.SH SEE ALSO
+.BR jackd "(1), " jack.play "(1)"

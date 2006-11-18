@@ -1,0 +1,17 @@
+jack.tools - (c) rohan drape, 2003-2006
+
+jack.osc       - jack <-> open sound control daemon
+jack.play      - soundfile playback
+jack.plumbing  - plumbing daemon
+jack.record    - soundfile recording
+jack.scope     - plain X oscilloscope
+jack.transport - minimalist ncurses jack transport
+jack.udp       - jack over udp client (obsolete, see netjack)
+
+http://jackaudio.org/
+http://mega-nerd.com/libsndfile/
+http://netjack.org/
+http://opensoundcontrol.org/
+http://slavepianos.org/rd/
+
+jack.tools are copyleft, see http://www.gnu.org/copyleft/
