@@ -12,7 +12,7 @@ libcommon_a_SOURCES =	byte-order.c byte-order.h \
 			img-ppm.c img-ppm.h \
 			int.h \
 			jack-client.c jack-client.h \
-			jack-port.c jack-port..h \
+			jack-port.c jack-port.h \
 			jack-ringbuffer.c jack-ringbuffer.h \
 			jack-transport.c jack-transport.h \
 			memory.c memory.h \
