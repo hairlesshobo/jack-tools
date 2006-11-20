@@ -45,6 +45,7 @@ struct player
   i64 seek_request;
   bool transport_aware;
   SRC_STATE *src;
+  int converter;
   double src_ratio;
   int rb_request_frames;
 };
@@ -221,6 +222,7 @@ void usage(void)
 {
   eprintf("Usage: jack.play [ options ] sound-file...\n");
   eprintf("    -b N : Ring buffer size in frames (default=4096).\n");
+  eprintf("    -c N : ID of conversion algorithm (default=2, SRC_SINC_FASTEST).\n");
   eprintf("    -i N : Initial disk seek in frames (default=0).\n");
   eprintf("    -m N : Minimal disk read size in frames (default=32).\n");
   eprintf("    -q N : Frames to request from ring buffer (default=64).\n");
@@ -257,7 +259,7 @@ long read_input_from_rb(void *PTR, float **buf)
   return (long)err;
 }
 
-int jackplay(const char *filename, int b, int m, int i, int t, double r, int q)
+int jackplay(const char *filename, int b, int m, int i, int t, double r, int q, int c)
 {
   observe_signals ();
 
@@ -268,6 +270,7 @@ int jackplay(const char *filename, int b, int m, int i, int t, double r, int q)
   d.transport_aware = t;
   d.src_ratio = r;
   d.rb_request_frames = q;
+  d.converter = c;
 
   /* Open sound file. */
 
@@ -297,7 +300,7 @@ int jackplay(const char *filename, int b, int m, int i, int t, double r, int q)
   /* Setup sample rate conversion. */
   int err;
   d.src = src_callback_new (read_input_from_rb,
-			    SRC_SINC_FASTEST,
+			    d.converter,
 			    d.channels,
 			    &err,
 			    &d);
@@ -379,11 +382,15 @@ int main(int argc, char *argv[])
   int transport_aware = false;
   double ratio = 1.0;
   int queue = 64;
+  int converter = SRC_SINC_FASTEST;
   int c;
-  while((c = getopt(argc, argv, "b:hi:m:q:r:t")) != -1) {
+  while((c = getopt(argc, argv, "b:c:hi:m:q:r:t")) != -1) {
     switch(c) {
     case 'b':
-      buffer_frames = atoi(optarg);
+      buffer_frames = (int)strtol(optarg, NULL, 0);
+      break;
+    case 'c':
+      converter = (int)strtol(optarg, NULL, 0);
       break;
     case 'h':
       usage ();
@@ -418,7 +425,7 @@ int main(int argc, char *argv[])
     jackplay(argv[i],
 	     buffer_frames, minimal_frames,
 	     seek_request, transport_aware,
-	     ratio, queue);
+	     ratio, queue, converter);
   }
   return EXIT_SUCCESS;
 }

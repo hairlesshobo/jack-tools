@@ -12,6 +12,11 @@ Set the disk buffer size in frames (default=4096).  This value must be
 a power of two.  If the JACK period size at any time exceeds this
 value the player will halt.
 .TP
+.B \-c
+Set the sample rate conversion algorithm (default=2).  Values are:
+SRC_SINC_BEST_QUALITY = 0, SRC_SINC_MEDIUM_QUALITY = 1,
+SRC_SINC_FASTEST = 2, SRC_ZERO_ORDER_HOLD = 3 and SRC_LINEAR = 4.
+.TP
 .B \-i
 Set the initial disk seek in frames (default=0).
 .TP
