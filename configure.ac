@@ -21,21 +21,30 @@ AM_PROG_LIBTOOL
 
 # Require JACK library.
 
-AC_CHECK_LIB(jack, 
-             jack_client_new, 
-	     , 
+AC_CHECK_LIB(jack,
+             jack_client_new,
+	     ,
 	     AC_MSG_ERROR("No JACK library.")
 	     ,)
 AC_CHECK_HEADERS(jack/jack.h)
 
 # Require LIBSNDFILE sound file format library.
 
-AC_CHECK_LIB(sndfile, 
-             sf_open, 
-	     , 
+AC_CHECK_LIB(sndfile,
+             sf_open,
+	     ,
 	     AC_MSG_ERROR("No LibSndFile library.")
 	     ,)
 AC_CHECK_HEADERS(sndfile.h)
+
+# Require LIBSNDFILE sound file format library.
+
+AC_CHECK_LIB(samplerate,
+             src_new,
+	     ,
+	     AC_MSG_ERROR("No LibSampleRate library.")
+	     ,)
+AC_CHECK_HEADERS(samplerate.h)
 
 # Require X11
 

@@ -1,4 +1,4 @@
-.TH JACK.PLAY "1" 0.3 "November 2005"
+.TH JACK.PLAY "1" 0.4 "November 2006"
 .SH NAME
 jack.play \- JACK Sound File Player
 .SH SYNOPSIS
@@ -19,6 +19,13 @@ Set the initial disk seek in frames (default=0).
 Set the minimal disk transfer size in frames (default=32). This is an
 optimization switch.
 .TP
+.B \-q
+Set the frame size to request data from the ringbuffer (default=64). This is an
+optimization switch.
+.TP
+.B \-r
+Set the resampling ratio multiplier (default=1.0).
+.TP
 .B \-t
 Run in JACK transport aware mode.
 .SH DESCRIPTION
@@ -32,8 +39,11 @@ instead.
 .PP
 .B jack.play 
 will read files in any format supported by
-.BR libsndfile .
+.BR libsndfile ,
+and will resample to match the server sample rate using
+.BR libsamplerate .
 .SH AUTHOR
 Rohan Drape <http://slavepianos.org/rd/>
 .SH SEE ALSO
-.BR jackd "(1), " libsndfile "(3) <http://mega-nerd.com/libsndfile/>"
+.BR jackd "(1), " libsndfile "(3) <http://mega-nerd.com/libsndfile/>, " 
+.BR libsamplerate "(3) <http://mega-nerd.com/SRC/>"

@@ -11,6 +11,8 @@
 #include <jack/jack.h>
 #include <jack/thread.h>
 
+#include <samplerate.h>
+
 #include "common/failure.h"
 #include "common/file.h"
 #include "common/int.h"
@@ -31,6 +33,7 @@ struct player
   int minimal_frames;
   float *d_buffer;
   float *j_buffer;
+  float *k_buffer;
   SNDFILE *sound_file;
   int channels;
   jack_port_t **output_port;
@@ -41,6 +44,9 @@ struct player
   jack_client_t *client;
   i64 seek_request;
   bool transport_aware;
+  SRC_STATE *src;
+  double src_ratio;
+  int rb_request_frames;
 };
 
 /* Read the sound file from disk and write to the ring buffer until
@@ -52,17 +58,17 @@ void *disk_proc(void *PTR)
   while(!observe_end_of_process()) {
 
     /* Handle seek request. */
-    
+
     if(d->seek_request >= 0) {
-      sf_count_t err = sf_seek(d->sound_file, 
+      sf_count_t err = sf_seek(d->sound_file,
 			       (sf_count_t)d->seek_request, SEEK_SET);
       if(err == -1) {
-	eprintf("jack.play: seek request failed, %ld\n", 
+	eprintf("jack.play: seek request failed, %ld\n",
 		(long)d->seek_request);
       }
       d->seek_request = -1;
     }
-    
+
     /* Wait for write space at the ring buffer. */
 
     int nbytes = d->minimal_frames * sizeof(float) * d->channels;
@@ -74,7 +80,7 @@ void *disk_proc(void *PTR)
       eprintf("jack.play: impossible condition, write space.\n");
       nbytes = d->buffer_bytes;
     }
-    
+
     /* Read sound file data, which *must* be frame aligned. */
 
     int nframes =(nbytes / sizeof(float))/ d->channels;
@@ -85,31 +91,31 @@ void *disk_proc(void *PTR)
     if(err == 0) {
       if(d->transport_aware) {
 	memset(d->d_buffer, 0, nsamples * sizeof(float));
-	err = nsamples; 
+	err = nsamples;
       } else {
 	return NULL;
       }
     }
-    
+
     /* Write data to ring buffer. */
 
     jack_ringbuffer_write(d->rb,
-			  (char *)d->d_buffer, 
+			  (char *)d->d_buffer,
 			  (size_t)err * sizeof(float));
   }
 
   return NULL;
 }
 
-int sync_handler(jack_transport_state_t state, 
-		 jack_position_t *position, 
+int sync_handler(jack_transport_state_t state,
+		 jack_position_t *position,
 		 void *PTR)
 {
   struct player *d = PTR;
   d->seek_request = (i64)position->frame;
   return 1;
 }
-  
+
 void signal_set(float **s, int n, int c, float z)
 {
   int j;
@@ -160,16 +166,18 @@ int signal_proc(jack_nframes_t nframes, void *PTR)
     }
   }
 
-  /* Get data from ring buffer.  This could check the read size first,
-     but then would still need to check the actual result size, and
-     therefore have two error cases.  Since there is no alternative
-     but to drop sample data in any case it does not matter much. */
+  /* Get data from sample rate converter, this returns the number of
+     frames acquired. */
 
-  int err = jack_ringbuffer_read(d->rb,
-				 (char *)d->j_buffer,
-				 (size_t)nsamples * sizeof(float));
-  err /= d->channels * sizeof(float);
-  
+  long err = src_callback_read (d->src,
+				d->src_ratio,
+				(long)nframes,
+				d->j_buffer);
+  if(err==0) {
+    eprintf("jack.play: sample rate converter failed: %s\n",
+	    src_strerror(src_error(d->src)));
+    FAILURE;
+  }
 
   /* Uninterleave available data to the output buffers. */
 
@@ -185,14 +193,14 @@ int signal_proc(jack_nframes_t nframes, void *PTR)
      action. */
 
   if(err < nframes) {
-    eprintf("jack.play: disk thread late (%d < %d)\n", err, nframes);
+    eprintf("jack.play: disk thread late (%ld < %d)\n", err, nframes);
     for(i = err; i < nframes; i++) {
       for(j = 0; j < d->channels; j++) {
 	d->out[j][i] = 0.0;
       }
     }
   }
-  
+
   /* Indicate to the disk thread that the ring buffer has been read
      from.  This is done by writing a single byte to a communication
      pipe.  Once the disk thread gets so far ahead that the ring
@@ -215,11 +223,41 @@ void usage(void)
   eprintf("    -b N : Ring buffer size in frames (default=4096).\n");
   eprintf("    -i N : Initial disk seek in frames (default=0).\n");
   eprintf("    -m N : Minimal disk read size in frames (default=32).\n");
+  eprintf("    -q N : Frames to request from ring buffer (default=64).\n");
+  eprintf("    -r N : Resampling ratio multiplier (default=1.0).\n");
   eprintf("    -t   : Jack transport awareness.\n");
   FAILURE;
 }
 
-int jackplay(const char *filename, int b, int m, int i, int t)
+/* Get data from ring buffer.  Return number of frames read.  This
+   could check the read size first, but then would still need to check
+   the actual result size, and therefore have two error cases.  Since
+   there is no alternative but to drop sample data in any case it does
+   not matter much. */
+
+long read_input_from_rb(void *PTR, float **buf)
+{
+  struct player *d = PTR;
+  int nsamples = d->channels * d->rb_request_frames;
+  int nbytes = (size_t)nsamples * sizeof(float);
+
+  int err = jack_ringbuffer_read(d->rb,
+				 (char *)d->k_buffer,
+				 nbytes);
+  err /= d->channels * sizeof(float);
+  *buf = d->k_buffer;
+
+  /* SRC locks up if we return zero here, return a silent frame */
+  if(err==0) {
+    eprintf("jack.play: ringbuffer empty... zeroing data\n");
+    memset(d->k_buffer, 0, (size_t)nsamples * sizeof(float));
+    err = d->rb_request_frames;
+  }
+
+  return (long)err;
+}
+
+int jackplay(const char *filename, int b, int m, int i, int t, double r, int q)
 {
   observe_signals ();
 
@@ -228,17 +266,19 @@ int jackplay(const char *filename, int b, int m, int i, int t)
   d.minimal_frames = m;
   d.seek_request = i;
   d.transport_aware = t;
+  d.src_ratio = r;
+  d.rb_request_frames = q;
 
   /* Open sound file. */
 
-  SF_INFO sfinfo; 
+  SF_INFO sfinfo;
   d.sound_file = xsf_open(filename, SFM_READ, &sfinfo);
   d.channels = sfinfo.channels;
 
   /* Allocate channel based data. */
 
   if(d.channels < 1) {
-    eprintf("jack.play: illegal number of channels in file: %d\n", 
+    eprintf("jack.play: illegal number of channels in file: %d\n",
 	    d.channels);
     FAILURE;
   }
@@ -246,12 +286,26 @@ int jackplay(const char *filename, int b, int m, int i, int t)
   d.output_port = xmalloc(d.channels * sizeof(jack_port_t *));
 
   /* Allocate buffers. */
-  
+
   d.buffer_samples = d.buffer_frames * d.channels;
   d.buffer_bytes = d.buffer_samples * sizeof(float);
   d.d_buffer = xmalloc(d.buffer_bytes);
   d.j_buffer = xmalloc(d.buffer_bytes);
+  d.k_buffer = xmalloc(d.buffer_bytes);
   d.rb = jack_ringbuffer_create(d.buffer_bytes);
+
+  /* Setup sample rate conversion. */
+  int err;
+  d.src = src_callback_new (read_input_from_rb,
+			    SRC_SINC_FASTEST,
+			    d.channels,
+			    &err,
+			    &d);
+  if(!d.src) {
+    eprintf("jack.play: sample rate conversion setup failed: %s\n",
+	    src_strerror(err));
+    FAILURE;
+  }
 
   /* Create communication pipe. */
 
@@ -279,14 +333,15 @@ int jackplay(const char *filename, int b, int m, int i, int t)
   }
   jack_set_process_callback(d.client, signal_proc, &d);
 
-  /* Inform the user we do not do sample rate conversion, but still
-     play the sound file. */
+  /* Inform the user of sample-rate mismatch. */
 
-  if(jack_get_sample_rate(d.client)!= sfinfo.samplerate) {
-    eprintf("jack.play: sample rate of file not that of server, %d != %d\n", 
-	    sfinfo.samplerate,
-	    jack_get_sample_rate(d.client));
-    
+  int osr = jack_get_sample_rate(d.client);
+  int isr = sfinfo.samplerate;
+  if(osr != isr) {
+    d.src_ratio *= (osr / isr);
+    eprintf("jack.play: resampling, sample rate of file != server, %d != %d\n",
+	    isr,
+	    osr);
   }
 
   /* Create output ports and activate client. */
@@ -309,8 +364,10 @@ int jackplay(const char *filename, int b, int m, int i, int t)
   close(d.pipe[1]);
   free(d.d_buffer);
   free(d.j_buffer);
+  free(d.k_buffer);
   free(d.out);
   free(d.output_port);
+  src_delete(d.src);
   return 0;
 }
 
@@ -320,8 +377,10 @@ int main(int argc, char *argv[])
   int minimal_frames = 32;
   int seek_request = -1;
   int transport_aware = false;
+  double ratio = 1.0;
+  int queue = 64;
   int c;
-  while((c = getopt(argc, argv, "b:hi:m:t")) != -1) {
+  while((c = getopt(argc, argv, "b:hi:m:q:r:t")) != -1) {
     switch(c) {
     case 'b':
       buffer_frames = atoi(optarg);
@@ -334,6 +393,12 @@ int main(int argc, char *argv[])
       break;
     case 'm':
       minimal_frames = (int)strtoll(optarg, NULL, 0);
+      break;
+    case 'q':
+      queue = strtol(optarg, NULL, 0);
+      break;
+    case 'r':
+      ratio = strtod(optarg, NULL);
       break;
     case 't':
       transport_aware = true;
@@ -349,10 +414,11 @@ int main(int argc, char *argv[])
   }
   int i;
   for(i = optind; i < argc; i++) {
-    printf("jack.play: %s\n", argv[i]);  
-    jackplay(argv[i], 
-	     buffer_frames, minimal_frames, 
-	     seek_request, transport_aware);
+    printf("jack.play: %s\n", argv[i]);
+    jackplay(argv[i],
+	     buffer_frames, minimal_frames,
+	     seek_request, transport_aware,
+	     ratio, queue);
   }
   return EXIT_SUCCESS;
 }
