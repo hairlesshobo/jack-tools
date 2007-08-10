@@ -1,4 +1,4 @@
-jack.tools - (c) rohan drape, 2003-2006
+jack.* - jackd utilities
 
 jack.osc       - jack <-> open sound control daemon
 jack.play      - soundfile playback
@@ -14,4 +14,4 @@ http://netjack.org/
 http://opensoundcontrol.org/
 http://slavepianos.org/rd/
 
-jack.tools are copyleft, see http://www.gnu.org/copyleft/
+(c) rohan drape 2003-2007, http://www.gnu.org/copyleft/

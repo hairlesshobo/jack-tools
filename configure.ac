@@ -2,7 +2,7 @@
 
 # Initialize autoconf and autmake
 
-AC_INIT(jack.tools,0.5)
+AC_INIT(jack.*,0.5)
 AC_CONFIG_AUX_DIR(config)
 AC_CANONICAL_SYSTEM
 AM_INIT_AUTOMAKE
