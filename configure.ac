@@ -6,6 +6,7 @@ AC_INIT(jack.*,0.5)
 AC_CONFIG_AUX_DIR(config)
 AC_CANONICAL_SYSTEM
 AM_INIT_AUTOMAKE
+PKG_PROG_PKG_CONFIG
 
 # Check for programs. These macros set and export variables that are
 # used in the make process.
@@ -21,39 +22,20 @@ AM_PROG_LIBTOOL
 
 # Require JACK library.
 
-AC_CHECK_LIB(jack,
-             jack_client_new,
-	     ,
-	     AC_MSG_ERROR("No JACK library.")
-	     ,)
-AC_CHECK_HEADERS(jack/jack.h)
+PKG_CHECK_MODULES(JACK, jack, , AC_MSG_ERROR("jack required"))
 
-# Require LIBSNDFILE sound file format library.
+# Require sndfile library.
 
-AC_CHECK_LIB(sndfile,
-             sf_open,
-	     ,
-	     AC_MSG_ERROR("No LibSndFile library.")
-	     ,)
-AC_CHECK_HEADERS(sndfile.h)
+PKG_CHECK_MODULES(SNDFILE, sndfile, , AC_MSG_ERROR("libsndfile required"))
 
-# Require LIBSNDFILE sound file format library.
+# Require samplerate library.
 
-AC_CHECK_LIB(samplerate,
-             src_new,
-	     ,
-	     AC_MSG_ERROR("No LibSampleRate library.")
-	     ,)
-AC_CHECK_HEADERS(samplerate.h)
+PKG_CHECK_MODULES(SRC, samplerate, , AC_MSG_ERROR("libssamplerate required"))
 
 # Require X11
 
-AC_PATH_XTRA
-if test "$no_x" = yes; then
-   AC_MSG_ERROR("jack.scope requires the X11 libraries")
-fi
-CFLAGS="$CFLAGS $X_CFLAGS"
-LIBS="$LIBS $X_LIBS $X_PRE_LIBS $X_EXTRA_LIBS -lX11 -lXext -lm"
+PKG_CHECK_MODULES(X11, x11, , AC_MSG_ERROR("x11 required"))
+PKG_CHECK_MODULES(XEXT, xext, , AC_MSG_ERROR("xext required"))
 
 # Set compiler flags.
 
