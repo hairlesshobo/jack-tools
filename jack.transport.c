@@ -1,4 +1,4 @@
-/*****  jack.transport.c - (c) rohan drape, 2006 *****/
+/*****  jack.transport.c - (c) rohan drape, 2006-2008 *****/
 
 #include <stdlib.h>
 #include <stdbool.h>
@@ -13,6 +13,7 @@ struct transport {
   bool rolling;
   double time;
   double incr;
+  double skip;
   jack_client_t *jk;
 };
 
@@ -61,12 +62,22 @@ void locate(struct transport *t)
   jack_transport_locate(t->jk, frame);
 }
 
+void offset(struct transport *t, double o)
+{
+  t->time += o;
+  if(t->time < 0.0) {
+    t->time = 0.0;
+  }
+  locate(t);
+}
+
 int main(int argc, char **argv)
 {
   struct transport t;
   t.rolling = false;
   t.time = 0.0;
   t.incr = 5.0;
+  t.skip = 60.0;
   t.jk = jack_client_open("jack.transport", JackNullOption, NULL);
   if(t.jk) {
     jack_on_shutdown(t.jk, shutdown, 0);
@@ -106,19 +117,18 @@ int main(int argc, char **argv)
       }
       break;
     case '>':
-    case '.':
     case KEY_RIGHT:
-      t.time += t.incr;
-      locate(&t);
+      offset(&t, t.incr);
+      break;
+    case '.':
+      offset(&t, t.skip);
       break;
     case '<':
-    case ',':
     case KEY_LEFT:
-      t.time -= t.incr;
-      if(t.time < 0.0) {
-	t.time = 0.0;
-      }
-      locate(&t);
+      offset(&t, -t.incr);
+      break;
+    case ',':
+      offset(&t, -t.skip);
       break;
     case 'z':
     case KEY_SLEFT:
@@ -151,7 +161,7 @@ int main(int argc, char **argv)
       break;
     }
       
-    mvaddstr(0, 0, "jack.transport - (c) rohan drape, 2006");
+    mvaddstr(0, 0, "jack.transport - (c) rohan drape, 2006-2008");
     mvaddch(1, 0, t.rolling ? ACS_RARROW : ACS_BLOCK);
     mvaddtime(1, 4, t.time);
   }
