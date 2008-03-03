@@ -121,12 +121,14 @@ int main(int argc, char **argv)
       offset(&t, t.incr);
       break;
     case '.':
+    case KEY_UP:
       offset(&t, t.skip);
       break;
     case '<':
     case KEY_LEFT:
       offset(&t, -t.incr);
       break;
+    case KEY_DOWN:
     case ',':
       offset(&t, -t.skip);
       break;
