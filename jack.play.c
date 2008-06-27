@@ -259,7 +259,9 @@ long read_input_from_rb(void *PTR, float **buf)
   return (long)err;
 }
 
-int jackplay(const char *filename, int b, int m, int i, int t, double r, int q, int c)
+int jackplay(const char *file_name,
+             const char *client_name,
+             int b, int m, int i, int t, double r, int q, int c)
 {
   observe_signals ();
 
@@ -275,7 +277,7 @@ int jackplay(const char *filename, int b, int m, int i, int t, double r, int q, 
   /* Open sound file. */
 
   SF_INFO sfinfo;
-  d.sound_file = xsf_open(filename, SFM_READ, &sfinfo);
+  d.sound_file = xsf_open(file_name, SFM_READ, &sfinfo);
   d.channels = sfinfo.channels;
 
   /* Allocate channel based data. */
@@ -316,7 +318,7 @@ int jackplay(const char *filename, int b, int m, int i, int t, double r, int q, 
 
   /* Become a client of the JACK server.  */
 
-  d.client = jack_client_unique("jack.play");
+  d.client = jack_client_unique(client_name);
 
   /* Start disk thread, the priority number is a random guess.... */
 
@@ -376,6 +378,7 @@ int jackplay(const char *filename, int b, int m, int i, int t, double r, int q, 
 
 int main(int argc, char *argv[])
 {
+  const char *client_name = "jack.play";
   int buffer_frames = 4096;
   int minimal_frames = 32;
   int seek_request = -1;
@@ -384,8 +387,12 @@ int main(int argc, char *argv[])
   int queue = 64;
   int converter = SRC_SINC_FASTEST;
   int c;
-  while((c = getopt(argc, argv, "b:c:hi:m:q:r:t")) != -1) {
+  while((c = getopt(argc, argv, "b:c:hi:m:n:q:r:t")) != -1) {
     switch(c) {
+    case 'n':
+      client_name = optarg;
+      eprintf("jack client name: %s\n", client_name);
+      break;
     case 'b':
       buffer_frames = (int)strtol(optarg, NULL, 0);
       break;
@@ -423,6 +430,7 @@ int main(int argc, char *argv[])
   for(i = optind; i < argc; i++) {
     printf("jack.play: %s\n", argv[i]);
     jackplay(argv[i],
+             client_name,
 	     buffer_frames, minimal_frames,
 	     seek_request, transport_aware,
 	     ratio, queue, converter);
