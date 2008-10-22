@@ -32,6 +32,10 @@ PKG_CHECK_MODULES(SNDFILE, sndfile, , AC_MSG_ERROR("libsndfile required"))
 
 PKG_CHECK_MODULES(SRC, samplerate, , AC_MSG_ERROR("libssamplerate required"))
 
+# Require liblo library.
+
+PKG_CHECK_MODULES(LIBLO, liblo, , AC_MSG_ERROR("liblo required"))
+
 # Require X11
 
 PKG_CHECK_MODULES(X11, x11, , AC_MSG_ERROR("x11 required"))

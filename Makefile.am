@@ -19,7 +19,8 @@ bin_PROGRAMS =	jack.osc \
 		jack.record \
 		jack.scope \
 		jack.transport \
-		jack.udp
+		jack.udp \
+		jack.dl
 
 jack_osc_SOURCES = jack.osc.c
 jack_osc_LDADD = common/libcommon.a $(JACK_LIBS)
@@ -48,6 +49,10 @@ jack_transport_CFLAGS = $(JACK_CFLAGS)
 jack_udp_SOURCES = jack.udp.c
 jack_udp_LDADD = common/libcommon.a $(JACK_LIBS)
 jack_udp_CFLAGS = $(JACK_CFLAGS)
+
+jack_dl_SOURCES = jack.dl.c
+jack_dl_LDADD = $(JACK_LIBS) $(LIBLO_LIBS)
+jack_dl_CFLAGS = $(JACK_CFLAGS) $(LIBLO_CFLAGS)
 
 man_MANS =	jack.osc.1 \
 		jack.play.1 \
