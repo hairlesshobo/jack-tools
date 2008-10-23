@@ -1,5 +1,7 @@
 /*  observe-signal.c - (c) rohan drape, 2005-2006 */
 
+#define _XOPEN_SOURCE 600 /* To use SA_RESTART and SA_RESETHAND */
+
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
