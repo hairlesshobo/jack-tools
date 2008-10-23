@@ -44,7 +44,7 @@ PKG_CHECK_MODULES(XEXT, xext, , AC_MSG_ERROR("xext required"))
 # Set compiler flags.
 
 AC_SUBST(AM_CFLAGS)
-AM_CFLAGS="-O3 -funroll-loops -Wall"
+AM_CFLAGS="-D_POSIX_C_SOURCE=200112 -std=c99 -O3 -funroll-loops -Wall"
 
 # Write Makefile.
 
