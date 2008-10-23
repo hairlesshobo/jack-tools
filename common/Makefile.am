@@ -32,4 +32,4 @@ libcommon_a_SOURCES =	byte-order.c byte-order.h \
 			time-timeval.c time-timeval.h \
 			ximg.c ximg.h \
 			xregcomp.c xregcomp.h
-libcommon_a_CFLAGS = $(JACK_CFLAGS)
+libcommon_a_CFLAGS = $(AM_CFLAGS) $(JACK_CFLAGS)
