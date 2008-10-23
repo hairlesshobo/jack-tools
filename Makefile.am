@@ -64,4 +64,4 @@ man_MANS =	jack.osc.1 \
 		jack.scope.1 \
 		jack.transport.1 \
 		jack.udp.1
-EXTRA_DIST = $(man_MANS)
+EXTRA_DIST = $(man_MANS) help/sin.c help/sin.scm 
