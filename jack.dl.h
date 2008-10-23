@@ -2,22 +2,28 @@
 #include <jack/jack.h>
 
 struct world {
-  void* (*dsp_init)(struct world *);
-  void (*dsp_step)(struct world *, void *, int);
+  void* (**dsp_init)(struct world *, int);
+  void (**dsp_step)(struct world *, int, void *, int);
+  void **st;                    /* graph state */
+  bool *ga;                     /* graph active */
   jack_client_t *c;             /* client */
   jack_port_t **ip;             /* input ports */
   jack_port_t **op;             /* output ports */
   int nc;                       /* number of channels */
+  int ng;                       /* number of graphs */
+  int nk;                       /* number of controls */
   float sr;                     /* sample rate */
   float **in;                   /* input data */
   float **out;                  /* output data */
-  float ctl[64];                /* control data */
-  void *st;                     /* state */
+  float *ctl;                   /* shared control data */
+  float **p_ctl;                /* private control data */
   bool ef;                      /* exit flag */
 };
 
 #define w_sr(w) (w)->sr
-#define w_cget(w,i) (w)->ctl[(i)]
-#define w_cset(w,i,n) (w)->ctl[(i)]=(n)
-#define w_out1(w,i,n) (w)->out[0][(i)]=(n)
-#define w_out2(w,i,n1,n2) {(w)->out[0][(i)]=(n1);(w)->out[1][(i)]=(n2);}
+#define w_c_get1(w,i) (w)->ctl[(i)]
+#define w_c_set1(w,i,n) (w)->ctl[(i)]=(n)
+#define w_p_get1(w,g,i) (w)->p_ctl[(g)][(i)]
+#define w_p_set1(w,g,i,n) (w)->p_ctl[(g)][(i)]=(n)
+#define w_out1(w,i,n) (w)->out[0][(i)]+=(n)
+#define w_out2(w,i,n1,n2) {(w)->out[0][(i)]+=(n1);(w)->out[1][(i)]+=(n2);}

@@ -5,16 +5,30 @@
       (udp:close fd)
       r)))
 
+(define g-load
+  (lambda (i s)
+    (message "/g_load" (list i s))))
+
+(define p-set1
+  (lambda (g i n)
+    (message "/p_set1" (list g i n))))
+
 (define set-sin
-  (lambda (f a p)
+  (lambda (g f a p)
     (with-jackdl
      (lambda (fd)
-       (send fd (c-set1 0 f))
-       (send fd (c-set1 1 a))
-       (send fd (c-set1 2 p))))))
+       (send fd (p-set1 g 0 f))
+       (send fd (p-set1 g 1 a))
+       (send fd (p-set1 g 2 p))))))
 
-(set-sin (random 220 880)
-         (random 0.1 0.5)
+(with-jackdl
+  (lambda (fd)
+    (send fd (g-load 0 "/home/rohan/sw/jack.*/help/sin.so"))
+    (send fd (g-load 1 "/home/rohan/sw/jack.*/help/sin.so"))))
+
+(set-sin (i-random 0 2)
+         (random 220 880)
+         (random 0.1 0.25)
          (random 0 1))
 
 (with-jackdl
