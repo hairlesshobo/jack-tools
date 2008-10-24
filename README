@@ -1,5 +1,6 @@
 jack.* - jackd utilities
 
+jack.dl        - load dsp algorithms from shared libraries
 jack.osc       - jack <-> open sound control daemon
 jack.play      - soundfile playback
 jack.plumbing  - plumbing daemon

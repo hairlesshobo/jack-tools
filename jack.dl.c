@@ -127,7 +127,7 @@ int main(int argc, char **argv)
 {
   struct world w;
   lo_server_thread osc;
-  world_init(&w, 4, 8, 64);
+  world_init(&w, 8, 8, 64);
   osc = lo_server_thread_new("57190", osc_error);
   lo_server_thread_add_method(osc, "/c_set1", "if", osc_c_set1, &w);
   lo_server_thread_add_method(osc, "/p_set1", "iif", osc_p_set1, &w);
