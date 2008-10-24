@@ -12,10 +12,13 @@ struct world {
   int nc;                       /* number of channels */
   int ng;                       /* number of graphs */
   int nk;                       /* number of controls */
+  int nb;                       /* number of buffers */
   float sr;                     /* sample rate */
   float **in;                   /* input data */
   float **out;                  /* output data */
   float *ctl;                   /* shared control data */
+  float **bd;                   /* buffer data */
+  int *bl;                      /* buffer sizes */
   float **p_ctl;                /* private control data */
   bool ef;                      /* exit flag */
 };
@@ -27,3 +30,5 @@ struct world {
 #define w_p_set1(w,g,i,n) (w)->p_ctl[(g)][(i)]=(n)
 #define w_out1(w,i,n) (w)->out[0][(i)]+=(n)
 #define w_out2(w,i,n1,n2) {(w)->out[0][(i)]+=(n1);(w)->out[1][(i)]+=(n2);}
+#define w_b_read1(w,b,i) (w)->bd[(b)][(i)]
+#define w_b_write1(w,b,i,n) (w)->bd[(b)][(i)]=(n)

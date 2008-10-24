@@ -77,6 +77,20 @@ int osc_c_set1(const char *p, const char *t, lo_arg **a, int n, void *d, void *u
   return 0;
 }
 
+int osc_b_alloc(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
+{
+  struct world *w = (struct world *)u;
+  int i = a[0]->i;
+  break_on(i >= w->nb, "buffer index");
+  /*if(w->bd[i]) free(w->bd[i]);*/
+  int l = a[1]->i;
+  w->bl[i] = 0;
+  w->bd[i] = calloc(l, sizeof(float));
+  w->bl[i] = l;
+  fprintf(stderr,"b_alloc: %d, %d\n", i, l);
+  return 0;
+}
+
 int osc_p_set1(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
 {
   struct world *w = (struct world *)u;
@@ -96,11 +110,12 @@ int osc_quit(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
   return 0;
 }
 
-void world_init(struct world *w, int ng, int nc, int nk)
+void world_init(struct world *w, int ng, int nc, int nk, int nb)
 {
   w->ng = ng;
   w->nc = nc;
   w->nk = nk;
+  w->nb = nb;
   w->dsp_init = calloc(w->ng, sizeof(void *));
   w->dsp_step = calloc(w->ng, sizeof(void *));
   w->st = calloc(w->ng, sizeof(void *));
@@ -114,6 +129,8 @@ void world_init(struct world *w, int ng, int nc, int nk)
   w->in = malloc(w->nc * sizeof(float *));
   w->out = malloc(w->nc * sizeof(float *));
   w->ctl = calloc(w->nk, sizeof(float));
+  w->bl = calloc(w->nb, sizeof(int));
+  w->bd = calloc(w->ng, sizeof(float*));
   w->ef = false;
   w->c = jack_client_new("jack.dl");
   if(!w->c) fail("could not create jack client\n");
@@ -127,11 +144,12 @@ int main(int argc, char **argv)
 {
   struct world w;
   lo_server_thread osc;
-  world_init(&w, 8, 8, 64);
+  world_init(&w, 8, 8, 64, 8);
   osc = lo_server_thread_new("57190", osc_error);
   lo_server_thread_add_method(osc, "/c_set1", "if", osc_c_set1, &w);
   lo_server_thread_add_method(osc, "/p_set1", "iif", osc_p_set1, &w);
   lo_server_thread_add_method(osc, "/g_load", "is", osc_g_load, &w);
+  lo_server_thread_add_method(osc, "/b_alloc", "ii", osc_b_alloc, &w);
   lo_server_thread_add_method(osc, "/quit", NULL, osc_quit, &w);
   lo_server_thread_start(osc);
   if(jack_activate(w.c)) fail("jack.dl: jack_activate() failed\n");
