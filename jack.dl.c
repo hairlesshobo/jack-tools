@@ -44,42 +44,48 @@ void osc_error(int n, const char *m, const char *p)
   fprintf(stderr,"jack.dl: error %d in path %s: %s\n", n, p, m);
 }
 
+#define break_on(x,s)                                                   \
+  if(x){                                                                \
+    fprintf(stderr,"jack.dl: %s: %s, %d\n", s, __FILE__, __LINE__);     \
+    return 0;                                                           \
+  }
+
 int osc_g_load(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
 {
   struct world *w = (struct world *)u;
   int g = a[0]->i;
-  if(g >= w->ng) {
-    fprintf(stderr,"g_load: illegal graph number: %d\n", g);
-    return 0;
-  }
+  break_on(g >= w->ng, "graph index");
   w->ga[g] = false;
   char *s = &a[1]->s;
   void *h = dlopen(s, RTLD_LAZY);
-  if(!h) {
-    fprintf(stderr,"g_load: dlopen failed: %s\n", dlerror());
-    return 0;
-  }
+  break_on(!h, dlerror());
   w->dsp_init[g] = dlsym(h, "dsp_init");
   w->dsp_step[g] = dlsym(h, "dsp_step");
   w->st[g] = w->dsp_init[g](w, g);
   w->ga[g] = true;
-  fprintf(stderr,"jack.dl: g_load: %d, %s\n", g, s);
+  fprintf(stderr,"g_load: %d, %s\n", g, s);
   return 0;
 }
 
 int osc_c_set1(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
 {
   struct world *w = (struct world *)u;
-  w_c_set1(w, a[0]->i, a[1]->f);
-  fprintf(stderr,"jack.dl: c_set1: %d, %f\n", a[0]->i, a[1]->f);
+  int i = a[0]->i;
+  break_on(i >= w->nk, "control index");
+  w_c_set1(w, i, a[1]->f);
+  fprintf(stderr,"c_set1: %d, %f\n", i, a[1]->f);
   return 0;
 }
 
 int osc_p_set1(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
 {
   struct world *w = (struct world *)u;
-  w_p_set1(w, a[0]->i, a[1]->i, a[2]->f);
-  fprintf(stderr,"jack.dl: p_set1: %d, %d, %f\n", a[0]->i, a[1]->i, a[2]->f);
+  int g = a[0]->i;
+  break_on(g >= w->ng, "graph index");
+  int i = a[1]->i;
+  break_on(i >= w->nk, "control index");
+  w_p_set1(w, g, i, a[2]->f);
+  fprintf(stderr,"p_set1: %d, %d, %f\n", g, i, a[2]->f);
   return 0;
 }
 
@@ -110,7 +116,7 @@ void world_init(struct world *w, int ng, int nc, int nk)
   w->ctl = calloc(w->nk, sizeof(float));
   w->ef = false;
   w->c = jack_client_new("jack.dl");
-  if(!w->c) fail("jack.dl: could not create jack client\n");
+  if(!w->c) fail("could not create jack client\n");
   jack_set_process_callback(w->c, dsp_run, w);
   w->sr = (float)jack_get_sample_rate(w->c);
   jack_port_make_standard(w->c, w->ip, w->nc, false);
