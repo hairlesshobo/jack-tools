@@ -23,10 +23,12 @@
 
 (with-jackdl
   (lambda (fd)
-    (send fd (g-load 0 "/home/rohan/sw/jack.*/help/sin.so"))
-    (send fd (g-load 1 "/home/rohan/sw/jack.*/help/sin.so"))))
+    (for-each
+     (lambda (g)
+       (send fd (g-load g "/home/rohan/sw/jack.*/help/sin.so")))
+     (list 0 1 2))))
 
-(set-sin (i-random 0 2)
+(set-sin (i-random 0 3)
          (random 220 880)
          (random 0.1 0.25)
          (random 0 1))
