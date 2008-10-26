@@ -57,10 +57,11 @@ int osc_g_load(const char *p, const char *t, lo_arg **a, int n, void *d, void *u
   break_on(g >= w->ng, "graph index");
   w->ga[g] = false;
   char *s = &a[1]->s;
-  void *h = dlopen(s, RTLD_LAZY);
-  break_on(!h, dlerror());
-  w->dsp_init[g] = dlsym(h, "dsp_init");
-  w->dsp_step[g] = dlsym(h, "dsp_step");
+  if(w->gh[g]) break_on(dlclose(w->gh[g]), dlerror());
+  w->gh[g] = dlopen(s, RTLD_LAZY);
+  break_on(!w->gh[g], dlerror());
+  w->dsp_init[g] = dlsym(w->gh[g], "dsp_init");
+  w->dsp_step[g] = dlsym(w->gh[g], "dsp_step");
   w->st[g] = w->dsp_init[g](w, g);
   w->ga[g] = true;
   fprintf(stderr,"g_load: %d, %s\n", g, s);
@@ -124,6 +125,7 @@ void world_init(struct world *w, int ng, int nc, int nk, int nb)
     w->p_ctl[i] = calloc(w->nk, sizeof(float));
   }
   w->ga = calloc(w->ng, sizeof(bool));
+  w->gh = calloc(w->ng, sizeof(void *));
   w->ip = malloc(w->nc * sizeof(jack_port_t *));
   w->op = malloc(w->nc * sizeof(jack_port_t *));
   w->in = malloc(w->nc * sizeof(float *));
