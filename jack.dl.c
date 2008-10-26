@@ -68,6 +68,19 @@ int osc_g_load(const char *p, const char *t, lo_arg **a, int n, void *d, void *u
   return 0;
 }
 
+int osc_g_unload(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
+{
+  struct world *w = (struct world *)u;
+  int g = a[0]->i;
+  break_on(g >= w->ng, "graph index");
+  w->ga[g] = false;
+  if(w->gh[g]) break_on(dlclose(w->gh[g]), dlerror());
+  w->gh[g] = NULL;
+  if(w->st[g]) free(w->st[g]);
+  fprintf(stderr,"g_unload: %d\n", g);
+  return 0;
+}
+
 int osc_c_set1(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
 {
   struct world *w = (struct world *)u;
@@ -151,6 +164,7 @@ int main(int argc, char **argv)
   lo_server_thread_add_method(osc, "/c_set1", "if", osc_c_set1, &w);
   lo_server_thread_add_method(osc, "/p_set1", "iif", osc_p_set1, &w);
   lo_server_thread_add_method(osc, "/g_load", "is", osc_g_load, &w);
+  lo_server_thread_add_method(osc, "/g_unload", "i", osc_g_unload, &w);
   lo_server_thread_add_method(osc, "/b_alloc", "ii", osc_b_alloc, &w);
   lo_server_thread_add_method(osc, "/quit", NULL, osc_quit, &w);
   lo_server_thread_start(osc);
