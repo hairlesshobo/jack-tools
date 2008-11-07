@@ -1,0 +1,50 @@
+JACK.TRANSPORT(1)
+=================
+Rohan Drape <rd@slavepianos.org>
+
+
+NAME
+----
+jack.transport - Minimalist Jack Transport Interface
+
+SYNOPSIS
+--------
+jack.transport
+
+DESCRIPTION
+-----------
+jack.transport is a minimalist Jack transport control interface using
+ncurses.  It displays the transport state and current time, and pro-
+vides standard operating keys.
+
+COMMANDS
+--------
+*s*::
+  Start and stop transport.  Aliased to [space].
+
+*l*::
+  Locate  to  entered  time.   Starting to type a number will also
+  enter locate mode.
+
+*i*::
+  Set skip increment to entered interval.
+
+*z*::
+  Locate to start (zero).
+
+*r*::
+  Erase and refresh screen.
+
+*>*::
+  Skip forwards.  Aliased to . and [right-arrow].
+
+*<*::
+  Skip backwards.  Aliased to , and [left-arrow].
+
+AUTHOR
+------
+Rohan Drape <http://slavepianos.org/rd/>
+
+SEE ALSO
+--------
+jackd(1), jack.play(1)

@@ -1,0 +1,54 @@
+JACK.DL(1)
+==========
+Rohan Drape <rd@slavepianos.org>
+
+
+NAME
+----
+jack.dl - JACK shared library dsp loader
+
+SYNOPSIS
+--------
+jack.dl [options]
+
+OPTIONS
+-------
+*-c*::
+   Set the number of input and output channels (default=8).
+
+*-g*::
+   Set the number of graph slots (default=8).
+
+*-k*::
+   Set the number of control buses (default=64).
+
+*-p*::
+    Set the udp port number (default=57190).
+
+DESCRIPTION
+-----------
+jack.dl loads dsp algorithms from shared libraries.  Commands are sent
+as OSC packets over a UDP connection.  jack.dl allows data flow code
+generators to be used as interactively.
+
+Clients load dsp graphs by sending a "graph load" packet:
+
+----
+/g_load index object-file
+----
+
+where index is an integer and object-file a file name.
+
+jack.dl implements only a subset of the OSC protocol.  In particular
+it does not implement the patten matching rules and does not implement
+a scheduler for incoming messages.
+
+jack.dl drops all unrecognized incoming packets.
+
+AUTHOR
+------
+Rohan Drape <http://slavepianos.org/rd/>
+
+SEE ALSO
+--------
+jackd(1), OSC(7) <http://opensoundcontrol.org/>
