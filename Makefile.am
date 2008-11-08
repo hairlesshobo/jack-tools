@@ -57,11 +57,11 @@ jack_udp_SOURCES = jack.udp.c
 jack_udp_LDADD = common/libcommon.a $(JACK_LIBS)
 jack_udp_CFLAGS = $(AM_CFLAGS) $(JACK_CFLAGS)
 
-man_MANS =	jack.osc.1 \
-		jack.play.1 \
-		jack.plumbing.1 \
-		jack.record.1 \
-		jack.scope.1 \
-		jack.transport.1 \
-		jack.udp.1
-EXTRA_DIST = $(man_MANS) help/sin.c help/sin.scm 
+docs_ASCIIDOC =	jack.osc.text \
+		jack.play.text \
+		jack.plumbing.text \
+		jack.record.text \
+		jack.scope.text \
+		jack.transport.text \
+		jack.udp.text
+EXTRA_DIST = $(docs_ASCIIDOC) help/sin.c help/sin.scm 
