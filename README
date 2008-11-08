@@ -1,18 +1,24 @@
-jack.* - jackd utilities
+jack.* - jackd[1] utilities
 
 jack.dl        - load dsp algorithms from shared libraries
-jack.osc       - jack <-> open sound control daemon
-jack.play      - soundfile playback
+jack.osc       - jack <-> open sound control (osc[4]) daemon
+jack.play      - soundfile[2] playback
 jack.plumbing  - plumbing daemon
 jack.record    - soundfile recording
 jack.scope     - plain X oscilloscope
 jack.transport - minimalist ncurses jack transport
-jack.udp       - jack over udp client (obsolete, see netjack)
+jack.udp       - jack over udp client (obsolete, see netjack[3])
 
-http://jackaudio.org/
-http://mega-nerd.com/libsndfile/
-http://netjack.org/
-http://opensoundcontrol.org/
-http://slavepianos.org/rd/
+Documentation is in asciidoc[5] format.  To build type:  
+  
+  for i in *.text ; do asciidoc $i; done
 
-(c) rohan drape 2003-2008, http://www.gnu.org/copyleft/
+[1] http://jackaudio.org/
+[2] http://mega-nerd.com/libsndfile/
+[3] http://netjack.org/
+[4] http://opensoundcontrol.org/
+[5] http://www.methods.co.nz/asciidoc/
+
+(c) rohan drape 2003-2008
+    http://slavepianos.org/rd/
+    gpl, http://www.gnu.org/copyleft/
