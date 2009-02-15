@@ -38,7 +38,7 @@ void init_sockaddr_in(struct sockaddr_in *name, const char *hostname, uint16_t p
       fprintf(stderr, "init_sockaddr_in: unknown host: %s.\n", hostname);
       FAILURE;
     }
-    name->sin_addr = *(struct in_addr *) hostinfo->h_addr;
+    name->sin_addr = *(struct in_addr *) hostinfo->h_addr_list[0];
   } else {
     name->sin_addr.s_addr = htonl(INADDR_ANY);
   }
