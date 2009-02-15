@@ -40,6 +40,7 @@ PKG_CHECK_MODULES(LIBLO, liblo, , AC_MSG_ERROR("liblo required"))
 
 PKG_CHECK_MODULES(X11, x11, , AC_MSG_ERROR("x11 required"))
 PKG_CHECK_MODULES(XEXT, xext, , AC_MSG_ERROR("xext required"))
+PKG_CHECK_MODULES(Xt, xt, , AC_MSG_ERROR("xt required"))
 
 # Set compiler flags.
 
