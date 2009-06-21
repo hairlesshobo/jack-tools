@@ -13,38 +13,38 @@ jack.play [options] sound-file...
 
 OPTIONS
 -------
-*-b*::
-    Set the disk buffer size in frames (default=4096).  This value
+*-b*
+:   Set the disk buffer size in frames (default=4096).  This value
     must be a power of two.  If the JACK period size at any time
     exceeds this value the player will halt.
 
-*-c*::
-    Set the sample rate conversion algorithm (default=2).  Values are:
+*-c*
+:   Set the sample rate conversion algorithm (default=2).  Values are:
     SRC_SINC_BEST_QUALITY = 0, SRC_SINC_MEDIUM_QUALITY = 1,
     SRC_SINC_FASTEST = 2, SRC_ZERO_ORDER_HOLD = 3 and SRC_LINEAR = 4.
 
-*-i*::
-     Set the initial disk seek in frames (default=0).
+*-i*
+:   Set the initial disk seek in frames (default=0).
 
-*-m*::
-     Set the minimal disk transfer size in frames (default=32).  This
-     is an optimization switch.
+*-m*
+:   Set the minimal disk transfer size in frames (default=32).  This
+    is an optimization switch.
 
-*-n*::
-     Set the client name (default=jack.play).
+*-n*
+:   Set the client name (default=jack.play).
 
-*-q*::
-     Set the frame size to request data from the ringbuffer
-     (default=64). This is an optimization switch.
+*-q*
+:   Set the frame size to request data from the ringbuffer
+    (default=64). This is an optimization switch.
 
-*-r*::
-     Set the resampling ratio multiplier (default=1.0).
+*-r*
+:   Set the resampling ratio multiplier (default=1.0).
 
-*-t*::
-     Run in JACK transport aware mode.
+*-t*
+:   Run in JACK transport aware mode.
 
-*-u*::
-     Do not make client name unique by appending process  identifier.
+*-u*
+:   Do not make client name unique by appending process  identifier.
 
 DESCRIPTION
 -----------

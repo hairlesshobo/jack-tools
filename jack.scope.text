@@ -13,33 +13,33 @@ jack.scope [options]
 
 OPTIONS
 -------
-*-b*::
-    Set the frame size of the data displayed by the scope
+*-b*
+:   Set the frame size of the data displayed by the scope
     (default=512).
 
-*-d*::
-    Set the delay interval in milli-seconds between scope updates
+*-d*
+:   Set the delay interval in milli-seconds between scope updates
     (default=100.0).
 
-*-f*::
-    Request that a still image file of each frame be stored to the
+*-f*
+:   Request that a still image file of each frame be stored to the
     indicated directory.
 
-*-m*::
-    Set the scope operating mode (default=signal).  The operating
+*-m*
+:   Set the scope operating mode (default=signal).  The operating
     modes are: signal and embed.
 
-*-n*::
-    Set the number of channels, and therefore the number of JACK input
+*-n*
+:   Set the number of channels, and therefore the number of JACK input
     ports (default=1).  Multiple channels are superimposed, each
     channel is drawn in a distinct color.  There is a compile time
     channel limit.
 
-*-p*::
-    Set the port number to listen for OSC packets on (default=57140).
+*-p*
+:   Set the port number to listen for OSC packets on (default=57140).
 
-*-w*::
-    Set the scope size in pixels (default=512).  The scope window is
+*-w*
+:   Set the scope size in pixels (default=512).  The scope window is
     square.
 
 DESCRIPTION
@@ -85,23 +85,21 @@ The OSC messages understood by jack.scope are given in the table
 below.  Each command requires one argument of the indicated type.  The
 last column gives the option that sets the same parameter.
 
-[width="60%",frame="none",options="header"]
-|==================================================
-|Command   |Description        |Argument    |Option
-|/mode     |drawing-mode       |<string>    |-m
-|/style    |style              |<string>    |N/A
-|/frames   |frame-size         |<integer>   |-b
-|/delay    |refresh-interval   |<float>     |-d
-|/embed    |embedding          |<integer>   |N/A
-|/incr     |increment          |<float>     |N/A
-|==================================================
+Command   Description        Argument    Option
+-------   -----------        --------    ------
+/mode     drawing-mode       string      -m
+/style    style              string      N/A
+/frames   frame-size         integer     -b
+/delay    refresh-interval   float       -d
+/embed    embedding          integer     N/A
+/incr     increment          float       N/A
 
 jack.scope implements no connection logic, use jack.plumbing(1)
 instead.
 
 REFERENCES
 ----------
-Monro, G. and Pressing, J.  ‘‘Sound Visualization Using Embedding:  The
+Monro, G. and Pressing, J.  ‘‘Sound Visualization Using Embedding: The
 Art and Science of Auditory Autocorrelation’’ CMJ, 22/2, 1998.
 
 AUTHOR

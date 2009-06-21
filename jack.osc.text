@@ -13,11 +13,10 @@ jack.osc [options]
 
 OPTIONS
 -------
-*-c*::
-    Set the drift correction interval in periods (default=64).
-
-*-p*::
-    Set the port number (default=57130).
+*-c*
+:   Set the drift correction interval in periods (default=64).
+*-p*
+:   Set the port number (default=57130).
 
 DESCRIPTION
 -----------
@@ -31,34 +30,28 @@ Clients request to receive timing and change notification packets by
 sending a "request notification" packet, '/receive', to the jack.osc
 server.  This packet has the form
 
-----
-/receive category
-----
+    /receive category
 
 where category is a bit mask that indicates what categories of
 notification packets are requested.  The bit locations are:
 
-[width="30%",frame="none", options="header"]
-|================================
-|Category            |Mask
-|REQUEST_TICK        |0x0000001
-|REQUEST_PULSE       |0x0000002
-|REQUEST_CORRECTION  |0x0000004
-|REQUEST_TRANSPORT   |0x0000008
-|REQUEST_ALL         |0xFFFFFFF
-|================================
+Category            Mask
+--------            ----
+REQUEST_TICK        0x0000001
+REQUEST_PULSE       0x0000002
+REQUEST_CORRECTION  0x0000004
+REQUEST_TRANSPORT   0x0000008
+REQUEST_ALL         0xFFFFFFF
 
 Clients request notification messages to be sent to an address that is
 not that of the packet that requests the notification by sending a
 "request notification at" packet, '/receive_at'.  This packet has the
 form
 
-----
-/receive_at category port-number host-name
-----
+    /receive_at category port-number host-name
 
-where category is as for '/receive' and where port-number and host-name
-give the address that notification should be sent to.
+where category is as for '/receive' and where port-number and
+host-name give the address that notification should be sent to.
 
 Once a client is registered subsequent '/receive' and '/receive_at'
 messages edit the category value for that client.  To delete the
@@ -70,9 +63,7 @@ timing packets sent by the server.  All jack.osc timing packets are
 sent at the start of a JACK period as OSC message and have the same
 shape:
 
-----
-tag ntp utc frm arg...
-----
+    tag ntp utc frm arg...
 
 where tag is the command name, and ntp, utc and frm are time stamps
 that indicate the same time point, the start of the JACK period when
@@ -84,40 +75,41 @@ time stamps.  arg...  is the set of tag specific arguments.
 
 The timing packets sent by jack.osc are:
 
-/pulse ntp utc frm p-ntp p-utc p-frm pulse::
-   Pulse Location.  This packet indicates that the nearest frame to
-   the integer pulse pulse occurs at the time given by the time stamps
-   p-ntp, p-utc and p-frm.  The pulse number is one based.  This
-   packet is sent at the start of the JACK period in which the integer
-   pulse will occur.  This packet is not sent if the transport is
-   stopped.  This packet is sent before the '/tick' packet for the same
-   period.
+/pulse ntp utc frm p-ntp p-utc p-frm pulse
+:   Pulse Location.  This packet indicates that the nearest frame to
+    the integer pulse pulse occurs at the time given by the time
+    stamps p-ntp, p-utc and p-frm.  The pulse number is one based.
+    This packet is sent at the start of the JACK period in which the
+    integer pulse will occur.  This packet is not sent if the
+    transport is stopped.  This packet is sent before the '/tick'
+    packet for the same period.
 
-/tick ntp utc frm frame pulse::
-   Period Tick.  This packet is sent once per JACK period.  The
-   integer value frame is the transport location in frames, the double
-   precision real value pulse is the transport location in pulses.
-   The pulse value is read from an accumulator and is approximate
-   only, the accumulator is corrected at each integer pulse location.
+/tick ntp utc frm frame pulse
+:   Period Tick.  This packet is sent once per JACK period.  The
+    integer value frame is the transport location in frames, the
+    double precision real value pulse is the transport location in
+    pulses.  The pulse value is read from an accumulator and is
+    approximate only, the accumulator is corrected at each integer
+    pulse location.
 
-/drift ntp utc frm ntp-dif utc-dif::
-   Drift Correction.  This packet is sent whenever the clock drift
-   correction is run.  The frequency of this is set by the *-c* option
-   to the jack.osc server.  The integer value ntp-dif is the NTP form
-   of the corrected drift value and utc-dif the UTC form.  Since JACK
-   is a sample clock there is no frame drift value.
+/drift ntp utc frm ntp-dif utc-dif
+:   Drift Correction.  This packet is sent whenever the clock drift
+    correction is run.  The frequency of this is set by the *-c*
+    option to the jack.osc server.  The integer value ntp-dif is the
+    NTP form of the corrected drift value and utc-dif the UTC form.
+    Since JACK is a sample clock there is no frame drift value.
 
 The state change packets sent by jack.osc are:
 
-/transport ntp utc frm fps ppm ppc pt state::
-   Transport state change.  This packet is sent whenever the JACK
-   transport changes.  The double precision real value fps is the
-   sample rate in frames per second.  The double precision real value
-   ppm is the tempo in pulses per minute.  The double precision real
-   value ppc is the measure length in pulses per cycle.  The double
-   precision real value pt is the pulse type.  The integer value
-   state is zero if the transport has stopped and one if it has
-   started.  See also the '/status' message described below.
+/transport ntp utc frm fps ppm ppc pt state
+:   Transport state change.  This packet is sent whenever the JACK
+    transport changes.  The double precision real value fps is the
+    sample rate in frames per second.  The double precision real value
+    ppm is the tempo in pulses per minute.  The double precision real
+    value ppc is the measure length in pulses per cycle.  The double
+    precision real value pt is the pulse type.  The integer value
+    state is zero if the transport has stopped and one if it has
+    started.  See also the '/status' message described below.
 
 Clients can request the current frame and pulse values by sending a
 '/current' packet, which requires no argument.  The replies with a
@@ -130,9 +122,7 @@ Clients request a status packet by sending a "request status" packet,
 with a status reply packet, '/status.reply'.  The status packet is an
 OSC message and is not timestamped.  It has the shape:
 
-----
-/status.reply fps ppm ppc pt state
-----
+    /status.reply fps ppm ppc pt state
 
 where the argument values are as described for the '/transport'
 message.  It is intended that a client will request a single status
@@ -147,9 +137,7 @@ Clients initiate a change in transport location by sending a "request
 locate operation" packet, '/locate', to the jack.osc server.  It has
 the shape:
 
-----
-/locate location
-----
+    /locate location
 
 where the single precision real value location is the requested
 transport location in seconds.
@@ -157,9 +145,7 @@ transport location in seconds.
 Clients can connect and disconnect ports by sending '/connect' and
 '/disconnect' messages to the jack.osc server.  Both have the shape:
 
-----
-/[dis]connect left right
-----
+   /[dis]connect left right
 
 jack.osc implements only a subset of the OSC protocol.  In particular
 it does not implement the patten matching rules and does not implement

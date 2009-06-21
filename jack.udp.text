@@ -13,21 +13,17 @@ jack.udp [options] send|recv
 
 OPTIONS
 -------
-*-b*::
-    Set the ring buffer size in frames (default=4096).
-
-*-c*::
-    Set the client name (default=jack.udp-PID).
-
-*-n*::
-    Set the number of channels, and therefore the number of JACK ports
+*-b*
+:   Set the ring buffer size in frames (default=4096).
+*-c*
+:   Set the client name (default=jack.udp-PID).
+*-n*
+:   Set the number of channels, and therefore the number of JACK ports
     (default=2).
-
-*-p*::
-    Set the port number (default=57160).
-
-*-r*::
-    The remote host name, for use in send mode (default="127.0.0.1").
+*-p*
+:   Set the port number (default=57160).
+*-r*
+:   The remote host name, for use in send mode (default="127.0.0.1").
 
 DESCRIPTION
 -----------
@@ -49,10 +45,8 @@ jack.udp implements no connection logic, use jack.plumbing(1) instead.
 EXAMPLE
 -------
 
-----
-192.0.0.1:~$ jack.udp -r 192.0.0.2 send
-192.0.0.2:~$ jack.udp recv
-----
+    192.0.0.1:~$ jack.udp -r 192.0.0.2 send
+    192.0.0.2:~$ jack.udp recv
 
 AUTHOR
 ------

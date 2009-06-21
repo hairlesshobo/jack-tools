@@ -13,17 +13,14 @@ jack.dl [options]
 
 OPTIONS
 -------
-*-c*::
-   Set the number of input and output channels (default=8).
-
-*-g*::
-   Set the number of graph slots (default=8).
-
-*-k*::
-   Set the number of control buses (default=64).
-
-*-p*::
-    Set the udp port number (default=57190).
+*-c*
+:   Set the number of input and output channels (default=8).
+*-g*
+:   Set the number of graph slots (default=8).
+*-k*
+:   Set the number of control buses (default=64).
+*-p*
+:   Set the udp port number (default=57190).
 
 DESCRIPTION
 -----------
@@ -33,9 +30,7 @@ generators to be used as interactively.
 
 Clients load dsp graphs by sending a "graph load" packet:
 
-----
-/g_load index object-file
-----
+    /g_load index object-file
 
 where index is an integer and object-file a file name.
 
