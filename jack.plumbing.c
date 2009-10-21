@@ -411,6 +411,7 @@ apply_connect_exclusive_rule(struct plumber *p, struct rule *r,
 {
   TRAVERSE_LISTS(r, p_left, p_right,
 		 jack_port_clear_all_connections(p->j, left);
+		 jack_port_clear_all_connections(p->j, right);
 		 inform(p, "Connect-exclusive: '%s' -> '%s'.",
 			left, right);
 		 jack_port_connect_named(p->j, left, right););
