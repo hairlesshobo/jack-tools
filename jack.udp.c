@@ -1,4 +1,4 @@
-/***** jack.udp.c - (c) rohan drape, 2003-2005 *****/
+/***** jack.udp.c - (c) rohan drape, 2003-2010 *****/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -96,12 +96,12 @@ void *jackudp_recv_thread(void *PTR)
 {
   jackudp_t *d = (jackudp_t *) PTR;
   packet_t p;
-  int last_packet = -1;
+  int next_packet = -1;
   while(1) {
     packet_recv(d->fd, &p, 0);
-    if(p.index != last_packet + 1 && last_packet != -1) {
+    if(p.index != next_packet && next_packet != -1) {
       eprintf("jack.udp recv: out of order packet arrival (%d, %d)\n", 
-	      last_packet, (int)p.index);
+	      next_packet, (int)p.index);
       FAILURE;
     }
     if(p.channels != d->channels) {
@@ -118,6 +118,8 @@ void *jackudp_recv_thread(void *PTR)
 				    (char *) p.data, 
 				    (size_t) PAYLOAD_BYTES);
     }
+    next_packet = p.index + 1;
+    next_packet %= INT32_MAX;
   }  
   return NULL;
 }
@@ -170,7 +172,8 @@ void *jackudp_send_thread(void *PTR)
   p.index = 0;
   while(1) {
     jack_ringbuffer_wait_for_read(d->rb, PAYLOAD_BYTES, d->pipe[0]);
-    p.index++;
+    p.index += 1;
+    p.index %= INT32_MAX;
     p.channels = d->channels;
     p.frames = PAYLOAD_SAMPLES / d->channels;
     jack_ringbuffer_read_exactly(d->rb, (char *)&(p.data), PAYLOAD_BYTES);
