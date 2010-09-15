@@ -1,4 +1,4 @@
-/***** jack.plumbing.c - (c) rohan drape, 2003-2006 *****/
+/***** jack.plumbing.c - (c) rohan drape, 2003-2010 *****/
 
 #include <unistd.h>
 #include <stdio.h>
@@ -10,7 +10,7 @@
 #include <ctype.h>
 #include <regex.h>
 #include <pthread.h>
-#include <semaphore.h>
+#include <pthread.h>
 
 #include "common/file.h"
 #include "common/jack-client.h"
@@ -50,7 +50,8 @@ struct plumber
   int g; 			/* Number of rule set files. */
   jack_client_t *j;		/* JACK client. */
   pthread_t t;			/* Plumbing thread. */
-  sem_t s;			/* Wakeup semaphore. */
+pthread_mutex_t lock;
+pthread_cond_t cond;
   int w;			/* Do not send wakeup unless TRUE. */
   time_t m;			/* Time that the rule set was last modified. */
   unsigned long u;		/* Number of usecs to defer for connections. */
@@ -455,32 +456,41 @@ apply_rule_set(struct plumber *p)
 static void
 wait_on_connection_set(struct plumber *p)
 {
-  sem_wait(&(p->s));
+eprintf("sem_waiting %d\n",p->w);
+pthread_cond_wait(&p->cond, &p->lock);
+eprintf("wake w %d\n",p->w);
   while(p->w > 0) {
     struct timespec t;
-    p->w = 0;
     t = usec_to_timespec(p-> u);
+    p->w = 0;
     nanosleep(&t, NULL); 
+eprintf("sleeping %d\n",p->w);
   }
+eprintf ("out of while loop\n");
 }
 
 static void *
 plumbing_daemon(void *PTR)
 {
-  struct plumber *p = PTR;
+  struct plumber *p = (struct plumber*) PTR;
+pthread_mutex_lock (&p->lock);
   while(1) {
     wait_on_connection_set(p);
     apply_rule_set(p);
     p->w = -1;
   }
+pthread_mutex_unlock(&p->lock);
   return NULL;
 }
 
 #define SEND_WAKEUP				\
-  struct plumber *p = PTR;			\
+  struct plumber *p = (struct plumber*) PTR;    \
   if(p->w < 0) {				\
-    sem_post(&(p->s));				\
-    p->w = 0;					\
+    pthread_mutex_lock(&p->lock);               \
+    pthread_cond_signal(&p->cond);              \
+    eprintf("sem_posted\n");                    \
+    p->w = 1;					\
+    pthread_mutex_unlock(&p->lock);             \
   }						\
   p->w += 1;
 
@@ -510,12 +520,13 @@ init_plumber_defaults(struct plumber *p)
   p->d = 1;
   p->o = 1;
   p->q = 0;
+pthread_mutex_init(&p->lock, NULL);
+pthread_cond_init(&p->cond, NULL);
 }
 
 static void
 init_plumber_connection(struct plumber *p)
 {
-  sem_init(&(p->s), 0, 0);
   p->j = jack_client_unique("jack.plumbing");
 }
 
@@ -523,7 +534,8 @@ static void
 finalize_plumber(struct plumber *p)
 {
   jack_client_close(p->j);
-  sem_destroy(&(p->s));
+pthread_cond_destroy(&p->cond);
+pthread_mutex_destroy(&p->lock);
 } 
 
 static void

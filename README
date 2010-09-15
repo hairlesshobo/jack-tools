@@ -19,6 +19,7 @@ Documentation is in asciidoc[5] format.  To build type:
 [4] http://opensoundcontrol.org/
 [5] http://www.methods.co.nz/asciidoc/
 
-(c) rohan drape 2003-2008
-    http://slavepianos.org/rd/
+(c) rohan drape 2003-2010
     gpl, http://www.gnu.org/copyleft/
+    with contributions by jeremy hall
+    see darcs history for details
