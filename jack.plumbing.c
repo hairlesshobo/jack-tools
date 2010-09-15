@@ -44,20 +44,20 @@ struct rule
  
 struct plumber
 {
-  struct rule r[MAX_RULES];	/* The rule set. */
-  int n;			/* Number of rules. */
-  char i[MAX_SETS][MAX_STR];	/* Rule set filenames. */
-  int g; 			/* Number of rule set files. */
-  jack_client_t *j;		/* JACK client. */
-  pthread_t t;			/* Plumbing thread. */
+  struct rule r[MAX_RULES];     /* The rule set. */
+  int n;                        /* Number of rules. */
+  char i[MAX_SETS][MAX_STR];    /* Rule set filenames. */
+  int g;                        /* Number of rule set files. */
+  jack_client_t *j;             /* JACK client. */
+  pthread_t t;                  /* Plumbing thread. */
 pthread_mutex_t lock;
 pthread_cond_t cond;
-  int w;			/* Do not send wakeup unless TRUE. */
-  time_t m;			/* Time that the rule set was last modified. */
-  unsigned long u;		/* Number of usecs to defer for connections. */
-  int d;			/* Run as daeomon. */
-  int o;			/* Include ordinary rule files. */
-  int q;			/* Quiet operation. */
+  int w;                        /* Do not send wakeup unless TRUE. */
+  time_t m;                     /* Time that the rule set was last modified. */
+  unsigned long u;              /* Number of usecs to defer for connections. */
+  int d;                        /* Run as daeomon. */
+  int o;                        /* Include ordinary rule files. */
+  int q;                        /* Quiet operation. */
 };
 
 /* Send message to stderr. */
@@ -105,7 +105,7 @@ precompile_rule_p(enum action c)
 
 static void
 add_rule_to_set(struct plumber *p, enum action command,
-		const char *left, const char *right)
+                const char *left, const char *right)
 {
   inform(p, "Add rule: '%d', '%s' - '%s'.", command, left, right);
   p->r[p->n].command = command;
@@ -145,13 +145,13 @@ acquire_rule_string(struct plumber *p, const char *s)
   }
   char s_command[MAX_STR], s_left[MAX_STR], s_right[MAX_STR];
   int err = sscanf(s, "(%s \"%[^\"]\" \"%[^\"]\")",
-		   s_command, s_left, s_right);
+                   s_command, s_left, s_right);
   if(err != 3) {
     inform(p, "Rule lost, scan failed: '%s'.", s);
     return;
   }
   inform(p, "Rule accepted: '%s', '%s' - '%s'.",
-	 s_command, s_left, s_right);
+         s_command, s_left, s_right);
   add_rule_to_set(p, parse_command(s_command), s_left, s_right);
 }
 
@@ -181,7 +181,7 @@ append_rule_file(struct plumber *p, char *f, ...)
 {
   if(p->g >= MAX_SETS) {
     inform(p, "Rule file discarded, too many rule files: `%s', %d",
-	   f, p->g);
+           f, p->g);
     return;
   }
   va_list ap;
@@ -224,15 +224,15 @@ process_also_connect_rules(struct plumber *p)
       struct rule a = p->r[i];
       int j;
       for(j = 0; j < p->n; j++) {
-	if(p->r[j].command == connect) {
-	  struct rule c = p->r[j];
-	  if(strcmp(a.left, c.right) == 0) {
-	    add_rule_to_set(p, connect, c.left, a.right);
-	  }
-	  if(strcmp(a.left, c.left) == 0) {
-	    add_rule_to_set(p, connect, a.right, c.right);
-	  }
-	}
+        if(p->r[j].command == connect) {
+          struct rule c = p->r[j];
+          if(strcmp(a.left, c.right) == 0) {
+            add_rule_to_set(p, connect, c.left, a.right);
+          }
+          if(strcmp(a.left, c.left) == 0) {
+            add_rule_to_set(p, connect, a.right, c.right);
+          }
+        }
       }
     }
   }
@@ -326,7 +326,7 @@ make_rhs(const char *left, int a, int b, const char *right, char *rhs)
 
 static bool
 right_applies_p(const char *p_l, const char *r, const char *p_r,
-		regmatch_t *subexp)
+                regmatch_t *subexp)
 {
   char rhs[MAX_STR];
   if(subexp[1].rm_so >= 0) {
@@ -346,83 +346,83 @@ right_applies_p(const char *p_l, const char *r, const char *p_r,
    connection that matches the rule, TRAVERSE_LISTS binds for all
    possible connections that match the rule.  */
 
-#define TRAVERSE_CONNECTIONS(p,r,p_left,body)				\
-  int i;								\
-  regmatch_t subexp[MAX_SUBEXP];					\
-  for(i = 0; p_left[i]; i++) {						\
-    if(left_applies_p(&(r->left_c), p_left[i], subexp)) {		\
-      jack_port_t *port = jack_port_by_name(p->j, p_left[i]);		\
-      const char **c = jack_port_get_all_connections(p->j, port);	\
-      if(c) {								\
-        int j;								\
-        for(j = 0; c[j]; j++) {						\
-          if(right_applies_p(p_left[i], r->right,			\
-			     c[j], subexp)) {				\
-            const char *left = p_left[i];				\
-            const char *right = c[j];					\
-            body;							\
-          }								\
-        }								\
-        free(c);							\
-      }									\
-    }									\
+#define TRAVERSE_CONNECTIONS(p,r,p_left,body)                           \
+  int i;                                                                \
+  regmatch_t subexp[MAX_SUBEXP];                                        \
+  for(i = 0; p_left[i]; i++) {                                          \
+    if(left_applies_p(&(r->left_c), p_left[i], subexp)) {               \
+      jack_port_t *port = jack_port_by_name(p->j, p_left[i]);           \
+      const char **c = jack_port_get_all_connections(p->j, port);       \
+      if(c) {                                                           \
+        int j;                                                          \
+        for(j = 0; c[j]; j++) {                                         \
+          if(right_applies_p(p_left[i], r->right,                       \
+                             c[j], subexp)) {                           \
+            const char *left = p_left[i];                               \
+            const char *right = c[j];                                   \
+            body;                                                       \
+          }                                                             \
+        }                                                               \
+        free(c);                                                        \
+      }                                                                 \
+    }                                                                   \
   }
 
-#define TRAVERSE_LISTS(r,p_left,p_right,body)			\
-  int i;							\
-  regmatch_t subexp[MAX_SUBEXP];				\
-  for(i = 0; p_left[i]; i++) {					\
-    if(left_applies_p(&(r->left_c), p_left[i], subexp)) {	\
-      int j;							\
-      for(j = 0; p_right[j]; j++) {				\
-        if(right_applies_p(p_left[i], r->right,			\
-			   p_right[j], subexp)) {		\
-          const char *left = p_left[i];				\
-          const char *right = p_right[j];			\
-          body;							\
-        }							\
-      }								\
-    }								\
+#define TRAVERSE_LISTS(r,p_left,p_right,body)                   \
+  int i;                                                        \
+  regmatch_t subexp[MAX_SUBEXP];                                \
+  for(i = 0; p_left[i]; i++) {                                  \
+    if(left_applies_p(&(r->left_c), p_left[i], subexp)) {       \
+      int j;                                                    \
+      for(j = 0; p_right[j]; j++) {                             \
+        if(right_applies_p(p_left[i], r->right,                 \
+                           p_right[j], subexp)) {               \
+          const char *left = p_left[i];                         \
+          const char *right = p_right[j];                       \
+          body;                                                 \
+        }                                                       \
+      }                                                         \
+    }                                                           \
   }
 
 static void
 apply_disconnect_rule(struct plumber *p, struct rule *r,
-		      const char **p_left, const char **p_right)
+                      const char **p_left, const char **p_right)
 {
   TRAVERSE_CONNECTIONS(p, r, p_left,
-		       inform(p, "Disconnect: '%s' -> '%s'.",
-			      left, right);
-		       jack_port_disconnect_named(p->j, left, right));
+                       inform(p, "Disconnect: '%s' -> '%s'.",
+                              left, right);
+                       jack_port_disconnect_named(p->j, left, right));
 }
 
 static void
 apply_connect_rule(struct plumber *p, struct rule *r,
-		   const char **p_left, const char **p_right)
+                   const char **p_left, const char **p_right)
 {
   TRAVERSE_LISTS(r, p_left, p_right,
-		 if(!jack_port_is_connected_p(p->j, left, right)) {
-		   inform(p, "Connect: '%s' -> '%s'.", left, right);
-		   jack_port_connect_named(p->j, left, right);
-		 });
+                 if(!jack_port_is_connected_p(p->j, left, right)) {
+                   inform(p, "Connect: '%s' -> '%s'.", left, right);
+                   jack_port_connect_named(p->j, left, right);
+                 });
 }
 
 static void
 apply_connect_exclusive_rule(struct plumber *p, struct rule *r,
-			     const char **p_left, const char **p_right)
+                             const char **p_left, const char **p_right)
 {
   TRAVERSE_LISTS(r, p_left, p_right,
-		 jack_port_clear_all_connections(p->j, left);
-		 jack_port_clear_all_connections(p->j, right);
-		 inform(p, "Connect-exclusive: '%s' -> '%s'.",
-			left, right);
-		 jack_port_connect_named(p->j, left, right););
+                 jack_port_clear_all_connections(p->j, left);
+                 jack_port_clear_all_connections(p->j, right);
+                 inform(p, "Connect-exclusive: '%s' -> '%s'.",
+                        left, right);
+                 jack_port_connect_named(p->j, left, right););
 }
 
-#define TRAVERSE_RULE_SET(p,class)				\
-  for(i = 0; i < p->n; i++) {					\
-    if(p->r[i].command == class) {				\
-      apply_##class##_rule(p, &(p->r[i]), p_left, p_right);	\
-    }								\
+#define TRAVERSE_RULE_SET(p,class)                              \
+  for(i = 0; i < p->n; i++) {                                   \
+    if(p->r[i].command == class) {                              \
+      apply_##class##_rule(p, &(p->r[i]), p_left, p_right);     \
+    }                                                           \
   }
 
 /* Run the set of plumbing rules. */
@@ -483,15 +483,15 @@ pthread_mutex_unlock(&p->lock);
   return NULL;
 }
 
-#define SEND_WAKEUP				\
+#define SEND_WAKEUP                             \
   struct plumber *p = (struct plumber*) PTR;    \
-  if(p->w < 0) {				\
+  if(p->w < 0) {                                \
     pthread_mutex_lock(&p->lock);               \
     pthread_cond_signal(&p->cond);              \
     eprintf("sem_posted\n");                    \
-    p->w = 1;					\
+    p->w = 1;                                   \
     pthread_mutex_unlock(&p->lock);             \
-  }						\
+  }                                             \
   p->w += 1;
 
 static void
@@ -556,7 +556,7 @@ plumber_usage(void)
   eprintf("    -o   : Do not acquire ordinary rule files.\n");
   eprintf("    -q   : Quiet operation.\n");
   eprintf("    -u N : Micro-seconds to defer at connection (default=%d).\n",
-	  DEFAULT_DELAY);
+          DEFAULT_DELAY);
   exit(1);
 }
 
