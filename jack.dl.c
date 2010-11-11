@@ -147,7 +147,7 @@ void world_init(struct world *w, int ng, int nc, int nk, int nb)
   w->bl = calloc(w->nb, sizeof(int));
   w->bd = calloc(w->ng, sizeof(float*));
   w->ef = false;
-  w->c = jack_client_new("jack.dl");
+  w->c = jack_client_open("jack.dl",JackNullOption,NULL);
   if(!w->c) fail("could not create jack client\n");
   jack_set_process_callback(w->c, dsp_run, w);
   w->sr = (float)jack_get_sample_rate(w->c);

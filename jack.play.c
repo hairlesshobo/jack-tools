@@ -320,7 +320,7 @@ int jackplay(const char *file_name,
   if(d.o.unique_name) {
     d.client = jack_client_unique(d.o.client_name);
   } else {
-    d.client = jack_client_new(d.o.client_name);
+    d.client = jack_client_open(d.o.client_name,JackNullOption,NULL);
   }
   if(!d.client) {
     eprintf("jack.play: could not create jack client: %s", d.o.client_name);

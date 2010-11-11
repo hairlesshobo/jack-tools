@@ -281,7 +281,7 @@ int main (int argc, char **argv)
   xpipe(d.pipe);
   jack_client_t *client = NULL;
   if(d.name) {
-    client = jack_client_new(d.name );
+    client = jack_client_open(d.name,JackNullOption,NULL);
   } else {
     client = jack_client_unique("jack.udp");
   }

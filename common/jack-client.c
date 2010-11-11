@@ -28,9 +28,9 @@ jack_client_t *jack_client_unique(const char *name)
   int n = (int)getpid();
   char uniq[64];
   snprintf(uniq, 64, "%s-%d", name, n);
-  jack_client_t *client = jack_client_new(uniq);
+  jack_client_t *client = jack_client_open(uniq,JackNullOption,NULL);
   if(! client) {
-    eprintf("jack_client_new() failed: %s\n", uniq);
+    eprintf("jack_client_open() failed: %s\n", uniq);
     FAILURE;
   }
   return client;
