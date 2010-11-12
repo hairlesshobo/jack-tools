@@ -6,11 +6,13 @@
 #include <string.h>
 #include <stdarg.h>
 #include <stdbool.h>
+#include <errno.h>
 #include <time.h>
 #include <ctype.h>
 #include <regex.h>
 #include <pthread.h>
 #include <pthread.h>
+#include <sys/inotify.h>
 
 #include "common/file.h"
 #include "common/jack-client.h"
@@ -541,10 +543,10 @@ pthread_mutex_destroy(&p->lock);
 static void
 as_daemon(struct plumber *p)
 {
+  pthread_create(&(p->t), NULL, plumbing_daemon, p);
   jack_set_port_registration_callback(p->j, on_registration, p);
   jack_set_graph_order_callback(p->j, on_reorder, p);
   jack_client_activate( p->j);
-  pthread_create(&(p->t), NULL, plumbing_daemon, p);
   pthread_join(p->t, NULL);
 }
 
