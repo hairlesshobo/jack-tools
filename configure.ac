@@ -42,6 +42,10 @@ PKG_CHECK_MODULES(X11, x11, , AC_MSG_ERROR("x11 required"))
 PKG_CHECK_MODULES(XEXT, xext, , AC_MSG_ERROR("xext required"))
 PKG_CHECK_MODULES(Xt, xt, , AC_MSG_ERROR("xt required"))
 
+# Require inotify
+
+AC_CHECK_HEADERS(sys/inotify.h, AC_DEFINE(HAVE_INOTIFY, 1, inotify))
+
 # Set compiler flags.
 
 AC_SUBST(AM_CFLAGS)
