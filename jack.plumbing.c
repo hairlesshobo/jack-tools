@@ -28,7 +28,7 @@
 #define DEFAULT_DELAY 30000
 #define SYS_RULESET   "/etc/jack.plumbing"
 
-#define IN_BUFLEN (5*(100 + sizeof(struct inotify_event)))
+#define INOTIFY_BUFLEN (5*(100 + sizeof(struct inotify_event)))
 
 enum action {
   ignore,
@@ -551,14 +551,14 @@ watch_inotify(struct plumber *p)
     perror("inotify_init");
     exit(1);
   }
-  char buf[IN_BUFLEN];
+  char buf[INOTIFY_BUFLEN];
   while(1) {
     int i;
     for(i=0; i<p->g; i++)
       if(inotify_add_watch(fd, p->i[i], IN_MODIFY) < 0)
         eprintf("Cannot watch '%s': %s\n", p->i[i], strerror(errno));
     eprintf("inotify read\n");
-    int len = read(fd, buf, IN_BUFLEN);
+    int len = read(fd, buf, INOTIFY_BUFLEN);
     if(len < 0 && EINTR)
       continue;
     if(len < 0)
