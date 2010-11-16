@@ -28,6 +28,8 @@
 #define DEFAULT_DELAY 30000
 #define SYS_RULESET   "/etc/jack.plumbing"
 
+#define IN_BUFLEN (5*(100 + sizeof(struct inotify_event)))
+
 enum action {
   ignore,
   disconnect,
@@ -486,7 +488,6 @@ pthread_mutex_unlock(&p->lock);
 }
 
 #define SEND_WAKEUP                             \
-  struct plumber *p = (struct plumber*) PTR;    \
   if(p->w < 0) {                                \
     pthread_mutex_lock(&p->lock);               \
     pthread_cond_signal(&p->cond);              \
@@ -499,6 +500,7 @@ pthread_mutex_unlock(&p->lock);
 static void
 on_registration(jack_port_id_t a, int b, void *PTR)
 {
+  struct plumber *p = (struct plumber*) PTR;
   eprintf("%s: notification received\n", __func__);
   SEND_WAKEUP;
 }
@@ -506,6 +508,7 @@ on_registration(jack_port_id_t a, int b, void *PTR)
 static int
 on_reorder(void *PTR)
 {
+  struct plumber *p = (struct plumber*) PTR;
   eprintf("%s: notification received\n", __func__);
   SEND_WAKEUP;
   return 0;
@@ -541,12 +544,38 @@ pthread_mutex_destroy(&p->lock);
 } 
 
 static void
+watch_inotify(struct plumber *p)
+{
+  int fd = inotify_init();
+  if(fd < 0) {
+    perror("inotify_init");
+    exit(1);
+  }
+  char buf[IN_BUFLEN];
+  while(1) {
+    int i;
+    for(i=0; i<p->g; i++)
+      if(inotify_add_watch(fd, p->i[i], IN_MODIFY) < 0)
+        eprintf("Cannot watch '%s': %s\n", p->i[i], strerror(errno));
+    eprintf("inotify read\n");
+    int len = read(fd, buf, IN_BUFLEN);
+    if(len < 0 && EINTR)
+      continue;
+    if(len < 0)
+      perror("reading from inotify fd");
+    eprintf("inotify notification received\n");
+    SEND_WAKEUP
+  }
+}
+
+static void
 as_daemon(struct plumber *p)
 {
   pthread_create(&(p->t), NULL, plumbing_daemon, p);
   jack_set_port_registration_callback(p->j, on_registration, p);
   jack_set_graph_order_callback(p->j, on_reorder, p);
   jack_client_activate( p->j);
+  watch_inotify(p);
   pthread_join(p->t, NULL);
 }
 
