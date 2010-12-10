@@ -23,17 +23,25 @@ void jack_client_minimal_shutdown_handler(void *arg)
   FAILURE;
 }
 
-jack_client_t *jack_client_unique(const char *name)
+jack_client_t *jack_client_unique_store(char *name)
 {
   int n = (int)getpid();
   char uniq[64];
   snprintf(uniq, 64, "%s-%d", name, n);
+  strncpy(name,uniq,64);
   jack_client_t *client = jack_client_open(uniq,JackNullOption,NULL);
   if(! client) {
     eprintf("jack_client_open() failed: %s\n", uniq);
     FAILURE;
   }
   return client;
+}
+
+jack_client_t *jack_client_unique(const char *name)
+{
+  char uniq[64];
+  strncpy(uniq,name,64);
+  return jack_client_unique_store(uniq);
 }
 
 int jack_client_activate(jack_client_t *client)

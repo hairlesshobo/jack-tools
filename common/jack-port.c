@@ -1,4 +1,4 @@
-/*  jack-port.c - (c) rohan drape, 2005-2006 */
+/*  jack-port.c - (c) rohan drape, 2005-2010 */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,13 +12,13 @@
 #include "jack-port.h"
 #include "print.h"
 
-void jack_port_make_standard(jack_client_t *client, jack_port_t **ports, int n, int output)
+void jack_port_make_standard(jack_client_t *client, jack_port_t **ports, int n, bool output)
 {
   int i;
   for(i = 0; i < n; i++) {
     char name[64];
     int direction = output ? JackPortIsOutput : JackPortIsInput;
-    snprintf(name, 64, output ? "out_%d" : "in_%d", i + 1);    
+    snprintf(name, 64, output ? "out_%d" : "in_%d", i + 1);
     ports[i] = jack_port_register(client, name, JACK_DEFAULT_AUDIO_TYPE, direction, 0);
     if(!ports[i]) {
       eprintf("jack_port_register() failed\n");
@@ -86,5 +86,16 @@ void jack_port_clear_all_connections(jack_client_t *j, const char *l)
       jack_port_disconnect_named(j, l, c[k]);
     }
     free(c);
+  }
+}
+
+void jack_port_connect_pattern(jack_client_t *client, int n, char *src, char *dst)
+{
+  int i;
+  for(i = 0; i < n; i++) {
+    char src_name[64],dst_name[64];
+    snprintf(src_name, 64, src, i + 1);
+    snprintf(dst_name, 64, dst, i + 1);
+    jack_port_connect_named(client,src_name,dst_name);
   }
 }

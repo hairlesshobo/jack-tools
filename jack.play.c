@@ -1,4 +1,4 @@
-/***** jack.play.c - (c) rohan drape, 2003-2008 *****/
+/***** jack.play.c - (c) rohan drape, 2003-2010 *****/
 
 #include <unistd.h>
 #include <stdio.h>
@@ -318,7 +318,7 @@ int jackplay(const char *file_name,
   /* Become a client of the JACK server.  */
 
   if(d.o.unique_name) {
-    d.client = jack_client_unique(d.o.client_name);
+    d.client = jack_client_unique_store(d.o.client_name);
   } else {
     d.client = jack_client_open(d.o.client_name,JackNullOption,NULL);
   }
@@ -357,10 +357,17 @@ int jackplay(const char *file_name,
 	    osr);
   }
 
-  /* Create output ports and activate client. */
+  /* Create output ports, connect if env variable set and activate
+     client. */
 
   jack_port_make_standard(d.client, d.output_port, d.channels, true);
   jack_client_activate(d.client);
+  char *dst_pattern = getenv("JACK_PLAY_CONNECT_TO");
+  if (dst_pattern) {
+    char src_pattern[128];
+    snprintf(src_pattern,128,"%s:out_%%d",d.o.client_name);
+    jack_port_connect_pattern(d.client,d.channels,src_pattern,dst_pattern);
+  }
 
   /* Wait for disk thread to end, which it does when it reaches the
      end of the file or is interrupted. */
