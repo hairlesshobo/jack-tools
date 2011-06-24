@@ -53,4 +53,4 @@ AM_CFLAGS="-D_POSIX_C_SOURCE=200112 -std=c99 -O3 -funroll-loops -Wall"
 
 # Write Makefile.
 
-AC_OUTPUT(Makefile common/Makefile)
+AC_OUTPUT(Makefile)

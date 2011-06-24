@@ -9,8 +9,8 @@ jack.scope     - plain X oscilloscope
 jack.transport - minimalist ncurses jack transport
 jack.udp       - jack over udp client (obsolete, see netjack[3])
 
-Documentation is in asciidoc[5] format.  To build type:  
-  
+Documentation is in asciidoc[5] format.  To build type:
+
   for i in *.text ; do asciidoc $i; done
 
 [1] http://jackaudio.org/
@@ -19,7 +19,7 @@ Documentation is in asciidoc[5] format.  To build type:
 [4] http://opensoundcontrol.org/
 [5] http://www.methods.co.nz/asciidoc/
 
-(c) rohan drape 2003-2010
+(c) rohan drape 2003-2011
     gpl, http://www.gnu.org/copyleft/
     with contributions by jeremy hall
     see darcs history for details

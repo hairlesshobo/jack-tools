@@ -1,5 +1,3 @@
-/***** jack.dl.c - (c) rohan drape, 2003-2008 *****/
-
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
@@ -12,7 +10,7 @@
 #include <jack/thread.h>
 #include <lo/lo.h>
 
-#include "common/jack-port.h"
+#include "c-common/jack-port.h"
 #include "jack.dl.h"
 
 void fail(char *s)

@@ -1,5 +1,3 @@
-/***** jack.plumbing.c - (c) rohan drape, 2003-2010 *****/
-
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,12 +11,12 @@
 #include <pthread.h>
 #include <pthread.h>
 
-#include "common/file.h"
-#include "common/jack-client.h"
-#include "common/jack-port.h"
-#include "common/print.h"
-#include "common/xregcomp.h"
-#include "common/time-timespec.h"
+#include "c-common/file.h"
+#include "c-common/jack-client.h"
+#include "c-common/jack-port.h"
+#include "c-common/print.h"
+#include "c-common/xregcomp.h"
+#include "c-common/time-timespec.h"
 
 #define MAX_SETS      8
 #define MAX_RULES     512
@@ -42,7 +40,7 @@ struct rule
   regex_t left_c;
   char right[MAX_STR];
 };
- 
+
 struct plumber
 {
   struct rule r[MAX_RULES];     /* The rule set. */
@@ -338,7 +336,7 @@ right_applies_p(const char *p_l, const char *r, const char *p_r,
   regex_t rr;
   xregcomp(&rr, rhs, REG_NOSUB | REG_EXTENDED);
   int err = regexec(&rr, p_r, 0, NULL, 0);
-  regfree(&rr); 
+  regfree(&rr);
   return  err == 0;
 }
 
@@ -464,7 +462,7 @@ wait_on_connection_set(struct plumber *p)
     struct timespec t;
     t = usec_to_timespec(p-> u);
     p->w = 0;
-    nanosleep(&t, NULL); 
+    nanosleep(&t, NULL);
     eprintf("sleeping %d\n",p->w);
   }
   eprintf ("out of while loop\n");
@@ -538,7 +536,7 @@ finalize_plumber(struct plumber *p)
   jack_client_close(p->j);
   pthread_cond_destroy(&p->cond);
   pthread_mutex_destroy(&p->lock);
-} 
+}
 
 #ifdef HAVE_SYS_INOTIFY_H
 

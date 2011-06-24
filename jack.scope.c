@@ -1,5 +1,3 @@
-/***** jack.scope.c - (c) rohan drape, 1998-2006 *****/
-
 #include <stdio.h>
 #include <errno.h>
 #include <sys/types.h>
@@ -12,26 +10,26 @@
 #include <getopt.h>
 #include <math.h>
 
-#include "common/byte-order.h"
-#include "common/failure.h"
-#include "common/file.h"
-#include "common/img.h"
-#include "common/img-ppm.h"
-#include "common/jack-client.h"
-#include "common/jack-port.h"
-#include "common/memory.h"
-#include "common/network.h"
-#include "common/observe-signal.h"
-#include "common/osc.h"
-#include "common/print.h"
-#include "common/signal-copy.h"
-#include "common/signal-clip.h"
-#include "common/signal-interleave.h"
-#include "common/signal-interpolate.h"
-#include "common/ximg.h"
+#include "c-common/byte-order.h"
+#include "c-common/failure.h"
+#include "c-common/file.h"
+#include "c-common/img.h"
+#include "c-common/img-ppm.h"
+#include "c-common/jack-client.h"
+#include "c-common/jack-port.h"
+#include "c-common/memory.h"
+#include "c-common/network.h"
+#include "c-common/observe-signal.h"
+#include "c-common/osc.h"
+#include "c-common/print.h"
+#include "c-common/signal-copy.h"
+#include "c-common/signal-clip.h"
+#include "c-common/signal-interleave.h"
+#include "c-common/signal-interpolate.h"
+#include "c-common/ximg.h"
 
-typedef void (*draw_fn_t) (u8 *, i32, 
-			   const f32 *, i32, i32, i32, 
+typedef void (*draw_fn_t) (u8 *, i32,
+			   const f32 *, i32, i32, i32,
 			   void *);
 
 typedef bool (*control_fn_t) (const u8 *, i32, void *);
@@ -113,10 +111,10 @@ embed_draw_grid(u8 *image, i32 size)
 }
 
 static void
-embed_draw_data(u8 *image, i32 size, 
-		const f32 *signal, 
-		i32 n, 
-		const u8 *color, 
+embed_draw_data(u8 *image, i32 size,
+		const f32 *signal,
+		i32 n,
+		const u8 *color,
 		i32 embed, f32 incr)
 {
   if(incr <= 0.0) {
@@ -125,13 +123,13 @@ embed_draw_data(u8 *image, i32 size,
   f32 xindex = 0.0;
   f32 yindex = (f32) embed;
   while(yindex < n) {
-    i32 x = signal_x_to_screen_x(signal_interpolate_safe(signal, 
-							 n, 
+    i32 x = signal_x_to_screen_x(signal_interpolate_safe(signal,
+							 n,
 							 xindex),
 				 size);
-    i32 y = signal_y_to_screen_y(signal_interpolate_safe(signal, 
+    i32 y = signal_y_to_screen_y(signal_interpolate_safe(signal,
 							 n,
-							 yindex), 
+							 yindex),
 				 size);
     xindex += incr;
     yindex += incr;
@@ -149,20 +147,20 @@ embed_init(void)
 }
 
 void
-embed_draw(u8 *image, i32 size, 
-	   const f32 *signal, i32 f, i32 d, i32 c, 
+embed_draw(u8 *image, i32 size,
+	   const f32 *signal, i32 f, i32 d, i32 c,
 	   void *PTR)
 {
   struct embed *e = (struct embed *) PTR;
   embed_draw_grid(image, size);
   i32 i;
   for(i = 0; i < c; i++) {
-    u8 color[12] = {128, 32, 32, 
-		    32, 32, 128, 
-		    128, 224, 224, 
+    u8 color[12] = {128, 32, 32,
+		    32, 32, 128,
+		    128, 224, 224,
 		    224, 224, 128};
-    embed_draw_data(image, size, signal +(i * f), d, 
-		    color +(i * 3), 
+    embed_draw_data(image, size, signal +(i * f), d,
+		    color +(i * 3),
 		    e->embed, e->incr);
   }
 }
@@ -205,8 +203,8 @@ signal_draw_grid(u8 *image, i32 size)
 }
 
 static void
-signal_draw_data(u8 *image, i32 size, 
-		 const f32 *signal, i32 n, 
+signal_draw_data(u8 *image, i32 size,
+		 const f32 *signal, i32 n,
 		 const u8 *color, i32 style)
 {
   i32 i;
@@ -236,7 +234,7 @@ signal_draw_data(u8 *image, i32 size,
       for(j = l; j < r; j++) {
 	img_set_pixel(image, size, i, j, color);
       }
-    }  
+    }
   }
 }
 
@@ -263,21 +261,21 @@ signal_init(void)
 }
 
 void
-signal_draw(u8 *image, i32 size, 
-	    const f32 *signal, i32 f, i32 d, i32 c, 
+signal_draw(u8 *image, i32 size,
+	    const f32 *signal, i32 f, i32 d, i32 c,
 	    void *PTR)
 {
   struct signal *s = (struct signal *) PTR;
   signal_draw_grid(image, size);
   i32 i;
   for(i = 0; i < c; i++) {
-    u8 color[12] = {128, 32, 32, 
-		    32, 32, 128, 
-		    128, 224, 224, 
+    u8 color[12] = {128, 32, 32,
+		    32, 32, 128,
+		    128, 224, 224,
 		    224, 224, 128};
-    signal_draw_data(image, size, 
-		     signal +(i * f), d, 
-		     color +(i * 3), 
+    signal_draw_data(image, size,
+		     signal +(i * f), d,
+		     color +(i * 3),
 		     s->style);
   }
 }
@@ -315,7 +313,7 @@ jackscope_osc_thread_procedure(void *PTR)
     uint8_t packet[packet_extent];
     int packet_sz = xrecv(d->fd, packet, 32, 0);
     osc_data_t o[1];
-    if(!(d->child_control[0](packet, packet_sz, d->child_data[0])|| 
+    if(!(d->child_control[0](packet, packet_sz, d->child_data[0])||
 	 d->child_control[1](packet, packet_sz, d->child_data[1]))) {
       if(OSC_PARSE_MSG("/frames", ",i")) {
 	d->draw_frames = o[0].i > d->data_frames ? d->data_frames : o[0].i;
@@ -325,13 +323,13 @@ jackscope_osc_thread_procedure(void *PTR)
 	d->delay_msec = o[0].f;
 	d->delay_frames = floorf(( d->delay_msec / 1000.0)* d->fps);
       } else {
-	eprintf("jack.scope: dropped packet: %8s\n", packet); 
+	eprintf("jack.scope: dropped packet: %8s\n", packet);
       }
     }
   }
   return NULL;
 }
-    
+
 /* The data is channel separated into a local buffer, 'local'.  The
    image data 'image' is cleared and a user selected drawing procedure
    is invoked.  The draw procedure must accept any combination of
@@ -351,15 +349,15 @@ jackscope_draw_thread_procedure(void *PTR)
     signal_uninterleave(local, d->share, d->data_frames, d->channels);
     signal_clip(local, d->data_frames * d->channels, -1.0, 1.0);
     memset(image, 255, image_n);
-    d->child_draw[d->mode](image, d->window_size, 
-			   local, d->data_frames, 
-			   d->draw_frames, d->channels, 
+    d->child_draw[d->mode](image, d->window_size,
+			   local, d->data_frames,
+			   d->draw_frames, d->channels,
 			   d->child_data[d->mode]);
     ximg_blit(x, image);
     if(d->image_directory) {
       char name[256];
-      snprintf(name, 256, 
-	       "%s/jack.scope.%06d.ppm", 
+      snprintf(name, 256,
+	       "%s/jack.scope.%06d.ppm",
 	       d->image_directory, d->image_cnt);
       img_write_ppm_file(image, d->window_size, d->window_size, name);
     }
@@ -488,9 +486,9 @@ main(int argc, char **argv)
   d.fd = socket_udp(0);
   bind_inet(d.fd, NULL, port_n);
   xpipe(d.pipe);
-  pthread_create(&(d.osc_thread), NULL, 
+  pthread_create(&(d.osc_thread), NULL,
 		 jackscope_osc_thread_procedure, &d);
-  pthread_create(&(d.draw_thread), NULL, 
+  pthread_create(&(d.draw_thread), NULL,
 		 jackscope_draw_thread_procedure, &d);
   jack_client_t *client = jack_client_unique("jack.scope");
   jack_set_process_callback(client, jackscope_process, &d);

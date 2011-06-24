@@ -1,5 +1,3 @@
-/***** jack.osc.c - (c) rohan drape, 2004-2006 *****/
-
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,19 +7,19 @@
 #include <pthread.h>
 #include <sys/time.h>
 
-#include "common/byte-order.h"
-#include "common/client.h"
-#include "common/failure.h"
-#include "common/jack-client.h"
-#include "common/jack-port.h"
-#include "common/memory.h"
-#include "common/network.h"
-#include "common/observe-signal.h"
-#include "common/osc.h"
-#include "common/print.h"
-#include "common/time-current.h"
-#include "common/time-ntp.h"
-#include "common/time-timeval.h"
+#include "c-common/byte-order.h"
+#include "c-common/client.h"
+#include "c-common/failure.h"
+#include "c-common/jack-client.h"
+#include "c-common/jack-port.h"
+#include "c-common/memory.h"
+#include "c-common/network.h"
+#include "c-common/observe-signal.h"
+#include "c-common/osc.h"
+#include "c-common/print.h"
+#include "c-common/time-current.h"
+#include "c-common/time-ntp.h"
+#include "c-common/time-timeval.h"
 
 #define REQUEST_TICK        0x00000001
 #define REQUEST_PULSE       0x00000002

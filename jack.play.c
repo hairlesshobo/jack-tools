@@ -1,5 +1,3 @@
-/***** jack.play.c - (c) rohan drape, 2003-2010 *****/
-
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,17 +11,17 @@
 
 #include <samplerate.h>
 
-#include "common/failure.h"
-#include "common/file.h"
-#include "common/int.h"
-#include "common/jack-client.h"
-#include "common/jack-ringbuffer.h"
-#include "common/jack-port.h"
-#include "common/jack-transport.h"
-#include "common/memory.h"
-#include "common/observe-signal.h"
-#include "common/print.h"
-#include "common/sound-file.h"
+#include "c-common/failure.h"
+#include "c-common/file.h"
+#include "c-common/int.h"
+#include "c-common/jack-client.h"
+#include "c-common/jack-ringbuffer.h"
+#include "c-common/jack-port.h"
+#include "c-common/jack-transport.h"
+#include "c-common/memory.h"
+#include "c-common/observe-signal.h"
+#include "c-common/print.h"
+#include "c-common/sound-file.h"
 
 struct player_opt
 {

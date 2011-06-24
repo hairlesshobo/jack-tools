@@ -1,5 +1,3 @@
-/***** jack.udp.c - (c) rohan drape, 2003-2010 *****/
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -9,21 +7,21 @@
 #include <unistd.h>
 #include <pthread.h>
 
-#include "common/byte-order.h"
-#include "common/failure.h"
-#include "common/file.h"
-#include "common/jack-client.h"
-#include "common/jack-port.h"
-#include "common/jack-ringbuffer.h"
-#include "common/memory.h"
-#include "common/network.h"
-#include "common/print.h"
+#include "c-common/byte-order.h"
+#include "c-common/failure.h"
+#include "c-common/file.h"
+#include "c-common/jack-client.h"
+#include "c-common/jack-port.h"
+#include "c-common/jack-ringbuffer.h"
+#include "c-common/memory.h"
+#include "c-common/network.h"
+#include "c-common/print.h"
 
 #define MAX_CHANNELS      32
 #define PAYLOAD_SAMPLES   256
 #define PAYLOAD_BYTES     (PAYLOAD_SAMPLES*sizeof(f32))
 
-typedef struct 
+typedef struct
 {
   int buffer_size;
   f32 *j_buffer;
@@ -100,27 +98,27 @@ void *jackudp_recv_thread(void *PTR)
   while(1) {
     packet_recv(d->fd, &p, 0);
     if(p.index != next_packet && next_packet != -1) {
-      eprintf("jack.udp recv: out of order packet arrival (%d, %d)\n", 
+      eprintf("jack.udp recv: out of order packet arrival (%d, %d)\n",
 	      next_packet, (int)p.index);
       FAILURE;
     }
     if(p.channels != d->channels) {
-      eprintf("jack.udp recv: channel mismatch packet arrival (%d != %d)\n", 
+      eprintf("jack.udp recv: channel mismatch packet arrival (%d != %d)\n",
 	      p.channels, d->channels);
       FAILURE;
     }
     int bytes_available = (int) jack_ringbuffer_write_space(d->rb);
     if(PAYLOAD_BYTES > bytes_available) {
-      eprintf("jack.udp recv: buffer overflow (%d > %d)\n", 
+      eprintf("jack.udp recv: buffer overflow (%d > %d)\n",
 	      (int) PAYLOAD_BYTES, bytes_available);
     } else {
       jack_ringbuffer_write_exactly(d->rb,
-				    (char *) p.data, 
+				    (char *) p.data,
 				    (size_t) PAYLOAD_BYTES);
     }
     next_packet = p.index + 1;
     next_packet %= INT32_MAX;
-  }  
+  }
   return NULL;
 }
 
@@ -144,7 +142,7 @@ int jackudp_recv (jack_nframes_t nframes, void *PTR)
   int nbytes = nsamples * sizeof(f32);
   int bytes_available = (int) jack_ringbuffer_read_space(d->rb);
   if(nbytes > bytes_available) {
-    eprintf("jack.udp recv: buffer underflow (%d > %d)\n", 
+    eprintf("jack.udp recv: buffer underflow (%d > %d)\n",
 	    nbytes, bytes_available);
     for(i = 0; i < nframes; i++) {
       for(j = 0; j < d->channels; j++) {
@@ -203,7 +201,7 @@ int jackudp_send(jack_nframes_t n, void *PTR )
   if(bytes_to_write > bytes_available) {
     eprintf ("jack.udp send: buffer overflow error (UDP thread late)\n");
   } else {
-    jack_ringbuffer_write_exactly(d->rb, 
+    jack_ringbuffer_write_exactly(d->rb,
 				    (char *) d->j_buffer, bytes_to_write );
   }
 
@@ -271,10 +269,10 @@ int main (int argc, char **argv)
   if(recv_mode) {
     bind_inet(d.fd, NULL, port_n);
   } else {
-    init_sockaddr_in(&(d.address), 
-		     hostname ? hostname : "127.0.0.1", 
+    init_sockaddr_in(&(d.address),
+		     hostname ? hostname : "127.0.0.1",
 		     port_n);
-  }  
+  }
   d.buffer_size *= d.channels * sizeof(f32);
   d.j_buffer = xmalloc(d.buffer_size);
   d.rb = jack_ringbuffer_create(d.buffer_size);
@@ -287,14 +285,14 @@ int main (int argc, char **argv)
   }
   jack_set_error_function(jack_client_minimal_error_handler);
   jack_on_shutdown(client, jack_client_minimal_shutdown_handler, 0);
-  jack_set_process_callback(client, 
-			    recv_mode ? jackudp_recv : jackudp_send, 
+  jack_set_process_callback(client,
+			    recv_mode ? jackudp_recv : jackudp_send,
 			    &d);
   jack_port_make_standard(client, d.j_port, d.channels, recv_mode);
   jack_client_activate(client);
-  pthread_create(&(d.c_thread), 
-		 NULL, 
-		 recv_mode ? jackudp_recv_thread : jackudp_send_thread, 
+  pthread_create(&(d.c_thread),
+		 NULL,
+		 recv_mode ? jackudp_recv_thread : jackudp_send_thread,
 		 &d);
   pthread_join(d.c_thread, NULL);
   close(d.fd);

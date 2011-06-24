@@ -1,5 +1,3 @@
-/***** jack.record.c - (c) rohan drape, 2003-2006 *****/
-
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,16 +5,16 @@
 #include <string.h>
 #include <pthread.h>
 
-#include "common/failure.h"
-#include "common/file.h"
-#include "common/jack-client.h"
-#include "common/jack-port.h"
-#include "common/jack-ringbuffer.h"
-#include "common/memory.h"
-#include "common/observe-signal.h"
-#include "common/print.h"
-#include "common/signal-interleave.h"
-#include "common/sound-file.h"
+#include "c-common/failure.h"
+#include "c-common/file.h"
+#include "c-common/jack-client.h"
+#include "c-common/jack-port.h"
+#include "c-common/jack-ringbuffer.h"
+#include "c-common/memory.h"
+#include "c-common/observe-signal.h"
+#include "c-common/print.h"
+#include "c-common/signal-interleave.h"
+#include "c-common/sound-file.h"
 
 struct recorder
 {
@@ -53,7 +51,7 @@ void write_to_disk(struct recorder *d, int nframes)
 		      p,
 		      (sf_count_t)nframes);
       p += nframes;
-    }  
+    }
   } else {
     int nsamples = nframes * d->channels;
     xsf_write_float(d->sound_file[0],
@@ -70,7 +68,7 @@ void *disk_thread_procedure(void *PTR)
     /* Wait for data at the ring buffer. */
 
     int nbytes = d->minimal_frames * sizeof(float) * d->channels;
-    nbytes = jack_ringbuffer_wait_for_read(d->ring_buffer, nbytes, 
+    nbytes = jack_ringbuffer_wait_for_read(d->ring_buffer, nbytes,
 					   d->pipe[0]);
 
     /* Drop excessive data to not overflow the local buffer. */
@@ -83,9 +81,9 @@ void *disk_thread_procedure(void *PTR)
     /* Read data from the ring buffer. */
 
     jack_ringbuffer_read(d->ring_buffer,
-			 (char *) d->d_buffer, 
+			 (char *) d->d_buffer,
 			 nbytes);
-    
+
     /* Do write operation.  The sample count *must* be an integral
        number of frames. */
 
@@ -136,23 +134,23 @@ int process(jack_nframes_t nframes, void *PTR)
     FAILURE;
     return 1;
   }
-    
+
   /* Interleave input to buffer and copy into ringbuffer. */
 
-  signal_interleave_to(d->j_buffer, 
-		       (const float **)d->in, 
-		       nframes, 
+  signal_interleave_to(d->j_buffer,
+		       (const float **)d->in,
+		       nframes,
 		       d->channels);
   int err = jack_ringbuffer_write(d->ring_buffer,
 				  (char *) d->j_buffer,
 				  (size_t) nbytes);
   if(err != nbytes) {
-    eprintf("jack.record: error writing to ringbuffer, %d != %d\n", 
+    eprintf("jack.record: error writing to ringbuffer, %d != %d\n",
 	    err, nbytes);
     FAILURE;
     return 1;
   }
-  
+
   /* Poke the disk thread to indicate data is on the ring buffer. */
 
   char b = 1;
@@ -229,7 +227,7 @@ int main(int argc, char *argv[])
   d.input_port = xmalloc(d.channels * sizeof(jack_port_t *));
 
   /* Connect to JACK. */
-  
+
   jack_client_t *client = jack_client_unique("jack.record");
   jack_set_error_function(jack_client_minimal_error_handler);
   jack_on_shutdown(client, jack_client_minimal_shutdown_handler, 0);
@@ -246,7 +244,7 @@ int main(int argc, char *argv[])
 
   /* Create sound file. */
 
-  SF_INFO sfinfo; 
+  SF_INFO sfinfo;
   sfinfo.samplerate = (int) d.sample_rate;
   sfinfo.frames = 0;
   sfinfo.format = d.file_format;
@@ -254,7 +252,7 @@ int main(int argc, char *argv[])
     if(!strstr(argv[optind], "%d")) {
       eprintf("jack.record: illegal template, '%s'\n", argv[optind]);
       usage ();
-    }      
+    }
     sfinfo.channels = 1;
     int i;
     for(i = 0; i < d.channels; i++) {
@@ -268,11 +266,11 @@ int main(int argc, char *argv[])
   }
 
   /* Allocate buffers. */
-  
+
   d.buffer_samples = d.buffer_frames * d.channels;
   d.buffer_bytes = d.buffer_samples * sizeof(float);
   d.d_buffer = xmalloc(d.buffer_bytes);
-  d.j_buffer = xmalloc(d.buffer_bytes);  
+  d.j_buffer = xmalloc(d.buffer_bytes);
   d.u_buffer = xmalloc(d.buffer_bytes);
   d.ring_buffer = jack_ringbuffer_create(d.buffer_bytes);
 
@@ -283,8 +281,8 @@ int main(int argc, char *argv[])
   /* Start disk thread. */
 
   pthread_create (&(d.disk_thread),
-		  NULL, 
-		  disk_thread_procedure, 
+		  NULL,
+		  disk_thread_procedure,
 		  &d);
 
   /* Create input ports and activate client. */
