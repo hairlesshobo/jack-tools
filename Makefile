@@ -13,5 +13,8 @@ all:
 	gcc $(CFLAGS) -o jack-transport jack-transport.c $(LIB) -lcurses
 	gcc $(CFLAGS) -o jack-udp jack-udp.c $(LIB)
 
+install:
+	cp $(BIN) $(HOME)/bin
+
 clean:
 	rm -f $(BIN) *.o
