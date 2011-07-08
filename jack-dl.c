@@ -11,7 +11,7 @@
 #include <lo/lo.h>
 
 #include "c-common/jack-port.h"
-#include "jack.dl.h"
+#include "jack-dl.h"
 
 void fail(char *s)
 {
