@@ -1,4 +1,4 @@
-ju - jackd[1] utilities
+rju - jackd[1] utilities
 
 jack-dl        - load dsp algorithms from shared libraries
 jack-osc       - jack <-> open sound control (osc[5]) daemon
