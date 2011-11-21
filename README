@@ -21,6 +21,6 @@ Documentation is in asciidoc[6] format.  To build type:
 [6] http://www.methods.co.nz/asciidoc/
 
 (c) rohan drape 2003-2011
-    gpl, http://www.gnu.org/copyleft/
+    gpl2+, http://www.gnu.org/copyleft/
     with contributions by jeremy hall
     see darcs history for details
