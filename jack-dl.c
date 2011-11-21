@@ -15,7 +15,7 @@
 
 void fail(char *s)
 {
-  fprintf(stderr, s);
+  fprintf(stderr, "%s", s);
   exit(EXIT_FAILURE);
 }
 
