@@ -1,7 +1,7 @@
+PREFIX=$(HOME)/opt
 CFLAGS=-Wall -D_POSIX_C_SOURCE=200112 -std=c99 -O3
 LIB=c-common/lib-c-common.a -ljack -lpthread -lm
 BIN=jack-dl jack-osc jack-play jack-plumbing jack-record jack-scope jack-transport jack-udp
-
 
 all:
 	gcc $(CFLAGS) -o jack-dl jack-dl.c $(LIB) -ldl -llo
@@ -13,8 +13,18 @@ all:
 	gcc $(CFLAGS) -o jack-transport jack-transport.c $(LIB) -lcurses
 	gcc $(CFLAGS) -o jack-udp jack-udp.c $(LIB)
 
-install:
-	cp $(BIN) $(HOME)/bin
-
 clean:
 	rm -f $(BIN) *.o
+
+install:
+	cp $(BIN) $(PREFIX)/bin
+
+uninstall:
+	(cd $(PREFIX)/bin ; rm -f $(BIN))
+
+ln-local-c-common:
+	rm -f c-common
+	ln -s $(HOME)/sw/c-common c-common
+
+mk-local-c-common:
+	(cd c-common ; make)
