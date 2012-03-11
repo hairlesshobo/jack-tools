@@ -66,32 +66,27 @@ void *disk_thread_procedure(void *PTR)
   while(!observe_end_of_process()) {
 
     /* Wait for data at the ring buffer. */
-
     int nbytes = d->minimal_frames * sizeof(float) * d->channels;
     nbytes = jack_ringbuffer_wait_for_read(d->ring_buffer, nbytes,
 					   d->pipe[0]);
 
     /* Drop excessive data to not overflow the local buffer. */
-
     if(nbytes > d->buffer_bytes) {
-      eprintf("jack.record: impossible condition, read space.\n");
+      eprintf("jack-record: impossible condition, read space.\n");
       nbytes = d->buffer_bytes;
     }
 
     /* Read data from the ring buffer. */
-
     jack_ringbuffer_read(d->ring_buffer,
 			 (char *) d->d_buffer,
 			 nbytes);
 
     /* Do write operation.  The sample count *must* be an integral
        number of frames. */
-
     int nframes = (nbytes / sizeof(float))/ d->channels;
     write_to_disk(d, nframes);
 
     /* Handle timer */
-
     d->timer_counter += nframes;
     if(d->timer_frames > 0 && d->timer_counter >= d->timer_frames) {
       return NULL;
@@ -103,7 +98,6 @@ void *disk_thread_procedure(void *PTR)
 /* Write data from the JACK input ports to the ring buffer.  If the
    disk thread is late, ie. the ring buffer is full, print an error
    and halt the client.  */
-
 int process(jack_nframes_t nframes, void *PTR)
 {
   struct recorder *d = (struct recorder *) PTR;
@@ -111,7 +105,6 @@ int process(jack_nframes_t nframes, void *PTR)
   int nbytes = nsamples * sizeof(float);
 
   /* Get port data buffers. */
-
   int i;
   for(i = 0; i < d->channels; i++) {
     d->in[i] = (float *) jack_port_get_buffer(d->input_port[i], nframes);
@@ -119,24 +112,21 @@ int process(jack_nframes_t nframes, void *PTR)
 
   /* Check period size is workable. If the buffer is large, ie 4096
      frames, this should never be of practical concern. */
-
   if(nbytes >= d->buffer_bytes) {
-    eprintf("jack.record: period size exceeds limit\n");
+    eprintf("jack-record: period size exceeds limit\n");
     FAILURE;
     return 1;
   }
 
   /* Check that there is adequate space in the ringbuffer. */
-
   int space = (int) jack_ringbuffer_write_space(d->ring_buffer);
   if(space < nbytes) {
-    eprintf("jack.record: overflow error, %d > %d\n", nbytes, space);
+    eprintf("jack-record: overflow error, %d > %d\n", nbytes, space);
     FAILURE;
     return 1;
   }
 
   /* Interleave input to buffer and copy into ringbuffer. */
-
   signal_interleave_to(d->j_buffer,
 		       (const float **)d->in,
 		       nframes,
@@ -145,14 +135,13 @@ int process(jack_nframes_t nframes, void *PTR)
 				  (char *) d->j_buffer,
 				  (size_t) nbytes);
   if(err != nbytes) {
-    eprintf("jack.record: error writing to ringbuffer, %d != %d\n",
+    eprintf("jack-record: error writing to ringbuffer, %d != %d\n",
 	    err, nbytes);
     FAILURE;
     return 1;
   }
 
   /* Poke the disk thread to indicate data is on the ring buffer. */
-
   char b = 1;
   xwrite(d->pipe[1], &b, 1);
 
@@ -161,11 +150,12 @@ int process(jack_nframes_t nframes, void *PTR)
 
 void usage(void)
 {
-  eprintf("Usage: jack.record [ options ] sound-file\n");
+  eprintf("Usage: jack-record [ options ] sound-file\n");
   eprintf("    -b N : Ring buffer size in frames (default=4096).\n");
   eprintf("    -f N : File format (default=0x10006).\n");
   eprintf("    -m N : Minimal disk read size in frames (default=32).\n");
   eprintf("    -n N : Number of channels (default=2).\n");
+  eprintf("    -p S : Jack port pattern to connect to (default=nil).\n");
   eprintf("    -s   : Write to multiple single channel sound files.\n");
   eprintf("    -t N : Set a timer to record for N seconds (default=-1).\n");
   FAILURE;
@@ -183,7 +173,8 @@ int main(int argc, char *argv[])
   d.file_format = SF_FORMAT_WAV | SF_FORMAT_FLOAT;
   d.multiple_sound_files = 0;
   int c;
-  while((c = getopt(argc, argv, "b:f:hm:n:st:")) != -1) {
+  char *p = NULL;
+  while((c = getopt(argc, argv, "b:f:hm:n:p:st:")) != -1) {
     switch(c) {
     case 'b':
       d.buffer_frames = (int) strtol(optarg, NULL, 0);
@@ -200,6 +191,10 @@ int main(int argc, char *argv[])
     case 'n':
       d.channels = (int) strtol(optarg, NULL, 0);
       break;
+    case 'p':
+      p = malloc(128);
+      strncpy(p,optarg,128);
+      break;
     case 's':
       d.multiple_sound_files = 1;
       break;
@@ -207,7 +202,7 @@ int main(int argc, char *argv[])
       d.timer_seconds = (float) strtod(optarg, NULL);
       break;
     default:
-      eprintf("jack.record: illegal option, %c\n", c);
+      eprintf("jack-record: illegal option, %c\n", c);
       usage ();
       break;
     }
@@ -217,9 +212,8 @@ int main(int argc, char *argv[])
   }
 
   /* Allocate channel based data. */
-
   if(d.channels < 1) {
-    eprintf("jack.record: illegal number of channels: %d\n", d.channels);
+    eprintf("jack-record: illegal number of channels: %d\n", d.channels);
     FAILURE;
   }
   d.in = xmalloc(d.channels * sizeof(float *));
@@ -227,15 +221,14 @@ int main(int argc, char *argv[])
   d.input_port = xmalloc(d.channels * sizeof(jack_port_t *));
 
   /* Connect to JACK. */
-
-  jack_client_t *client = jack_client_unique("jack.record");
+  char client_name[64] = "jack-record";
+  jack_client_t *client = jack_client_unique_store(client_name);
   jack_set_error_function(jack_client_minimal_error_handler);
   jack_on_shutdown(client, jack_client_minimal_shutdown_handler, 0);
   jack_set_process_callback(client, process, &d);
   d.sample_rate = jack_get_sample_rate(client);
 
   /* Setup timer. */
-
   if(d.timer_seconds < 0.0) {
     d.timer_frames = -1;
   } else {
@@ -243,14 +236,13 @@ int main(int argc, char *argv[])
   }
 
   /* Create sound file. */
-
   SF_INFO sfinfo;
   sfinfo.samplerate = (int) d.sample_rate;
   sfinfo.frames = 0;
   sfinfo.format = d.file_format;
   if(d.multiple_sound_files) {
     if(!strstr(argv[optind], "%d")) {
-      eprintf("jack.record: illegal template, '%s'\n", argv[optind]);
+      eprintf("jack-record: illegal template, '%s'\n", argv[optind]);
       usage ();
     }
     sfinfo.channels = 1;
@@ -266,7 +258,6 @@ int main(int argc, char *argv[])
   }
 
   /* Allocate buffers. */
-
   d.buffer_samples = d.buffer_frames * d.channels;
   d.buffer_bytes = d.buffer_samples * sizeof(float);
   d.d_buffer = xmalloc(d.buffer_bytes);
@@ -275,29 +266,29 @@ int main(int argc, char *argv[])
   d.ring_buffer = jack_ringbuffer_create(d.buffer_bytes);
 
   /* Create communication pipe. */
-
   xpipe(d.pipe);
 
   /* Start disk thread. */
-
   pthread_create (&(d.disk_thread),
 		  NULL,
 		  disk_thread_procedure,
 		  &d);
 
-  /* Create input ports and activate client. */
-
+  /* Create ports, connect to if given, activate client. */
   jack_port_make_standard(client, d.input_port, d.channels, false);
   jack_client_activate(client);
+  if (p) {
+    char q[128];
+    snprintf(q,128,"%s:in_%%d",client_name);
+    jack_port_connect_pattern(client,d.channels,p,q);
+  }
 
   /* Wait for disk thread to end, which it does when it reaches the
      end of the file or is interrupted. */
-
   pthread_join(d.disk_thread, NULL);
 
   /* Close sound file, free ring buffer, close JACK connection, close
      pipe, free data buffers, indicate success. */
-
   jack_client_close(client);
   if(d.multiple_sound_files) {
     int i;

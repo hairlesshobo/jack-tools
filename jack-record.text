@@ -22,7 +22,7 @@ OPTIONS
 :   Set the file format (default=0x10006).  The number is a bitwise-or
     of two values, the first describes the file type, the second
     the data type.  The default value of 0x10000 | 0x00006 describes a
-    thirty-two bit floating point WAV file.
+    thirty-two bit floating point WAV file.  0x2 is 16-bit and 0x3 24-bit.
 
 *-m*
 :   Set the minimal disk transfer size in frames (default=32).  This
@@ -30,6 +30,10 @@ OPTIONS
 
 *-n*
 :   Set the number of input channels to create (default=2).
+
+*-p*
+:   A pattern describing the JACK ports to connect to,
+    ie. SuperCollider:out_%d (default=nil).
 
 *-s*
 :   Capture to a set of single channel sound files.  The sound file
