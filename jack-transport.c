@@ -1,5 +1,3 @@
-/*****  jack.transport.c - (c) rohan drape, 2006-2008 *****/
-
 #include <stdlib.h>
 #include <stdbool.h>
 #include <math.h>
@@ -86,14 +84,14 @@ int main(int argc, char **argv)
     fprintf(stderr, "jack.transport: could not connect to jack.\n");
     exit(1);
   }
-  
+
   signal(SIGINT, finish);
   initscr();
   keypad(stdscr, TRUE);
   nonl();
   halfdelay(1);
   noecho();
-  
+
   while (1) {
     int c;
     jack_transport_state_t s;
@@ -109,7 +107,7 @@ int main(int argc, char **argv)
       erase();
       refresh();
       break;
-    case ' ': 
+    case ' ':
       if(t.rolling) {
 	jack_transport_stop(t.jk);
       } else {
@@ -162,12 +160,12 @@ int main(int argc, char **argv)
     case ERR:
       break;
     }
-      
+
     mvaddstr(0, 0, "jack.transport - (c) rohan drape, 2006-2008");
     mvaddch(1, 0, t.rolling ? ACS_RARROW : ACS_BLOCK);
     mvaddtime(1, 4, t.time);
   }
-  
+
   jack_client_close(t.jk);
   endwin();
   return 0;

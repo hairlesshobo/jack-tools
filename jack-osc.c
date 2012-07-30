@@ -42,7 +42,7 @@ struct jackosc
   u64 ntp;			/* NTP clock */
   f64 utc;			/* UTC clock */
   i8 roll;
-  i32 correct_interval; 
+  i32 correct_interval;
   i32 correct_n;
   i8 fps_alt;
   jack_client_t *client;
@@ -61,10 +61,10 @@ struct jackosc
 #define COMMON_SEND(addr,dsc,incl)					\
   int packet_sz;							\
   packet_sz = osc_construct_message(addr, dsc, o, packet, 256);		\
-  sendto_client_register(d->fd, d->cr, packet, packet_sz, incl); 
+  sendto_client_register(d->fd, d->cr, packet, packet_sz, incl);
 
-void send_jck_drift(struct jackosc *d, 
-		    u64 ntp, f64 utc, i64 frm, 
+void send_jck_drift(struct jackosc *d,
+		    u64 ntp, f64 utc, i64 frm,
 		    i64 ntp_dif, f64 utc_dif)
 {
   COMMON_SETUP(5);
@@ -73,8 +73,8 @@ void send_jck_drift(struct jackosc *d,
   COMMON_SEND("/drift", ",tdhhd", REQUEST_CORRECTION);
 }
 
-void send_jck_tick(struct jackosc *d, 
-		   u64 ntp, f64 utc, i64 frm, 
+void send_jck_tick(struct jackosc *d,
+		   u64 ntp, f64 utc, i64 frm,
 		   i64 frame, f64 pulse)
 {
   COMMON_SETUP(5);
@@ -83,23 +83,23 @@ void send_jck_tick(struct jackosc *d,
   COMMON_SEND("/tick", ",tdhhd", REQUEST_TICK);
 }
 
-void send_jck_current(int fd, struct sockaddr_in address, 
-		      u64 ntp, f64 utc, i64 frm, 
+void send_jck_current(int fd, struct sockaddr_in address,
+		      u64 ntp, f64 utc, i64 frm,
 		      i64 frame, f64 pulse)
 {
   COMMON_SETUP(5);
   o[3].h = frame;
   o[4].d = pulse;
   int packet_sz;
-  packet_sz = osc_construct_message("/current.reply", ",tdhhd", 
+  packet_sz = osc_construct_message("/current.reply", ",tdhhd",
 				    o, packet, 256);
   if(packet_sz) {
     sendto_exactly(fd, packet, packet_sz, address);
   }
 }
 
-void send_jck_pulse(struct jackosc *d, 
-		    u64 ntp, f64 utc, i64 frm, 
+void send_jck_pulse(struct jackosc *d,
+		    u64 ntp, f64 utc, i64 frm,
 		    u64 p_ntp, f64 p_utc, i64 p_frm, i32 pulse)
 {
   COMMON_SETUP(7);
@@ -110,9 +110,9 @@ void send_jck_pulse(struct jackosc *d,
   COMMON_SEND("/pulse", ",tdhtdhi", REQUEST_PULSE);
 }
 
-void send_jck_transport(struct jackosc *d, 
-			u64 ntp, f64 utc, i64 frm, 
-			f64 fps, f64 ppm, f64 ppc, f64 pt, 
+void send_jck_transport(struct jackosc *d,
+			u64 ntp, f64 utc, i64 frm,
+			f64 fps, f64 ppm, f64 ppc, f64 pt,
 			i32 rolling)
 {
   COMMON_SETUP(8);
@@ -124,8 +124,8 @@ void send_jck_transport(struct jackosc *d,
   COMMON_SEND("/transport", ",tdhddddi", REQUEST_TRANSPORT);
 }
 
-void send_jck_status(int fd, struct sockaddr_in address, 
-		     f64 fps, f64 ppm, f64 ppc, f64 pt, 
+void send_jck_status(int fd, struct sockaddr_in address,
+		     f64 fps, f64 ppm, f64 ppc, f64 pt,
 		     i32 rolling)
 {
   u8 packet[256];
@@ -136,7 +136,7 @@ void send_jck_status(int fd, struct sockaddr_in address,
   o[2].d = ppc;
   o[3].d = pt;
   o[4].i = rolling;
-  packet_sz = osc_construct_message("/status.reply", ",ddddi", 
+  packet_sz = osc_construct_message("/status.reply", ",ddddi",
 				    o, packet, 256);
   if(packet_sz) {
     sendto_exactly(fd, packet, packet_sz, address);
@@ -155,7 +155,7 @@ void *jackosc_osc_thread_procedure(void *PTR)
       socklen_t addr_len = sizeof(addr);
       const int packet_extent = 64;
       u8 packet[packet_extent];
-      i32 packet_sz = xrecvfrom(d->fd, packet, 64, 0, 
+      i32 packet_sz = xrecvfrom(d->fd, packet, 64, 0,
 				(struct sockaddr *)&addr, &addr_len);
       osc_data_t o[4];
       if(OSC_PARSE_MSG("/receive", ",i")) {
@@ -165,10 +165,10 @@ void *jackosc_osc_thread_procedure(void *PTR)
 	init_sockaddr_in(&ra_addr, o[2].s, (i16)o[1].i);
 	edit_client_register(d->cr, ra_addr, o[0].i);
       } else if(OSC_PARSE_MSG("/status", ",")) {
-	send_jck_status(d->fd, addr, 
+	send_jck_status(d->fd, addr,
 			d->fps, d->ppm, d->ppc, d->pt, d->roll);
       } else if(OSC_PARSE_MSG("/current", ",")) {
-	send_jck_current(d->fd, addr, 
+	send_jck_current(d->fd, addr,
 			 d->ntp, d->utc, d->frm, d->j_frm, d->pulse);
       } else if(OSC_PARSE_MSG("/start", ",")) {
 	jack_transport_start(d->client);
@@ -188,20 +188,20 @@ void *jackosc_osc_thread_procedure(void *PTR)
   return NULL;
 }
 
-inline f64 get_ticks_per_frame(f64 ticks_per_pulse, 
-			       f64 pulses_per_minute, 
+inline f64 get_ticks_per_frame(f64 ticks_per_pulse,
+			       f64 pulses_per_minute,
 			       f64 frames_per_second)
 {
   f64 pulses_per_second = pulses_per_minute / 60.0;
   f64 ticks_per_second = ticks_per_pulse * pulses_per_second;
-  return ticks_per_second / frames_per_second; 
+  return ticks_per_second / frames_per_second;
 }
 
-inline f64 get_pulses_per_frame(f64 pulses_per_minute, 
+inline f64 get_pulses_per_frame(f64 pulses_per_minute,
 				f64 frames_per_second)
 {
   f64 pulses_per_second = pulses_per_minute / 60.0;
-  return pulses_per_second / frames_per_second; 
+  return pulses_per_second / frames_per_second;
 }
 
 int jackosc_process(jack_nframes_t nframes, void *PTR)
@@ -246,8 +246,8 @@ int jackosc_process(jack_nframes_t nframes, void *PTR)
       send_jck_transport(d, d->ntp, d->utc, d->frm,
 			 d->fps, d->ppm, d->ppc, d->pt, d->roll);
     }
-    if(d->roll && 
-       (p.tick == 0 || 
+    if(d->roll &&
+       (p.tick == 0 ||
 	((f64)p.tick +(floorf((f64)nframes * d->tpf)))> (f64)p.ticks_per_beat)) {
       i32 p_tick_off =(p.tick == 0)? 0 : p.ticks_per_beat - p.tick;
       f64 p_frm_off = (f64)p_tick_off * d->tpf;
@@ -351,4 +351,4 @@ int main(int argc, char *argv[])
   free_client_register(d.cr);
   exit(0);
   return 0;
-}  
+}

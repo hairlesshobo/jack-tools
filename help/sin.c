@@ -9,7 +9,7 @@ struct sinosc {
   float a;                      /* amplitude */
   float p;                      /* pan */
   float phase;                  /* oscillator phase */
-}; 
+};
 
 #define TWO_PI (2 * M_PI)
 
@@ -27,7 +27,7 @@ float step_phasor(float *phase, float incr)
     *phase -= TWO_PI;
   }
 }
-  
+
 /* allocate state data and initialize private control data */
 void *dsp_init(struct world *w, int g)
 {
