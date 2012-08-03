@@ -150,14 +150,14 @@ int process(jack_nframes_t nframes, void *PTR)
 
 void usage(void)
 {
-  eprintf("Usage: jack-record [ options ] sound-file\n");
-  eprintf("    -b N : Ring buffer size in frames (default=4096).\n");
-  eprintf("    -f N : File format (default=0x10006).\n");
-  eprintf("    -m N : Minimal disk read size in frames (default=32).\n");
-  eprintf("    -n N : Number of channels (default=2).\n");
-  eprintf("    -p S : Jack port pattern to connect to (default=nil).\n");
-  eprintf("    -s   : Write to multiple single channel sound files.\n");
-  eprintf("    -t N : Set a timer to record for N seconds (default=-1).\n");
+  eprintf("Usage: jack-record [options] sound-file\n");
+  eprintf("  -b N : Ring buffer size in frames (default=4096).\n");
+  eprintf("  -f N : File format (default=0x10006).\n");
+  eprintf("  -m N : Minimal disk read size in frames (default=32).\n");
+  eprintf("  -n N : Number of channels (default=2).\n");
+  eprintf("  -p S : Jack port pattern to connect to (default=nil).\n");
+  eprintf("  -s   : Write to multiple single channel sound files.\n");
+  eprintf("  -t N : Set a timer to record for N seconds (default=-1).\n");
   FAILURE;
 }
 

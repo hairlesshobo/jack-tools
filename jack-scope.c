@@ -408,14 +408,15 @@ jackscope_process(jack_nframes_t nframes, void *PTR)
 void
 jackscope_usage (void)
 {
-  eprintf("Usage: jack.scope [ options ] sound-file\n");
-  eprintf("   -b  Scope size in frames (default=512).\n");
-  eprintf("   -d  Delay time in ms between scope udpates (default=100.0).\n");
-  eprintf("   -f  Request images be stored at location (default=NULL).\n");
-  eprintf("   -m  Scope operating mode (default=signal).\n");
-  eprintf("   -n  Number of channels (default=1).\n");
-  eprintf("   -p  Port number to listen for OSC packets (default=57140).\n");
-  eprintf("   -w  Scope size in pixels (default=512).\n");
+  eprintf("Usage: jack.scope [options] sound-file\n");
+  eprintf(" -b I : Scope size in frames (default=512)\n");
+  eprintf(" -d R : Delay time in ms between scope udpates (default=100)\n");
+  eprintf(" -f S : Request images be stored at location (default=NULL)\n");
+  eprintf(" -m S : Scope operating mode (default=signal)\n");
+  eprintf(" -n I : Number of channels (default=1)\n");
+  eprintf(" -p S : Jack port pattern to connect to (default=nil)\n");
+  eprintf(" -u I : UDP port number for OSC packets (default=57140)\n");
+  eprintf(" -w I : Scope size in pixels (default=512)\n");
   FAILURE;
 }
 
@@ -443,7 +444,8 @@ main(int argc, char **argv)
   d.image_cnt = 0;
   int port_n = 57140;
   int c;
-  while ((c = getopt (argc, argv, "b:d:e:f:hi:m:n:s:w:")) != -1) {
+  char *p = NULL;
+  while ((c = getopt (argc, argv, "b:d:e:f:hi:m:n:p:s:u:w:")) != -1) {
     switch (c) {
     case 'b':
       d.data_frames = strtol(optarg, NULL, 0);
@@ -468,6 +470,10 @@ main(int argc, char **argv)
       }
       break;
     case 'p':
+      p = malloc(128);
+      strncpy(p,optarg,128);
+      break;
+    case 'u':
       port_n = strtol(optarg, NULL, 0);
       break;
     case 'w':
@@ -490,14 +496,20 @@ main(int argc, char **argv)
 		 jackscope_osc_thread_procedure, &d);
   pthread_create(&(d.draw_thread), NULL,
 		 jackscope_draw_thread_procedure, &d);
-  jack_client_t *client = jack_client_unique("jack.scope");
-  jack_set_process_callback(client, jackscope_process, &d);
+  char client_name[64] = "jack-scope";
+  jack_client_t *client = jack_client_unique_store(client_name);
   jack_set_error_function(jack_client_minimal_error_handler);
   jack_on_shutdown(client, jack_client_minimal_shutdown_handler, 0);
+  jack_set_process_callback(client, jackscope_process, &d);
   d.fps = (float) jack_get_sample_rate(client);
   d.delay_frames = floorf(( d.delay_msec / 1000.0)* d.fps);
   jack_port_make_standard(client, d.port, d.channels, 0);
   jack_client_activate(client);
+  if (p) {
+    char q[128];
+    snprintf(q,128,"%s:in_%%d",client_name);
+    jack_port_connect_pattern(client,d.channels,p,q);
+  }
   pthread_join(d.draw_thread, NULL);
   jack_client_close (client);
   close(d.pipe[0]);

@@ -7,7 +7,7 @@
   (lambda (cmd arg)
     (send fd (list cmd arg))))
 
-(set-scope "/frames" 1024)
+(set-scope "/frames" (* 512 1))
 (set-scope "/delay" (/ 1000.0 24.0))
 
 (set-scope "/mode" "signal")
