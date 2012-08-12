@@ -1,13 +1,17 @@
-#include <stdlib.h>
-#include <stdbool.h>
-#include <math.h>
-#include <time.h>
 #include <curses.h>
+#include <math.h>
 #include <signal.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <time.h>
+#include <unistd.h>
 #include <jack/jack.h>
 #include <jack/transport.h>
 
+#include "c-common/jack-client.h"
+
 struct transport {
+  bool verbose;
   bool rolling;
   double time;
   double incr;
@@ -17,13 +21,9 @@ struct transport {
 
 void finish(int sig)
 {
+  fprintf(stderr, "jack-transport: finish\n");
   endwin();
   exit(0);
-}
-
-void shutdown(void *PTR)
-{
-  exit(1);
 }
 
 void getcmd(const char *prompt, char *result, int n)
@@ -69,22 +69,42 @@ void offset(struct transport *t, double o)
   locate(t);
 }
 
+void usage(void)
+{
+  printf("Usage: jack-transport [options]\n");
+  printf("   -h: print usage\n");
+  exit(0);
+}
+
 int main(int argc, char **argv)
 {
   struct transport t;
+  int c;
+
+  t.verbose = false;
   t.rolling = false;
   t.time = 0.0;
   t.incr = 5.0;
   t.skip = 60.0;
-  t.jk = jack_client_open("jack.transport", JackNullOption, NULL);
+
+  while((c = getopt(argc, argv, "hv")) != -1) {
+    switch(c) {
+    case 'h': usage(); break;
+    case 'v': t.verbose = true; break;
+    }
+  }
+
+  t.jk = jack_client_open("jack-transport", JackNullOption, NULL);
   if(t.jk) {
-    jack_on_shutdown(t.jk, shutdown, 0);
+    jack_set_error_function(jack_client_minimal_error_handler);
+    jack_on_shutdown(t.jk, jack_client_minimal_shutdown_handler, 0);
     jack_activate(t.jk);
   } else {
-    fprintf(stderr, "jack.transport: could not connect to jack.\n");
+    fprintf(stderr, "jack-transport: could not connect to jack\n");
     exit(1);
   }
 
+  if(t.verbose) fprintf(stderr, "jack-transport: init curses\n");
   signal(SIGINT, finish);
   initscr();
   keypad(stdscr, TRUE);
@@ -161,7 +181,7 @@ int main(int argc, char **argv)
       break;
     }
 
-    mvaddstr(0, 0, "jack.transport - (c) rohan drape, 2006-2008");
+    mvaddstr(0, 0, "jack-transport - (c) rohan drape, 2006-2012");
     mvaddch(1, 0, t.rolling ? ACS_RARROW : ACS_BLOCK);
     mvaddtime(1, 4, t.time);
   }
