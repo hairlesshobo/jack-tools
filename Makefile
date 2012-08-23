@@ -1,4 +1,4 @@
-PREFIX=$(HOME)/opt
+prefix=$(HOME)/opt
 CFLAGS=-Wall -D_POSIX_C_SOURCE=200112 -std=c99 -O3
 LIB=c-common/lib-c-common.a -ljack -lpthread -lm
 BIN=jack-dl jack-osc jack-play jack-plumbing jack-record jack-scope jack-transport jack-udp
@@ -18,11 +18,11 @@ all: jack-transport
 clean:
 	rm -f $(BIN) *.o
 
-install:
-	cp $(BIN) $(PREFIX)/bin
+install: all
+	cp $(BIN) $(prefix)/bin
 
 uninstall:
-	(cd $(PREFIX)/bin ; rm -f $(BIN))
+	(cd $(prefix)/bin ; rm -f $(BIN))
 
 ln-local-c-common:
 	rm -f c-common

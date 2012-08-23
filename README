@@ -14,6 +14,10 @@ jack-transport  minimalist [ncurses][curses] jack transport
 jack-udp        jack over udp client (obsolete, see [netjack][nj])
 --------------- ---------------------------------------------------------
 
+To build type:
+
+> make prefix=~/opt install
+
 Documentation is in [asciidoc][ad] format.  To build type:
 
 > for i in *.text ; do asciidoc $i; done
