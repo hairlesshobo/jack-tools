@@ -508,7 +508,7 @@ main(int argc, char **argv)
   if (p) {
     char q[128];
     snprintf(q,128,"%s:in_%%d",client_name);
-    jack_port_connect_pattern(client,d.channels,p,q);
+    jack_port_connect_pattern(client,d.channels,0,p,q);
   }
   pthread_join(d.draw_thread, NULL);
   jack_client_close (client);

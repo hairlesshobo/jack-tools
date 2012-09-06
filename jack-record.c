@@ -155,6 +155,7 @@ void usage(void)
   eprintf("  -f N : File format (default=0x10006).\n");
   eprintf("  -m N : Minimal disk transfer size in frames (default=32).\n");
   eprintf("  -n N : Number of channels (default=2).\n");
+  eprintf("  -o N : Jack port source offset (default=0).\n");
   eprintf("  -p S : Jack port pattern to connect to (default=nil).\n");
   eprintf("  -s   : Write to multiple single channel sound files.\n");
   eprintf("  -t N : Set a timer to record for N seconds (default=-1).\n");
@@ -174,7 +175,8 @@ int main(int argc, char *argv[])
   d.multiple_sound_files = 0;
   int c;
   char *p = NULL;
-  while((c = getopt(argc, argv, "b:f:hm:n:p:st:")) != -1) {
+  int o = 0;
+  while((c = getopt(argc, argv, "b:f:hm:n:o:p:st:")) != -1) {
     switch(c) {
     case 'b':
       d.buffer_frames = (int) strtol(optarg, NULL, 0);
@@ -190,6 +192,9 @@ int main(int argc, char *argv[])
       break;
     case 'n':
       d.channels = (int) strtol(optarg, NULL, 0);
+      break;
+    case 'o':
+      o = (int) strtol(optarg, NULL, 0);
       break;
     case 'p':
       p = malloc(128);
@@ -280,7 +285,7 @@ int main(int argc, char *argv[])
   if (p) {
     char q[128];
     snprintf(q,128,"%s:in_%%d",client_name);
-    jack_port_connect_pattern(client,d.channels,p,q);
+    jack_port_connect_pattern(client,d.channels,o,p,q);
   }
 
   /* Wait for disk thread to end, which it does when it reaches the

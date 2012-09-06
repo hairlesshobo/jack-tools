@@ -31,6 +31,9 @@ OPTIONS
 *-n*
 :   Set the number of input channels to create (default=2).
 
+*-o*
+:   Integer offset for port connection pattern (default=0).
+
 *-p*
 :   A pattern describing the JACK ports to connect to,
     ie. SuperCollider:out_%d (default=nil).

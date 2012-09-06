@@ -364,7 +364,7 @@ int jackplay(const char *file_name,
   if (dst_pattern) {
     char src_pattern[128];
     snprintf(src_pattern,128,"%s:out_%%d",d.o.client_name);
-    jack_port_connect_pattern(d.client,d.channels,src_pattern,dst_pattern);
+    jack_port_connect_pattern(d.client,d.channels,0,src_pattern,dst_pattern);
   }
 
   /* Wait for disk thread to end, which it does when it reaches the
