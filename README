@@ -16,7 +16,7 @@ jack-udp        jack over udp client (obsolete, see [netjack][nj])
 
 To build type:
 
-> make prefix=~/opt install
+> make prefix=~/opt all install
 
 Documentation is in [asciidoc][ad] format.  To build type:
 
