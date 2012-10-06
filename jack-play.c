@@ -57,14 +57,12 @@ struct player
 
 /* Read the sound file from disk and write to the ring buffer until
    the end of file, at which point return. */
-
 void *disk_proc(void *PTR)
 {
   struct player *d = (struct player *)PTR;
   while(!observe_end_of_process()) {
 
     /* Handle seek request. */
-
     if(d->o.seek_request >= 0) {
       sf_count_t err = sf_seek(d->sound_file,
 			       (sf_count_t)d->o.seek_request, SEEK_SET);
@@ -76,19 +74,16 @@ void *disk_proc(void *PTR)
     }
 
     /* Wait for write space at the ring buffer. */
-
     int nbytes = d->o.minimal_frames * sizeof(float) * d->channels;
     nbytes = jack_ringbuffer_wait_for_write(d->rb, nbytes, d->pipe[0]);
 
     /* Do not overflow the local buffer. */
-
     if(nbytes > d->buffer_bytes) {
       eprintf("jack-play: impossible condition, write space.\n");
       nbytes = d->buffer_bytes;
     }
 
     /* Read sound file data, which *must* be frame aligned. */
-
     int nframes =(nbytes / sizeof(float))/ d->channels;
     int nsamples = nframes * d->channels;
     sf_count_t err = xsf_read_float(d->sound_file,
@@ -104,7 +99,6 @@ void *disk_proc(void *PTR)
     }
 
     /* Write data to ring buffer. */
-
     jack_ringbuffer_write(d->rb,
 			  (char *)d->d_buffer,
 			  (size_t)err * sizeof(float));
@@ -136,7 +130,6 @@ void signal_set(float **s, int n, int c, float z)
 /* Write data from the ring buffer to the JACK output ports.  If the
    disk thread is late, ie. the ring buffer is empty print a warning
    and zero the output ports.  */
-
 int signal_proc(jack_nframes_t nframes, void *PTR)
 {
   struct player *d = (struct player *)PTR;
@@ -144,7 +137,6 @@ int signal_proc(jack_nframes_t nframes, void *PTR)
   int nbytes = nsamples * sizeof(float);
 
   /* Ensure the period size is workable. */
-
   if(nbytes >= d->buffer_bytes) {
     eprintf("jack-play: period size exceeds limit\n");
     FAILURE;
@@ -152,7 +144,6 @@ int signal_proc(jack_nframes_t nframes, void *PTR)
   }
 
   /* Get port data buffers. */
-
   int i,j;
   for(i = 0; i < d->channels; i++) {
     d->out[i] = (float *)jack_port_get_buffer(d->output_port[i], nframes);
@@ -161,7 +152,6 @@ int signal_proc(jack_nframes_t nframes, void *PTR)
   /* Write silence if the transport is stopped.  If stopped the disk
      thread will sleep and signals will be ignored, so check here
      also. */
-
   if(d->o.transport_aware && !jack_transport_is_rolling(d->client)) {
     if(observe_end_of_process ()) {
       FAILURE;
@@ -174,7 +164,6 @@ int signal_proc(jack_nframes_t nframes, void *PTR)
 
   /* Get data from sample rate converter, this returns the number of
      frames acquired. */
-
   long err = src_callback_read (d->src,
 				d->o.src_ratio,
 				(long)nframes,
@@ -186,7 +175,6 @@ int signal_proc(jack_nframes_t nframes, void *PTR)
   }
 
   /* Uninterleave available data to the output buffers. */
-
   for(i = 0; i < err; i++) {
     for(j = 0; j < d->channels; j++) {
       d->out[j][i] = d->j_buffer[(i*d->channels)+j];
@@ -197,7 +185,6 @@ int signal_proc(jack_nframes_t nframes, void *PTR)
      output buffers.  The print statement is not correct, a this
      should set a flag and have another thread take appropriate
      action. */
-
   if(err < nframes) {
     eprintf("jack-play: disk thread late (%ld < %d)\n", err, nframes);
     for(i = err; i < nframes; i++) {
@@ -216,10 +203,8 @@ int signal_proc(jack_nframes_t nframes, void *PTR)
      will not block.  The number of bytes that can accumulate in the
      pipe is a factor of the relative sizes of the ring buffer and the
      process callback, but should in no case be very large. */
-
   char b = 1;
   xwrite(d->pipe[1], &b, 1);
-
   return 0;
 }
 
@@ -241,7 +226,6 @@ void usage(void)
    the actual result size, and therefore have two error cases.  Since
    there is no alternative but to drop sample data in any case it does
    not matter much. */
-
 long read_input_from_rb(void *PTR, float **buf)
 {
   struct player *d = PTR;
@@ -272,13 +256,11 @@ int jackplay(const char *file_name,
   observe_signals ();
 
   /* Open sound file. */
-
   SF_INFO sfinfo;
   d.sound_file = xsf_open(file_name, SFM_READ, &sfinfo);
   d.channels = sfinfo.channels;
 
   /* Allocate channel based data. */
-
   if(d.channels < 1) {
     eprintf("jack-play: illegal number of channels in file: %d\n",
 	    d.channels);
@@ -288,7 +270,6 @@ int jackplay(const char *file_name,
   d.output_port = xmalloc(d.channels * sizeof(jack_port_t *));
 
   /* Allocate buffers. */
-
   d.buffer_samples = d.o.buffer_frames * d.channels;
   d.buffer_bytes = d.buffer_samples * sizeof(float);
   d.d_buffer = xmalloc(d.buffer_bytes);
@@ -310,11 +291,9 @@ int jackplay(const char *file_name,
   }
 
   /* Create communication pipe. */
-
   xpipe(d.pipe);
 
   /* Become a client of the JACK server.  */
-
   if(d.o.unique_name) {
     d.client = jack_client_unique_store(d.o.client_name);
   } else {
@@ -325,9 +304,7 @@ int jackplay(const char *file_name,
     FAILURE;
   }
 
-
   /* Start disk thread, the priority number is a random guess.... */
-
   jack_client_create_thread (d.client,
 			     &(d.disk_thread),
 			     50,
@@ -336,7 +313,6 @@ int jackplay(const char *file_name,
 			     &d);
 
   /* Set error, process and shutdown handlers. */
-
   jack_set_error_function(jack_client_minimal_error_handler);
   jack_on_shutdown(d.client, jack_client_minimal_shutdown_handler, 0);
   if(d.o.transport_aware) {
@@ -344,20 +320,19 @@ int jackplay(const char *file_name,
   }
   jack_set_process_callback(d.client, signal_proc, &d);
 
-  /* Inform the user of sample-rate mismatch. */
-
-  int osr = jack_get_sample_rate(d.client);
-  int isr = sfinfo.samplerate;
+  /* Inform the user of sample-rate mismatch and set SRC ratio. */
+  double osr = (double) jack_get_sample_rate(d.client);
+  double isr = (double) sfinfo.samplerate;
   if(osr != isr) {
     d.o.src_ratio *= (osr / isr);
-    eprintf("jack-play: resampling, sample rate of file != server, %d != %d\n",
+    eprintf("jack-play: resampling, sample rate of file != server, %G != %G (%G)\n",
 	    isr,
-	    osr);
+	    osr,
+            d.o.src_ratio);
   }
 
   /* Create output ports, connect if env variable set and activate
      client. */
-
   jack_port_make_standard(d.client, d.output_port, d.channels, true);
   jack_client_activate(d.client);
   char *dst_pattern = getenv("JACK_PLAY_CONNECT_TO");
@@ -369,12 +344,10 @@ int jackplay(const char *file_name,
 
   /* Wait for disk thread to end, which it does when it reaches the
      end of the file or is interrupted. */
-
   pthread_join(d.disk_thread, NULL);
 
   /* Close sound file, free ring buffer, close JACK connection, close
      pipe, free data buffers, indicate success. */
-
   jack_client_close(d.client);
   sf_close(d.sound_file);
   jack_ringbuffer_free(d.rb);

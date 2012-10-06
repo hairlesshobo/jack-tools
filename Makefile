@@ -18,7 +18,7 @@ all: jack-transport
 clean:
 	rm -f $(BIN) *.o
 
-install: all
+install:
 	cp $(BIN) $(prefix)/bin
 
 uninstall:
