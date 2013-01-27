@@ -8,6 +8,7 @@ struct world {
   bool *ga;                     /* graph active */
   void **gh;                    /* graph shared library handle */
   jack_client_t *c;             /* client */
+  char cn[64];                  /* client name */
   jack_port_t **ip;             /* input ports */
   jack_port_t **op;             /* output ports */
   int nc;                       /* number of channels */

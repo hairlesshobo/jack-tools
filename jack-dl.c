@@ -145,7 +145,8 @@ void world_init(struct world *w, int ng, int nc, int nk, int nb)
   w->bl = calloc(w->nb, sizeof(int));
   w->bd = calloc(w->ng, sizeof(float*));
   w->ef = false;
-  w->c = jack_client_open("jack.dl",JackNullOption,NULL);
+  strncpy(w->cn,"jack-dl",64);
+  w->c = jack_client_open(w->cn,JackNullOption,NULL);
   if(!w->c) fail("could not create jack client\n");
   jack_set_process_callback(w->c, dsp_run, w);
   w->sr = (float)jack_get_sample_rate(w->c);
@@ -167,6 +168,12 @@ int main(int argc, char **argv)
   lo_server_thread_add_method(osc, "/quit", NULL, osc_quit, &w);
   lo_server_thread_start(osc);
   if(jack_activate(w.c)) fail("jack.dl: jack_activate() failed\n");
+  char *dst_pattern = getenv("JACK_DL_CONNECT_TO");
+  if (dst_pattern) {
+    char src_pattern[128];
+    snprintf(src_pattern, 128, "%s:out_%%d", w.cn);
+    jack_port_connect_pattern(w.c, w.nc, 0, src_pattern,dst_pattern);
+  }
   while(!w.ef) {
     struct timespec t = {0, 100000000};
     nanosleep(&t, NULL);
