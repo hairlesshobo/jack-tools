@@ -105,6 +105,7 @@ int osc_b_alloc(const char *p, const char *t, lo_arg **a, int n, void *d, void *
   return 0;
 }
 
+#if USE_P_CTL
 int osc_p_set1(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
 {
   struct world *w = (struct world *)u;
@@ -116,6 +117,7 @@ int osc_p_set1(const char *p, const char *t, lo_arg **a, int n, void *d, void *u
   fprintf(stderr,"p_set1: %d, %d, %f\n", g, i, a[2]->f);
   return 0;
 }
+#endif
 
 int osc_quit(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
 {
@@ -133,10 +135,12 @@ void world_init(struct world *w, int ng, int nc, int nk, int nb)
   w->dsp_init = calloc(w->ng, sizeof(void *));
   w->dsp_step = calloc(w->ng, sizeof(void *));
   w->st = calloc(w->ng, sizeof(void *));
+#if USE_P_CTL
   w->p_ctl = malloc(w->ng * sizeof(float *));
   for(int i = 0; i < w->ng; i++) {
     w->p_ctl[i] = calloc(w->nk, sizeof(float));
   }
+#endif
   w->ga = calloc(w->ng, sizeof(bool));
   w->gh = calloc(w->ng, sizeof(void *));
   w->ip = malloc(w->nc * sizeof(jack_port_t *));
@@ -184,7 +188,9 @@ int main(int argc, char **argv)
   world_init(&w, ng, nc, nk, nb);
   osc = lo_server_thread_new("57190", osc_error);
   lo_server_thread_add_method(osc, "/c_set1", "if", osc_c_set1, &w);
+#if USE_P_CTL
   lo_server_thread_add_method(osc, "/p_set1", "iif", osc_p_set1, &w);
+#endif
   lo_server_thread_add_method(osc, "/g_load", "is", osc_g_load, &w);
   lo_server_thread_add_method(osc, "/g_unload", "i", osc_g_unload, &w);
   lo_server_thread_add_method(osc, "/b_alloc", "ii", osc_b_alloc, &w);
