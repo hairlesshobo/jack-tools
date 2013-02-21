@@ -1,10 +1,10 @@
-#include <unistd.h>
+#include <pthread.h>
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
 #include <string.h>
-#include <stdbool.h>
-#include <pthread.h>
+#include <unistd.h>
 
 #include <jack/jack.h>
 #include <jack/thread.h>

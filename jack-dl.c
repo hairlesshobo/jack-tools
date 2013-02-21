@@ -1,16 +1,18 @@
-#include <math.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <time.h>
 #include <dlfcn.h>
+#include <math.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+#include <unistd.h>
 
 #include <jack/jack.h>
 #include <jack/thread.h>
 #include <lo/lo.h>
 
 #include "c-common/jack-port.h"
+#include "c-common/print.h"
 #include "jack-dl.h"
 
 void fail(char *s)
@@ -154,11 +156,32 @@ void world_init(struct world *w, int ng, int nc, int nk, int nb)
   jack_port_make_standard(w->c, w->op, w->nc, true);
 }
 
+void usage(void)
+{
+  eprintf("Usage: jack-dl [ options ]\n");
+  eprintf("    -b N : Number of buffers (default=8).\n");
+  eprintf("    -c N : Number of channels (default=8).\n");
+  eprintf("    -g N : Number of graphs (default=8).\n");
+  eprintf("    -k N : Number of controls (default=64).\n");
+  exit(EXIT_SUCCESS);
+}
+
 int main(int argc, char **argv)
 {
   struct world w;
   lo_server_thread osc;
-  world_init(&w, 8, 8, 64, 8);
+  int c;
+  int nb = 8, nc = 8, ng = 8, nk = 64;
+  while((c = getopt(argc, argv, "b:c:hg:k:")) != -1) {
+    switch(c) {
+    case 'b': nb = (int)strtol(optarg, NULL, 0); break;
+    case 'c': nc = (int)strtol(optarg, NULL, 0); break;
+    case 'g': ng = (int)strtol(optarg, NULL, 0); break;
+    case 'k': nk = (int)strtol(optarg, NULL, 0); break;
+    case 'h': usage(); break;
+    }
+  }
+  world_init(&w, ng, nc, nk, nb);
   osc = lo_server_thread_new("57190", osc_error);
   lo_server_thread_add_method(osc, "/c_set1", "if", osc_c_set1, &w);
   lo_server_thread_add_method(osc, "/p_set1", "iif", osc_p_set1, &w);
@@ -172,7 +195,7 @@ int main(int argc, char **argv)
   if (dst_pattern) {
     char src_pattern[128];
     snprintf(src_pattern, 128, "%s:out_%%d", w.cn);
-    jack_port_connect_pattern(w.c, w.nc, 0, src_pattern,dst_pattern);
+    jack_port_connect_pattern(w.c, w.nc, 0, src_pattern, dst_pattern);
   }
   while(!w.ef) {
     struct timespec t = {0, 100000000};
