@@ -29,6 +29,8 @@ struct world {
   bool ef;                      /* exit flag */
 };
 
+#define df_world struct world
+#define w_state(w,g) (w)->st[g]
 #define w_sr(w) (w)->sr
 #define w_c_get1(w,i) (w)->ctl[(i)]
 #define w_c_set1(w,i,n) (w)->ctl[(i)]=(n)
