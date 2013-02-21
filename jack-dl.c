@@ -60,9 +60,12 @@ int osc_g_load(const char *p, const char *t, lo_arg **a, int n, void *d, void *u
   if(w->gh[g]) break_on(dlclose(w->gh[g]), dlerror());
   w->gh[g] = dlopen(s, RTLD_LAZY);
   break_on(!w->gh[g], dlerror());
+  w->dsp_memreq[g] = dlsym(w->gh[g], "dsp_memreq");
   w->dsp_init[g] = dlsym(w->gh[g], "dsp_init");
   w->dsp_step[g] = dlsym(w->gh[g], "dsp_step");
-  w->st[g] = w->dsp_init[g](w, g);
+  size_t k = w->dsp_memreq[g]();
+  w->st[g] = malloc(k);
+  w->dsp_init[g](w->st[g]);
   w->ga[g] = true;
   fprintf(stderr,"g_load: %d, %s\n", g, s);
   return 0;
@@ -132,6 +135,7 @@ void world_init(struct world *w, int ng, int nc, int nk, int nb)
   w->nc = nc;
   w->nk = nk;
   w->nb = nb;
+  w->dsp_memreq = calloc(w->ng, sizeof(void *));
   w->dsp_init = calloc(w->ng, sizeof(void *));
   w->dsp_step = calloc(w->ng, sizeof(void *));
   w->st = calloc(w->ng, sizeof(void *));

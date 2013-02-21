@@ -4,7 +4,8 @@
 #define USE_P_CTL 0
 
 struct world {
-  void* (**dsp_init)(struct world *, int);
+  size_t (**dsp_memreq)();
+  void (**dsp_init)(void *);
   void (**dsp_step)(struct world *, int, int);
   void **st;                    /* graph state */
   bool *ga;                     /* graph active */

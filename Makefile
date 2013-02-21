@@ -1,5 +1,5 @@
 prefix=$(HOME)/opt
-CFLAGS=-Wall -D_POSIX_C_SOURCE=200112 -std=c99 -O3
+CFLAGS=-Wall -D_POSIX_C_SOURCE=200112 -std=c99 -O3 -g
 LIB=c-common/lib-c-common.a -ljack -lpthread -lm
 BIN=jack-dl jack-osc jack-play jack-plumbing jack-record jack-scope jack-transport jack-udp
 
