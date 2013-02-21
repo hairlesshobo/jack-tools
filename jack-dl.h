@@ -5,7 +5,7 @@
 
 struct world {
   void* (**dsp_init)(struct world *, int);
-  void (**dsp_step)(struct world *, int, void *, int);
+  void (**dsp_step)(struct world *, int, int);
   void **st;                    /* graph state */
   bool *ga;                     /* graph active */
   void **gh;                    /* graph shared library handle */
@@ -20,7 +20,7 @@ struct world {
   float sr;                     /* sample rate */
   float **in;                   /* input data */
   float **out;                  /* output data */
-  float *ctl;                   /* shared control data */
+  float *ctl;                   /* (shared) control data */
   float **bd;                   /* buffer data */
   int *bl;                      /* buffer sizes */
 #if USE_P_CTL

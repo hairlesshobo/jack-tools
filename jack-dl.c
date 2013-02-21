@@ -33,7 +33,7 @@ int dsp_run(jack_nframes_t nf, void *ptr)
   }
   for(int i = 0; i < w->ng; i++) {
     if(w->ga[i]) {
-      w->dsp_step[i](w, i, w->st[i], nf);
+      w->dsp_step[i](w, i, nf);
     }
   }
   return 0;
