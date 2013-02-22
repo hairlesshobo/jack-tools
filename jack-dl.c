@@ -101,10 +101,12 @@ int osc_b_alloc(const char *p, const char *t, lo_arg **a, int n, void *d, void *
   break_on(i >= w->nb, "buffer index");
   /*if(w->bd[i]) free(w->bd[i]);*/
   int l = a[1]->i;
+  int c = a[2]->i;
+  break_on(c != 1, "buffer not single channel...");
   w->bl[i] = 0;
   w->bd[i] = calloc(l, sizeof(float));
   w->bl[i] = l;
-  fprintf(stderr,"b_alloc: %d, %d\n", i, l);
+  fprintf(stderr,"b_alloc: %d, %d, %d\n", i, l, c);
   return 0;
 }
 
@@ -197,7 +199,7 @@ int main(int argc, char **argv)
 #endif
   lo_server_thread_add_method(osc, "/g_load", "is", osc_g_load, &w);
   lo_server_thread_add_method(osc, "/g_unload", "i", osc_g_unload, &w);
-  lo_server_thread_add_method(osc, "/b_alloc", "ii", osc_b_alloc, &w);
+  lo_server_thread_add_method(osc, "/b_alloc", "iii", osc_b_alloc, &w);
   lo_server_thread_add_method(osc, "/quit", NULL, osc_quit, &w);
   lo_server_thread_start(osc);
   if(jack_activate(w.c)) fail("jack.dl: jack_activate() failed\n");
