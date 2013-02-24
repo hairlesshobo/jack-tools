@@ -24,17 +24,12 @@ void fail(char *s)
 int dsp_run(jack_nframes_t nf, void *ptr)
 {
   struct world *w = (struct world *)ptr;
-  for(int i = 0; i < w->nc; i++) {
-    w->in[i] = (float *)jack_port_get_buffer(w->ip[i], nf);
-  }
-  for(int i = 0; i < w->nc; i++) {
-    w->out[i] = (float *)jack_port_get_buffer(w->op[i], nf);
-    memset(w->out[i], 0, nf * sizeof(float));
-  }
-  for(int i = 0; i < w->ng; i++) {
-    if(w->ga[i]) {
-      w->dsp_step[i](w, i, nf);
+  if(w->ga) {
+    for(int i = 0; i < w->nc; i++) {
+      w->in[i] = (float *)jack_port_get_buffer(w->ip[i], nf);
+      w->out[i] = (float *)jack_port_get_buffer(w->op[i], nf);
     }
+    w->dsp_step(w, nf);
   }
   return 0;
 }
@@ -53,34 +48,30 @@ void osc_error(int n, const char *m, const char *p)
 int osc_g_load(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
 {
   struct world *w = (struct world *)u;
-  int g = a[0]->i;
-  break_on(g >= w->ng, "graph index");
-  w->ga[g] = false;
-  char *s = &a[1]->s;
-  if(w->gh[g]) break_on(dlclose(w->gh[g]), dlerror());
-  w->gh[g] = dlopen(s, RTLD_LAZY);
-  break_on(!w->gh[g], dlerror());
-  w->dsp_memreq[g] = dlsym(w->gh[g], "dsp_memreq");
-  w->dsp_init[g] = dlsym(w->gh[g], "dsp_init");
-  w->dsp_step[g] = dlsym(w->gh[g], "dsp_step");
-  size_t k = w->dsp_memreq[g]();
-  w->st[g] = malloc(k);
-  w->dsp_init[g](w->st[g]);
-  w->ga[g] = true;
-  fprintf(stderr,"g_load: %d, %s\n", g, s);
+  w->ga = false;
+  char *s = &a[0]->s;
+  if(w->gh) break_on(dlclose(w->gh), dlerror());
+  w->gh = dlopen(s, RTLD_LAZY);
+  break_on(!w->gh, dlerror());
+  w->dsp_memreq = dlsym(w->gh, "dsp_memreq");
+  w->dsp_init = dlsym(w->gh, "dsp_init");
+  w->dsp_step = dlsym(w->gh, "dsp_step");
+  size_t k = w->dsp_memreq();
+  w->st = malloc(k);
+  w->dsp_init(w->st);
+  w->ga = true;
+  fprintf(stderr,"g_load: %s\n", s);
   return 0;
 }
 
 int osc_g_unload(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
 {
   struct world *w = (struct world *)u;
-  int g = a[0]->i;
-  break_on(g >= w->ng, "graph index");
-  w->ga[g] = false;
-  if(w->gh[g]) break_on(dlclose(w->gh[g]), dlerror());
-  w->gh[g] = NULL;
-  if(w->st[g]) free(w->st[g]);
-  fprintf(stderr,"g_unload: %d\n", g);
+  w->ga = false;
+  if(w->gh) break_on(dlclose(w->gh), dlerror());
+  w->gh = NULL;
+  if(w->st) free(w->st);
+  fprintf(stderr,"g_unload\n");
   return 0;
 }
 
@@ -110,20 +101,6 @@ int osc_b_alloc(const char *p, const char *t, lo_arg **a, int n, void *d, void *
   return 0;
 }
 
-#if USE_P_CTL
-int osc_p_set1(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
-{
-  struct world *w = (struct world *)u;
-  int g = a[0]->i;
-  break_on(g >= w->ng, "graph index");
-  int i = a[1]->i;
-  break_on(i >= w->nk, "control index");
-  w_p_set1(w, g, i, a[2]->f);
-  fprintf(stderr,"p_set1: %d, %d, %f\n", g, i, a[2]->f);
-  return 0;
-}
-#endif
-
 int osc_quit(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
 {
   struct world *w = (struct world *)u;
@@ -131,31 +108,24 @@ int osc_quit(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
   return 0;
 }
 
-void world_init(struct world *w, int ng, int nc, int nk, int nb)
+void world_init(struct world *w, int nc, int nk, int nb)
 {
-  w->ng = ng;
   w->nc = nc;
   w->nk = nk;
   w->nb = nb;
-  w->dsp_memreq = calloc(w->ng, sizeof(void *));
-  w->dsp_init = calloc(w->ng, sizeof(void *));
-  w->dsp_step = calloc(w->ng, sizeof(void *));
-  w->st = calloc(w->ng, sizeof(void *));
-#if USE_P_CTL
-  w->p_ctl = malloc(w->ng * sizeof(float *));
-  for(int i = 0; i < w->ng; i++) {
-    w->p_ctl[i] = calloc(w->nk, sizeof(float));
-  }
-#endif
-  w->ga = calloc(w->ng, sizeof(bool));
-  w->gh = calloc(w->ng, sizeof(void *));
+  w->dsp_memreq = NULL;
+  w->dsp_init = NULL;
+  w->dsp_step = NULL;
+  w->st = NULL;
+  w->ga = false;
+  w->gh = NULL;
   w->ip = malloc(w->nc * sizeof(jack_port_t *));
   w->op = malloc(w->nc * sizeof(jack_port_t *));
   w->in = malloc(w->nc * sizeof(float *));
   w->out = malloc(w->nc * sizeof(float *));
   w->ctl = calloc(w->nk, sizeof(float));
   w->bl = calloc(w->nb, sizeof(int));
-  w->bd = calloc(w->ng, sizeof(float*));
+  w->bd = calloc(w->nb, sizeof(float*));
   w->ef = false;
   strncpy(w->cn,"jack-dl",64);
   w->c = jack_client_open(w->cn,JackNullOption,NULL);
@@ -171,7 +141,6 @@ void usage(void)
   eprintf("Usage: jack-dl [ options ]\n");
   eprintf("    -b N : Number of buffers (default=8).\n");
   eprintf("    -c N : Number of channels (default=8).\n");
-  eprintf("    -g N : Number of graphs (default=8).\n");
   eprintf("    -k N : Number of controls (default=64).\n");
   exit(EXIT_SUCCESS);
 }
@@ -181,24 +150,20 @@ int main(int argc, char **argv)
   struct world w;
   lo_server_thread osc;
   int c;
-  int nb = 8, nc = 8, ng = 8, nk = 64;
+  int nb = 8, nc = 8, nk = 64;
   while((c = getopt(argc, argv, "b:c:hg:k:")) != -1) {
     switch(c) {
     case 'b': nb = (int)strtol(optarg, NULL, 0); break;
     case 'c': nc = (int)strtol(optarg, NULL, 0); break;
-    case 'g': ng = (int)strtol(optarg, NULL, 0); break;
     case 'k': nk = (int)strtol(optarg, NULL, 0); break;
     case 'h': usage(); break;
     }
   }
-  world_init(&w, ng, nc, nk, nb);
+  world_init(&w, nc, nk, nb);
   osc = lo_server_thread_new("57190", osc_error);
   lo_server_thread_add_method(osc, "/c_set", "if", osc_c_set, &w);
-#if USE_P_CTL
-  lo_server_thread_add_method(osc, "/p_set1", "iif", osc_p_set1, &w);
-#endif
-  lo_server_thread_add_method(osc, "/g_load", "is", osc_g_load, &w);
-  lo_server_thread_add_method(osc, "/g_unload", "i", osc_g_unload, &w);
+  lo_server_thread_add_method(osc, "/g_load", "s", osc_g_load, &w);
+  lo_server_thread_add_method(osc, "/g_unload", "", osc_g_unload, &w);
   lo_server_thread_add_method(osc, "/b_alloc", "iii", osc_b_alloc, &w);
   lo_server_thread_add_method(osc, "/quit", NULL, osc_quit, &w);
   lo_server_thread_start(osc);
