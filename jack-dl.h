@@ -1,8 +1,6 @@
 #include <stdbool.h>
 #include <jack/jack.h>
 
-#define USE_P_CTL 0
-
 struct world {
   size_t (*dsp_memreq)();
   void (*dsp_init)(void *);

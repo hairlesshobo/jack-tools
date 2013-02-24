@@ -28,6 +28,7 @@ int dsp_run(jack_nframes_t nf, void *ptr)
     for(int i = 0; i < w->nc; i++) {
       w->in[i] = (float *)jack_port_get_buffer(w->ip[i], nf);
       w->out[i] = (float *)jack_port_get_buffer(w->op[i], nf);
+      memset(w->out[i],0,nf * sizeof(float));
     }
     w->dsp_step(w, nf);
   }
@@ -151,12 +152,12 @@ int main(int argc, char **argv)
   lo_server_thread osc;
   int c;
   int nb = 8, nc = 8, nk = 64;
-  while((c = getopt(argc, argv, "b:c:hg:k:")) != -1) {
+  while((c = getopt(argc, argv, "b:c:hk:")) != -1) {
     switch(c) {
     case 'b': nb = (int)strtol(optarg, NULL, 0); break;
     case 'c': nc = (int)strtol(optarg, NULL, 0); break;
-    case 'k': nk = (int)strtol(optarg, NULL, 0); break;
     case 'h': usage(); break;
+    case 'k': nk = (int)strtol(optarg, NULL, 0); break;
     }
   }
   world_init(&w, nc, nk, nb);
