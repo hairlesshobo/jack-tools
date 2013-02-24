@@ -58,6 +58,7 @@ struct scope
   int delay_frames;
   int delay_location;
   int mode;
+  float input_gain;
   int pipe[2];
   char *image_directory;
   int image_cnt;
@@ -81,6 +82,7 @@ jackscope_print(struct scope *d)
   eprintf("DelayFrames     : %d\n", d->delay_frames);
   eprintf("DelayLocation   : %d\n", d->delay_location);
   eprintf("Mode            : %d\n", d->mode);
+  eprintf("InputGain       : %f\n", d->input_gain);
 }
 
 #define OSC_PARSE_MSG(command,types)				\
@@ -300,7 +302,7 @@ set_mode(struct scope *d, const char *mode)
   } else if(strncmp("embed", mode, 5)== 0) {
     d->mode = EMBED_MODE;
   } else {
-    eprintf("jack.scope: illegal mode, %s\n", mode);
+    eprintf("jack-scope: illegal mode, %s\n", mode);
   }
 }
 
@@ -319,11 +321,13 @@ jackscope_osc_thread_procedure(void *PTR)
 	d->draw_frames = o[0].i > d->data_frames ? d->data_frames : o[0].i;
       } else if(OSC_PARSE_MSG("/mode", ",s")) {
 	set_mode(d, o[0].s);
+      } else if(OSC_PARSE_MSG("/input-gain", ",f")) {
+	d->input_gain = o[0].f;
       } else if(OSC_PARSE_MSG("/delay", ",f")) {
 	d->delay_msec = o[0].f;
 	d->delay_frames = floorf(( d->delay_msec / 1000.0)* d->fps);
       } else {
-	eprintf("jack.scope: dropped packet: %8s\n", packet);
+	eprintf("jack-scope: dropped packet: %8s\n", packet);
       }
     }
   }
@@ -339,7 +343,7 @@ void *
 jackscope_draw_thread_procedure(void *PTR)
 {
   struct scope *d = (struct scope *) PTR;
-  Ximg_t *x = ximg_open(d->window_size, d->window_size, "jack.scope");
+  Ximg_t *x = ximg_open(d->window_size, d->window_size, "jack-scope");
   int image_n = d->window_size * d->window_size * 3;
   uint8_t *image = xmalloc(image_n);
   float *local = xmalloc(d->data_samples * sizeof(float));
@@ -357,7 +361,7 @@ jackscope_draw_thread_procedure(void *PTR)
     if(d->image_directory) {
       char name[256];
       snprintf(name, 256,
-	       "%s/jack.scope.%06d.ppm",
+	       "%s/jack-scope.%06d.ppm",
 	       d->image_directory, d->image_cnt);
       img_write_ppm_file(image, d->window_size, d->window_size, name);
     }
@@ -387,7 +391,7 @@ jackscope_process(jack_nframes_t nframes, void *PTR)
   for(i = 0; i < nframes; i++) {
     int j;
     for(j = 0; j < d->channels; j++) {
-      d->data[k++] = (float) in[j][i];
+      d->data[k++] = (float) in[j][i] * d->input_gain;
       if(k >= d->data_samples) {
 	k = 0;
       }
@@ -408,7 +412,7 @@ jackscope_process(jack_nframes_t nframes, void *PTR)
 void
 jackscope_usage (void)
 {
-  eprintf("Usage: jack.scope [options] sound-file\n");
+  eprintf("Usage: jack-scope [options] sound-file\n");
   eprintf(" -b I : Scope size in frames (default=512)\n");
   eprintf(" -d R : Delay time in ms between scope udpates (default=100)\n");
   eprintf(" -f S : Request images be stored at location (default=NULL)\n");
@@ -434,6 +438,7 @@ main(int argc, char **argv)
   d.delay_location = 0;
   d.channels = 1;
   d.mode = SIGNAL_MODE;
+  d.input_gain = 1.0;
   d.child_data[0] = signal_init ();
   d.child_draw[0] = signal_draw;
   d.child_control[0] = signal_control;
@@ -443,10 +448,10 @@ main(int argc, char **argv)
   d.image_directory = NULL;
   d.image_cnt = 0;
   int port_n = 57140;
-  int c;
+  int o;
   char *p = NULL;
-  while ((c = getopt (argc, argv, "b:d:e:f:hi:m:n:p:s:u:w:")) != -1) {
-    switch (c) {
+  while ((o = getopt (argc, argv, "b:d:e:f:hi:m:n:p:s:u:w:")) != -1) {
+    switch (o) {
     case 'b':
       d.data_frames = strtol(optarg, NULL, 0);
       break;
@@ -480,7 +485,7 @@ main(int argc, char **argv)
       d.window_size = strtol(optarg, NULL, 0);
       break;
     default:
-      eprintf("jack.scope: illegal option, %c\n", (char)c);
+      eprintf("jack-scope: illegal option, %c\n", (char)o);
       jackscope_usage ();
       break;
     }
@@ -496,22 +501,26 @@ main(int argc, char **argv)
 		 jackscope_osc_thread_procedure, &d);
   pthread_create(&(d.draw_thread), NULL,
 		 jackscope_draw_thread_procedure, &d);
-  char client_name[64] = "jack-scope";
-  jack_client_t *client = jack_client_unique_store(client_name);
+  char nm[64] = "jack-scope";
+  jack_client_t *c = jack_client_unique_store(nm);
   jack_set_error_function(jack_client_minimal_error_handler);
-  jack_on_shutdown(client, jack_client_minimal_shutdown_handler, 0);
-  jack_set_process_callback(client, jackscope_process, &d);
-  d.fps = (float) jack_get_sample_rate(client);
+  jack_on_shutdown(c, jack_client_minimal_shutdown_handler, 0);
+  jack_set_process_callback(c, jackscope_process, &d);
+  d.fps = (float) jack_get_sample_rate(c);
   d.delay_frames = floorf(( d.delay_msec / 1000.0)* d.fps);
-  jack_port_make_standard(client, d.port, d.channels, 0);
-  jack_client_activate(client);
+  jack_port_make_standard(c, d.port, d.channels, 0);
+  if(jack_client_activate(c)) {
+    eprintf("jack-scope: jack_activate() failed\n");
+    FAILURE;
+  }
+  if (!p) p = getenv("JACK_SCOPE_CONNECT_TO");
   if (p) {
     char q[128];
-    snprintf(q,128,"%s:in_%%d",client_name);
-    jack_port_connect_pattern(client,d.channels,0,p,q);
+    snprintf(q,128,"%s:in_%%d",nm);
+    jack_port_connect_pattern(c,d.channels,0,p,q);
   }
   pthread_join(d.draw_thread, NULL);
-  jack_client_close (client);
+  jack_client_close (c);
   close(d.pipe[0]);
   close(d.pipe[1]);
   free(d.data);

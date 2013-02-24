@@ -20,6 +20,7 @@ clean:
 
 install:
 	cp $(BIN) $(prefix)/bin
+	cp jack-dl.h $(prefix)/include
 
 uninstall:
 	(cd $(prefix)/bin ; rm -f $(BIN))

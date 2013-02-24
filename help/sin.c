@@ -1,8 +1,8 @@
-/* gcc -shared -I ~/include sin.c -o sin.so */
+/* gcc -shared -I ~/opt/include sin.c -o sin.so */
 
 #include <stdlib.h>
 #include <math.h>
-#include <jack.dl.h>
+#include <jack-dl.h>
 
 struct sinosc {
   float f;                      /* frequency */
@@ -28,34 +28,35 @@ float step_phasor(float *phase, float incr)
   }
 }
 
-/* allocate state data and initialize private control data */
-void *dsp_init(struct world *w, int g)
+size_t dsp_memreq()
 {
-  struct sinosc *s = malloc(sizeof(struct sinosc));
+  return sizeof(struct sinosc);
+}
+
+/* allocate state data and initialize control data */
+void dsp_init(void *p)
+{
+  struct sinosc *s = p;
   s->phase = 0.0;
   s->f = 440.0;
   s->a = 0.1;
   s->p = 0.5;
-  w_p_set1(w, g, 0, s->f);
-  w_p_set1(w, g, 1, s->a);
-  w_p_set1(w, g, 2, s->p);
-  return (void*)s;
 }
 
 /* process nf frames of data */
-void dsp_step(struct world *w, int g, void *ptr, int nf)
+void dsp_step(struct world *w, int g, int nf)
 {
   int i;
-  struct sinosc *s = (struct sinosc *)ptr;
+  struct sinosc *s = w_state(w,g);
   /* load state */
   float f = s->f;
   float a = s->a;
   float p = s->p;
   float phase = s->phase;
   /* read control values */
-  float fe = w_p_get1(w, g, 0);
-  float ae = w_p_get1(w, g, 1);
-  float pe = w_p_get1(w, g, 2);
+  float fe = w_c_get1(w, (g * 3) + 0);
+  float ae = w_c_get1(w, (g * 3) + 1);
+  float pe = w_c_get1(w, (g * 3) + 2);
   /* calculate control increments */
   float fi = (fe - f) / (float)nf;
   float ai = (ae - a) / (float)nf;

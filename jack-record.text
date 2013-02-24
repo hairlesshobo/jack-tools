@@ -1,15 +1,14 @@
-JACK.RECORD(1)
+JACK-RECORD(1)
 ==============
 Rohan Drape <rd@slavepianos.org>
 
-
 NAME
 ----
-jack.record - JACK Capture Client
+jack-record - JACK Capture Client
 
 SYNOPSIS
 --------
-jack.record [options] sound-file
+jack-record [options] sound-file
 
 OPTIONS
 -------
@@ -48,9 +47,9 @@ OPTIONS
 
 DESCRIPTION
 -----------
-jack.record is a light-weight JACK capture client to write an
+jack-record is a light-weight JACK capture client to write an
 arbitrary number of channels to disk.  It implements no connection
-logic, use jack.plumbing(1) instead.
+logic, use jack-plumbing(1) instead.
 
 If the default mode a single multiple channel sound file is written.
 If the *-s* option is given a set of single channel sound files are
@@ -58,7 +57,7 @@ written.  In this case the sound file name must be a valid template,
 the substring %d is replaced with the channel number counting from
 zero.
 
-jack.record will write files in any format supported by libsndfile.
+jack-record will write files in any format supported by libsndfile.
 The table below shows the most common file format masks.  For other
 values see the file 'sndfile.h'.
 
@@ -73,7 +72,7 @@ SF_FORMAT_FLOAT    0x00006   32 bit float data
 
 AUTHOR
 ------
-Rohan Drape <http://slavepianos.org/rd/>
+Rohan Drape <http://rd.slavepianos.org/>
 
 SEE ALSO
 --------

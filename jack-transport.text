@@ -1,21 +1,21 @@
-JACK.TRANSPORT(1)
+JACK-TRANSPORT(1)
 =================
 Rohan Drape <rd@slavepianos.org>
 
 
 NAME
 ----
-jack.transport - Minimalist Jack Transport Interface
+jack-transport - Minimalist Jack Transport Interface
 
 SYNOPSIS
 --------
-jack.transport
+jack-transport
 
 DESCRIPTION
 -----------
-jack.transport is a minimalist Jack transport control interface using
-ncurses.  It displays the transport state and current time, and pro-
-vides standard operating keys.
+jack-transport is a minimalist Jack transport control interface using
+ncurses.  It displays the transport state and current time, and
+provides standard operating keys.
 
 COMMANDS
 --------
@@ -37,8 +37,8 @@ COMMANDS
 
 AUTHOR
 ------
-Rohan Drape <http://slavepianos.org/rd/>
+Rohan Drape <http://rd.slavepianos.org/>
 
 SEE ALSO
 --------
-jackd(1), jack.play(1)
+jackd(1), jack-play(1)

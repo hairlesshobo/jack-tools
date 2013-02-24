@@ -41,12 +41,12 @@ int dsp_run(jack_nframes_t nf, void *ptr)
 
 void osc_error(int n, const char *m, const char *p)
 {
-  fprintf(stderr,"jack.dl: error %d in path %s: %s\n", n, p, m);
+  fprintf(stderr,"jack-dl: error %d in path %s: %s\n", n, p, m);
 }
 
 #define break_on(x,s)                                                   \
   if(x){                                                                \
-    fprintf(stderr,"jack.dl: %s: %s, %d\n", s, __FILE__, __LINE__);     \
+    fprintf(stderr,"jack-dl: %s: %s, %d\n", s, __FILE__, __LINE__);     \
     return 0;                                                           \
   }
 
@@ -84,13 +84,13 @@ int osc_g_unload(const char *p, const char *t, lo_arg **a, int n, void *d, void 
   return 0;
 }
 
-int osc_c_set1(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
+int osc_c_set(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
 {
   struct world *w = (struct world *)u;
   int i = a[0]->i;
   break_on(i >= w->nk, "control index");
   w_c_set1(w, i, a[1]->f);
-  fprintf(stderr,"c_set1: %d, %f\n", i, a[1]->f);
+  fprintf(stderr,"c_set: %d, %f\n", i, a[1]->f);
   return 0;
 }
 
@@ -193,7 +193,7 @@ int main(int argc, char **argv)
   }
   world_init(&w, ng, nc, nk, nb);
   osc = lo_server_thread_new("57190", osc_error);
-  lo_server_thread_add_method(osc, "/c_set1", "if", osc_c_set1, &w);
+  lo_server_thread_add_method(osc, "/c_set", "if", osc_c_set, &w);
 #if USE_P_CTL
   lo_server_thread_add_method(osc, "/p_set1", "iif", osc_p_set1, &w);
 #endif
@@ -202,7 +202,7 @@ int main(int argc, char **argv)
   lo_server_thread_add_method(osc, "/b_alloc", "iii", osc_b_alloc, &w);
   lo_server_thread_add_method(osc, "/quit", NULL, osc_quit, &w);
   lo_server_thread_start(osc);
-  if(jack_activate(w.c)) fail("jack.dl: jack_activate() failed\n");
+  if(jack_activate(w.c)) fail("jack-dl: jack_activate() failed\n");
   char *dst_pattern = getenv("JACK_DL_CONNECT_TO");
   if (dst_pattern) {
     char src_pattern[128];

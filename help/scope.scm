@@ -7,7 +7,7 @@
   (lambda (cmd arg)
     (send fd (list cmd arg))))
 
-(set-scope "/frames" (* 512 1))
+(set-scope "/frames" (* 512 2))
 (set-scope "/delay" (/ 1000.0 24.0))
 
 (set-scope "/mode" "signal")
@@ -18,5 +18,7 @@
 (set-scope "/mode" "embed")
 (set-scope "/incr" 0.1)
 (set-scope "/embed" 64)
+
+(set-scope "/input-gain" 2.0)
 
 (udp:close fd)

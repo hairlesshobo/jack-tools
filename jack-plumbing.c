@@ -23,7 +23,7 @@
 #define MAX_STR       512
 #define MAX_SUBEXP    4
 #define DEFAULT_DELAY 30000
-#define SYS_RULESET   "/etc/jack.plumbing"
+#define SYS_RULESET   "/etc/jack-plumbing"
 
 enum action {
   ignore,
@@ -209,7 +209,7 @@ static void
 append_ordinary_rule_files(struct plumber *p)
 {
   append_rule_file(p, SYS_RULESET);
-  append_rule_file(p, "%s/.jack.plumbing", getenv("HOME"));
+  append_rule_file(p, "%s/.jack-plumbing", getenv("HOME"));
 }
 
 /* Add implicit connect rules at `p'.  */
@@ -527,7 +527,7 @@ init_plumber_defaults(struct plumber *p)
 static void
 init_plumber_connection(struct plumber *p)
 {
-  p->j = jack_client_unique("jack.plumbing");
+  p->j = jack_client_unique("jack-plumbing");
 }
 
 static void
@@ -596,7 +596,7 @@ as_daemon(struct plumber *p)
 static void
 plumber_usage(void)
 {
-  eprintf("Usage: jack.plumbing [ options ] [ rule-files ]\n");
+  eprintf("Usage: jack-plumbing [ options ] [ rule-files ]\n");
   eprintf("    -d   : Do not start as daemon.\n");
   eprintf("    -o   : Do not acquire ordinary rule files.\n");
   eprintf("    -q   : Quiet operation.\n");

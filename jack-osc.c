@@ -37,7 +37,7 @@ struct jackosc
   f64 ppf;			/* Pulses per frame */
   f64 tpf;			/* Ticks per frame */
   f64 pulse;			/* Pulse clock */
-  i64 frm;			/* Frame clock (jack.osc) */
+  i64 frm;			/* Frame clock (jack-osc) */
   i64 j_frm;			/* Frame clock (jackd) */
   u64 ntp;			/* NTP clock */
   f64 utc;			/* UTC clock */
@@ -290,7 +290,7 @@ int jackosc_fps_handler(jack_nframes_t fps, void *PTR)
 
 void jackosc_usage(void)
 {
-  eprintf("Usage: jack.osc [ options ]\n");
+  eprintf("Usage: jack-osc [ options ]\n");
   eprintf("   -c  Drift correction interval in periods (default=64).\n");
   eprintf("   -p  Port number (default=57130).\n");
   FAILURE;
@@ -336,7 +336,7 @@ int main(int argc, char *argv[])
   }
   d.fd = socket_udp(0);
   bind_inet(d.fd, NULL, port_n);
-  d.client = jack_client_unique("jack.osc");
+  d.client = jack_client_unique("jack-osc");
   jack_set_error_function(jack_client_minimal_error_handler);
   jack_set_sample_rate_callback(d.client, jackosc_fps_handler, &d);
   jack_on_shutdown(d.client, jack_client_minimal_shutdown_handler, 0);

@@ -1,18 +1,19 @@
-JACK.DL(1)
+JACK-DL(1)
 ==========
 Rohan Drape <rd@slavepianos.org>
 
-
 NAME
 ----
-jack.dl - JACK shared library dsp loader
+jack-dl - JACK shared library dsp loader
 
 SYNOPSIS
 --------
-jack.dl [options]
+jack-dl [options]
 
 OPTIONS
 -------
+*-b*
+:   Set the number of buffers (default=8).
 *-c*
 :   Set the number of input and output channels (default=8).
 *-g*
@@ -24,25 +25,35 @@ OPTIONS
 
 DESCRIPTION
 -----------
-jack.dl loads dsp algorithms from shared libraries.  Commands are sent
-as OSC packets over a UDP connection.  jack.dl allows data flow code
-generators to be used as interactively.
+jack-dl loads dsp algorithms from shared libraries and allows user
+interaction with running graphs.  Commands are sent as OSC packets
+over a UDP connection.
 
-Clients load dsp graphs by sending a "graph load" packet:
+The dsp graph code must provide three functions.
 
-    /g_load index object-file
+    size_t (*dsp_memreq)();
+    void (*dsp_init)(void *);
+    void (*dsp_step)(void *,int,int);
 
-where index is an integer and object-file a file name.
+jack-dl accepts the OSC commands:
 
-jack.dl implements only a subset of the OSC protocol.  In particular
+Command   Arguments                             Description
+-------   ---------                             -----------
+/b_alloc  id::int frames::int channels::int     buffer allocate
+/c_set    index::int value::float               control set
+/g_load   index::int object-file::file-path     graph load
+
+jack-dl consults the `JACK_DL_CONNECT_TO` environment variable.
+
+jack-dl implements only a subset of the OSC protocol.  In particular
 it does not implement the patten matching rules and does not implement
 a scheduler for incoming messages.
 
-jack.dl drops all unrecognized incoming packets.
+jack-dl drops all unrecognized incoming packets.
 
 AUTHOR
 ------
-Rohan Drape <http://slavepianos.org/rd/>
+Rohan Drape <http://rd.slavepianos.org/>
 
 SEE ALSO
 --------
