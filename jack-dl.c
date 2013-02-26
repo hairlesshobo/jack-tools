@@ -96,7 +96,11 @@ int osc_b_alloc(const char *p, const char *t, lo_arg **a, int n, void *d, void *
   int c = a[2]->i;
   break_on(c != 1, "buffer not single channel...");
   w->bl[i] = 0;
-  w->bd[i] = calloc(l, sizeof(float));
+  if(w->bd[i]) {
+    w->bd[i] = realloc(w->bd[i],l * sizeof(float));
+  } else {
+    w->bd[i] = calloc(l, sizeof(float));
+  }
   w->bl[i] = l;
   fprintf(stderr,"b_alloc: %d, %d, %d\n", i, l, c);
   return 0;
