@@ -173,12 +173,8 @@ int main(int argc, char **argv)
   lo_server_thread_add_method(osc, "/quit", NULL, osc_quit, &w);
   lo_server_thread_start(osc);
   if(jack_activate(w.c)) fail("jack-dl: jack_activate() failed\n");
-  char *dst_pattern = getenv("JACK_DL_CONNECT_TO");
-  if (dst_pattern) {
-    char src_pattern[128];
-    snprintf(src_pattern, 128, "%s:out_%%d", w.cn);
-    jack_port_connect_pattern(w.c, w.nc, 0, src_pattern, dst_pattern);
-  }
+  jack_port_connect_to_env(w.c, w.nc, 0, "JACK_DL_CONNECT_TO");
+  jack_port_connect_from_env(w.c, w.nc, 0, "JACK_DL_CONNECT_FROM");
   while(!w.ef) {
     struct timespec t = {0, 100000000};
     nanosleep(&t, NULL);
