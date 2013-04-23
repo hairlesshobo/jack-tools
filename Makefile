@@ -1,29 +1,35 @@
 prefix=$(HOME)/opt
+bin=jack-dl jack-osc jack-play jack-plumbing jack-record jack-scope jack-transport jack-udp
+
 CFLAGS=-Wall -D_POSIX_C_SOURCE=200112 -std=c99 -O3 -g
-LIB=c-common/lib-c-common.a -ljack -lpthread -lm
-BIN=jack-dl jack-osc jack-play jack-plumbing jack-record jack-scope jack-transport jack-udp
+LDLIBS=c-common/lib-c-common.a -ljack -lpthread -lm
+
+all: $(bin)
 
 jack-transport: jack-transport.c
-	gcc $(CFLAGS) -o jack-transport jack-transport.c $(LIB) -lcurses
+	gcc $(CFLAGS) -o jack-transport jack-transport.c $(LDLIBS) -lcurses
 
-all: jack-transport
-	gcc $(CFLAGS) -o jack-dl jack-dl.c $(LIB) -ldl -llo
-	gcc $(CFLAGS) -o jack-osc jack-osc.c $(LIB)
-	gcc $(CFLAGS) -o jack-play jack-play.c $(LIB) -lsndfile -lsamplerate
-	gcc $(CFLAGS) -o jack-plumbing jack-plumbing.c $(LIB)
-	gcc $(CFLAGS) -o jack-record jack-record.c $(LIB) -lsndfile
-	gcc $(CFLAGS) -o jack-scope jack-scope.c $(LIB) -lX11 -lXext
-	gcc $(CFLAGS) -o jack-udp jack-udp.c $(LIB)
+jack-dl: jack-dl.c
+	gcc $(CFLAGS) -o jack-dl jack-dl.c $(LDLIBS) -ldl -llo
+
+jack-play: jack-play.c
+	gcc $(CFLAGS) -o jack-play jack-play.c $(LDLIBS) -lsndfile -lsamplerate
+
+jack-record: jack-record.c
+	gcc $(CFLAGS) -o jack-record jack-record.c $(LDLIBS) -lsndfile
+
+jack-scope: jack-scope.c
+	gcc $(CFLAGS) -o jack-scope jack-scope.c $(LDLIBS) -lX11 -lXext
 
 clean:
-	rm -f $(BIN) *.o
+	rm -f $(bin) *.o
 
 install:
-	cp $(BIN) $(prefix)/bin
+	cp $(bin) $(prefix)/bin
 	cp jack-dl.h $(prefix)/include
 
 uninstall:
-	(cd $(prefix)/bin ; rm -f $(BIN))
+	(cd $(prefix)/bin ; rm -f $(bin))
 
 ln-local-c-common:
 	rm -f c-common
