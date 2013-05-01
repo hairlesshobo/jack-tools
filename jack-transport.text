@@ -34,9 +34,9 @@ COMMANDS
 :   Move forwards by increment.  Aliased to [>] and [right-arrow].
 *b*
 :   Move backwards by increment.  Aliased to [<] and [left-arrow].
-*F:
+*F*
 :   Move forwards one minute.  Aliased to [.] and [up-arrow].
-*B:
+*B*
 :   Skip backwards one minute.  Aliased to [,] and [down-arrow].
 
 AUTHOR
