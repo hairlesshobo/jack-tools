@@ -134,20 +134,24 @@ int main(int argc, char **argv)
 	jack_transport_start(t.jk);
       }
       break;
+    case 'f':
     case '>':
     case KEY_RIGHT:
       offset(&t, t.incr);
       break;
+    case 'F':
     case '.':
     case KEY_UP:
       offset(&t, t.skip);
       break;
+    case 'b':
     case '<':
     case KEY_LEFT:
       offset(&t, -t.incr);
       break;
-    case KEY_DOWN:
+    case 'B':
     case ',':
+    case KEY_DOWN:
       offset(&t, -t.skip);
       break;
     case 'z':
@@ -181,9 +185,10 @@ int main(int argc, char **argv)
       break;
     }
 
-    mvaddstr(0, 0, "jack-transport - (c) rohan drape, 2006-2012");
+    mvaddstr(0, 0, "jack-transport");
+    mvaddstr(2, 0, "[s]tart,[s]top,[f]orward,[b]ack,[l]ocate,[i]ncrement,[z]ero,[q]uit");
     mvaddch(1, 0, t.rolling ? ACS_RARROW : ACS_BLOCK);
-    mvaddtime(1, 4, t.time);
+    mvaddtime(1, 6, t.time);
   }
 
   jack_client_close(t.jk);
