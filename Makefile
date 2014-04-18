@@ -37,3 +37,9 @@ ln-local-c-common:
 
 mk-local-c-common:
 	(cd c-common ; make)
+
+push-sp:
+	darcs push -a rd@slavepianos.org:sw/rju
+
+pull-sp:
+	darcs pull -a http://rd.slavepianos.org/sw/rju
