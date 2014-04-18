@@ -34,6 +34,7 @@ struct player_opt
   int rb_request_frames;
   int converter;
   char client_name[64];
+  float ampl;
 };
 
 struct player
@@ -96,6 +97,11 @@ void *disk_proc(void *PTR)
       } else {
 	return NULL;
       }
+    }
+
+    /* Apply amplitude gain. */
+    for(sf_count_t i = 0;i < err; i++) {
+      d->d_buffer[i] *= d->o.ampl;
     }
 
     /* Write data to ring buffer. */
@@ -213,6 +219,7 @@ void usage(void)
   eprintf("Usage: jack-play [ options ] sound-file...\n");
   eprintf("    -b N : Ring buffer size in frames (default=4096).\n");
   eprintf("    -c N : ID of conversion algorithm (default=2, SRC_SINC_FASTEST).\n");
+  eprintf("    -g N : amplitude gain (multiplier, default=1).\n");
   eprintf("    -i N : Initial disk seek in frames (default=0).\n");
   eprintf("    -m N : Minimal disk read size in frames (default=32).\n");
   eprintf("    -q N : Frames to request from ring buffer (default=64).\n");
@@ -375,15 +382,19 @@ int main(int argc, char *argv[])
   o.src_ratio = 1.0;
   o.rb_request_frames = 64;
   o.converter = SRC_SINC_FASTEST;
+  o.ampl = 1.0;
   strncpy(o.client_name, "jack-play", 64);
 
-  while((c = getopt(argc, argv, "b:c:hi:m:n:q:r:tu")) != -1) {
+  while((c = getopt(argc, argv, "b:c:g:hi:m:n:q:r:tu")) != -1) {
     switch(c) {
     case 'b':
       o.buffer_frames = (int)strtol(optarg, NULL, 0);
       break;
     case 'c':
       o.converter = (int)strtol(optarg, NULL, 0);
+      break;
+    case 'g':
+      o.ampl = strtof(optarg, NULL);
       break;
     case 'h':
       usage ();
