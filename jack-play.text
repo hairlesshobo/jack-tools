@@ -22,6 +22,9 @@ OPTIONS
     `SRC_SINC_BEST_QUALITY` = 0, `SRC_SINC_MEDIUM_QUALITY` = 1,
     `SRC_SINC_FASTEST` = 2, `SRC_ZERO_ORDER_HOLD` = 3 and `SRC_LINEAR` = 4.
 
+*-d*
+:   Set the destination port patter, overrides environment variable.
+
 *-i*
 :   Set the initial disk seek in frames (default=0).
 

@@ -34,6 +34,7 @@ struct player_opt
   int rb_request_frames;
   int converter;
   char client_name[64];
+  char *dst_pattern;
   float ampl;
 };
 
@@ -219,6 +220,7 @@ void usage(void)
   eprintf("Usage: jack-play [ options ] sound-file...\n");
   eprintf("    -b N : Ring buffer size in frames (default=4096).\n");
   eprintf("    -c N : ID of conversion algorithm (default=2, SRC_SINC_FASTEST).\n");
+  eprintf("    -d N : Destination port patteren (default=NULL).\n");
   eprintf("    -g N : amplitude gain (multiplier, default=1).\n");
   eprintf("    -i N : Initial disk seek in frames (default=0).\n");
   eprintf("    -m N : Minimal disk read size in frames (default=32).\n");
@@ -342,11 +344,13 @@ int jackplay(const char *file_name,
      client. */
   jack_port_make_standard(d.client, d.output_port, d.channels, true);
   jack_client_activate(d.client);
-  char *dst_pattern = getenv("JACK_PLAY_CONNECT_TO");
-  if (dst_pattern) {
+  if (o.dst_pattern == NULL) {
+    o.dst_pattern = getenv("JACK_PLAY_CONNECT_TO");
+  }
+  if (o.dst_pattern) {
     char src_pattern[128];
     snprintf(src_pattern,128,"%s:out_%%d",d.o.client_name);
-    jack_port_connect_pattern(d.client,d.channels,0,src_pattern,dst_pattern);
+    jack_port_connect_pattern(d.client,d.channels,0,src_pattern,o.dst_pattern);
   }
 
   /* Wait for disk thread to end, which it does when it reaches the
@@ -383,15 +387,21 @@ int main(int argc, char *argv[])
   o.rb_request_frames = 64;
   o.converter = SRC_SINC_FASTEST;
   o.ampl = 1.0;
+  o.dst_pattern = NULL;
   strncpy(o.client_name, "jack-play", 64);
 
-  while((c = getopt(argc, argv, "b:c:g:hi:m:n:q:r:tu")) != -1) {
+  while((c = getopt(argc, argv, "b:c:d:g:hi:m:n:q:r:tu")) != -1) {
     switch(c) {
     case 'b':
       o.buffer_frames = (int)strtol(optarg, NULL, 0);
       break;
     case 'c':
       o.converter = (int)strtol(optarg, NULL, 0);
+      break;
+    case 'd':
+      o.dst_pattern = malloc(jack_port_name_size());
+      strncpy(o.dst_pattern, optarg, jack_port_name_size());
+      eprintf("jack destination port pattern: %s\n", o.dst_pattern);
       break;
     case 'g':
       o.ampl = strtof(optarg, NULL);
