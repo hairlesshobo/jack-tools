@@ -43,11 +43,11 @@ interoperable with [markdown][markdown].  To build type:
 [plumb]: http://plan9.bell-labs.com/sys/doc/plumb.html
 [curses]: http://gnu.org/software/ncurses/
 
-© [rohan drape][rd], 2003-2013, [gpl]. with contributions by:
+© [rohan drape][rd], 2003-2014, [gpl]. with contributions by:
 
 - jeremy hall
 
-see the [darcs][darcs] [history][history] for details
+see the [darcs][darcs] [history](?t=rju&q=history) for details
 
 [rd]: http://rd.slavepianos.org/
 [gpl]: http://gnu.org/copyleft/
