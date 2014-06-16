@@ -23,7 +23,7 @@ OPTIONS
     `SRC_SINC_FASTEST` = 2, `SRC_ZERO_ORDER_HOLD` = 3 and `SRC_LINEAR` = 4.
 
 *-d*
-:   Set the destination port patter, overrides environment variable.
+:   Set the destination port pattern, overrides environment variable.
 
 *-i*
 :   Set the initial disk seek in frames (default=0).
@@ -52,9 +52,10 @@ DESCRIPTION
 -----------
 jack-play is a light-weight JACK sound file player. It creates as many
 output ports as there are channels in the input file.  It will connect
-to ports mentioned in the environment variable JACK_PLAY_CONNECT_TO
-which must include a %d pattern to indicate port number, otherwise it
-implements no connection logic, use jack-plumbing(1) instead.
+to ports mentioned at *-p* or in the environment variable
+JACK_PLAY_CONNECT_TO which must include a %d pattern to indicate port
+number, otherwise it implements no connection logic, use
+jack-plumbing(1) instead.
 
 jack-play will read files in any format supported by libsndfile, and
 will resample to match the server sample rate using libsamplerate.
