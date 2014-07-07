@@ -28,6 +28,7 @@ struct player_opt
   int buffer_frames;
   int minimal_frames;
   i64 seek_request;
+  double seek_request_sec;
   bool transport_aware;
   int unique_name;
   double src_ratio;
@@ -223,6 +224,7 @@ void usage(void)
   eprintf("    -d N : Destination port patteren (default=NULL).\n");
   eprintf("    -g N : amplitude gain (multiplier, default=1).\n");
   eprintf("    -i N : Initial disk seek in frames (default=0).\n");
+  eprintf("    -I N : Initial disk seek in seconds (default=0).\n");
   eprintf("    -m N : Minimal disk read size in frames (default=32).\n");
   eprintf("    -q N : Frames to request from ring buffer (default=64).\n");
   eprintf("    -r N : Resampling ratio multiplier (default=1.0).\n");
@@ -340,6 +342,12 @@ int jackplay(const char *file_name,
             d.o.src_ratio);
   }
 
+  /* Translate initial seek request if given in seconds and cancel. */
+  if (d.o.seek_request_sec > 0) {
+    d.o.seek_request = (i64) (isr * d.o.seek_request_sec);
+    d.o.seek_request_sec = -1;
+  }
+
   /* Create output ports, connect if env variable set and activate
      client. */
   jack_port_make_standard(d.client, d.output_port, d.channels, true);
@@ -381,6 +389,7 @@ int main(int argc, char *argv[])
   o.buffer_frames = 4096;
   o.minimal_frames = 32;
   o.seek_request = -1;
+  o.seek_request_sec = -1;
   o.transport_aware = false;
   o.unique_name = true;
   o.src_ratio = 1.0;
@@ -390,7 +399,7 @@ int main(int argc, char *argv[])
   o.dst_pattern = NULL;
   strncpy(o.client_name, "jack-play", 64);
 
-  while((c = getopt(argc, argv, "b:c:d:g:hi:m:n:q:r:tu")) != -1) {
+  while((c = getopt(argc, argv, "b:c:d:g:hi:I:m:n:q:r:tu")) != -1) {
     switch(c) {
     case 'b':
       o.buffer_frames = (int)strtol(optarg, NULL, 0);
@@ -412,6 +421,8 @@ int main(int argc, char *argv[])
     case 'i':
       o.seek_request = (i64)strtol(optarg, NULL, 0);
       break;
+    case 'I':
+      o.seek_request_sec = strtod(optarg,NULL);
     case 'm':
       o.minimal_frames = (int)strtoll(optarg, NULL, 0);
       break;
