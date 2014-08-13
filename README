@@ -14,14 +14,14 @@ rju
 [jack-udp][-udp]             jack over udp client (obsolete, see [netjack][nj])
 ---------------------------- --------------------------------------------------
 
-[-dl]: ?t=rju&m=jack-dl.text
-[-osc]: ?t=rju&m=jack-osc.text
-[-play]: ?t=rju&m=jack-play.text
-[-plumbing]: ?t=rju&m=jack-plumbing.text
-[-record]: ?t=rju&m=jack-record.text
-[-scope]: ?t=rju&m=jack-scope.text
-[-transport]: ?t=rju&m=jack-transport.text
-[-udp]: ?t=rju&m=jack-udp.text
+[-dl]: ?t=rju&e=jack-dl.ad
+[-osc]: ?t=rju&e=jack-osc.ad
+[-play]: ?t=rju&e=jack-play.ad
+[-plumbing]: ?t=rju&e=jack-plumbing.ad
+[-record]: ?t=rju&e=jack-record.ad
+[-scope]: ?t=rju&e=jack-scope.ad
+[-transport]: ?t=rju&e=jack-transport.ad
+[-udp]: ?t=rju&e=jack-udp.ad
 
 To build type:
 
@@ -30,7 +30,7 @@ To build type:
 Documentation is in [asciidoc][ad] format, which is more or less
 interoperable with [markdown][markdown].  To build type:
 
-> for i in *.text ; do asciidoc $i; done
+> for i in *.ad ; do asciidoc $i; done
 
 [jackd]: http://jackaudio.org/
 [sf]: http://mega-nerd.com/libsndfile/
