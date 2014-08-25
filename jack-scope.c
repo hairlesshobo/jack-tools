@@ -419,6 +419,7 @@ jackscope_usage (void)
   eprintf(" -m S : Scope operating mode (default=signal)\n");
   eprintf(" -n I : Number of channels (default=1)\n");
   eprintf(" -p S : Jack port pattern to connect to (default=nil)\n");
+  eprintf(" -s S : Drawing style for signal mode (default=dot)\n");
   eprintf(" -u I : UDP port number for OSC packets (default=57140)\n");
   eprintf(" -w I : Scope size in pixels (default=512)\n");
   FAILURE;
@@ -477,6 +478,9 @@ main(int argc, char **argv)
     case 'p':
       p = malloc(128);
       strncpy(p,optarg,128);
+      break;
+    case 's':
+      signal_set_style(d.child_data[0],optarg);
       break;
     case 'u':
       port_n = strtol(optarg, NULL, 0);

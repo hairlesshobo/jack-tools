@@ -40,6 +40,9 @@ OPTIONS
     ie. `SuperCollider:out_%d` (default=nil).  If this is not set
     consults the environment variable `JACK_SCOPE_CONNECT_TO`.
 
+*-s*
+:   Set the drawing style for signal mode (default=dot).
+
 *-u*
 :   Set the UDP port number to listen for OSC packets on (default=57140).
 
@@ -72,9 +75,9 @@ set using *-n*.  Multiple channels are drawn in superimposition, each
 channel is drawn in a distinct color.
 
 In signal mode the trace is drawn in a style set using `/style`.  In
-dot mode only the sample pixel in each column is drawn.  In fill mode
+`dot` mode only the sample pixel in each column is drawn.  In `fill` mode
 all pixels between the sample pixel and the zero pixel of each column
-are drawn.  In line mode all pixels between the adjacent sample pixels
+are drawn.  In `line` mode all pixels between the adjacent sample pixels
 of each column are drawn.
 
 In embed mode the trace is a self correlation signal with a sample
