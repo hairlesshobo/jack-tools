@@ -37,6 +37,7 @@ struct player_opt
   char client_name[64];
   char *dst_pattern;
   float ampl;
+  bool loop;
 };
 
 struct player
@@ -59,7 +60,7 @@ struct player
 };
 
 /* Read the sound file from disk and write to the ring buffer until
-   the end of file, at which point return. */
+   the end of file, at which point either loop or return. */
 void *disk_proc(void *PTR)
 {
   struct player *d = (struct player *)PTR;
@@ -96,6 +97,8 @@ void *disk_proc(void *PTR)
       if(d->o.transport_aware) {
 	memset(d->d_buffer, 0, nsamples * sizeof(float));
 	err = nsamples;
+      } else if(d->o.loop) {
+        sf_seek(d->sound_file, 0, SEEK_SET);
       } else {
 	return NULL;
       }
@@ -225,6 +228,7 @@ void usage(void)
   eprintf("    -g N : amplitude gain (multiplier, default=1).\n");
   eprintf("    -i N : Initial disk seek in frames (default=0).\n");
   eprintf("    -I N : Initial disk seek in seconds (default=0).\n");
+  eprintf("    -l   : Loop input file indefinitely.\n");
   eprintf("    -m N : Minimal disk read size in frames (default=32).\n");
   eprintf("    -q N : Frames to request from ring buffer (default=64).\n");
   eprintf("    -r N : Resampling ratio multiplier (default=1.0).\n");
@@ -397,9 +401,10 @@ int main(int argc, char *argv[])
   o.converter = SRC_SINC_FASTEST;
   o.ampl = 1.0;
   o.dst_pattern = NULL;
+  o.loop = false;
   strncpy(o.client_name, "jack-play", 64);
 
-  while((c = getopt(argc, argv, "b:c:d:g:hi:I:m:n:q:r:tu")) != -1) {
+  while((c = getopt(argc, argv, "b:c:d:g:hi:I:lm:n:q:r:tu")) != -1) {
     switch(c) {
     case 'b':
       o.buffer_frames = (int)strtol(optarg, NULL, 0);
@@ -423,6 +428,9 @@ int main(int argc, char *argv[])
       break;
     case 'I':
       o.seek_request_sec = strtod(optarg,NULL);
+    case 'l':
+      o.loop = true;
+      break;
     case 'm':
       o.minimal_frames = (int)strtoll(optarg, NULL, 0);
       break;
@@ -438,6 +446,7 @@ int main(int argc, char *argv[])
       break;
     case 't':
       o.transport_aware = true;
+      break;
     case 'u':
       o.unique_name = false;
       break;

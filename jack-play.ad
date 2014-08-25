@@ -28,6 +28,9 @@ OPTIONS
 *-i*
 :   Set the initial disk seek in frames (default=0).
 
+*-l*
+:   Loop input file indefinitely.
+
 *-m*
 :   Set the minimal disk transfer size in frames (default=32).  This
     is an optimization switch.
