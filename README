@@ -50,13 +50,13 @@ interoperable with [markdown][markdown].  To build type:
 see the [darcs][darcs] [history](?t=rju&q=history) for details
 
 initial announcements:
-[jack-clock](http://article.gmane.org/gmane.comp.audio.jackit/5726),
-[jack-osc](http://lists.linuxaudio.org/pipermail/linux-audio-announce/2004-December/000502.html),
-jack-plumbing
+[clock](http://article.gmane.org/gmane.comp.audio.jackit/5726),
+[osc](http://lists.linuxaudio.org/pipermail/linux-audio-announce/2004-December/000502.html),
+plumbing
 [[gmane](http://article.gmane.org/gmane.comp.audio.jackit/3655),
  [laa](http://lists.linuxaudio.org/pipermail/linux-audio-announce/2004-March/000340.html)],
-[jack-scope](http://article.gmane.org/gmane.comp.audio.jackit/5727),
-[jack-udp](http://article.gmane.org/gmane.comp.audio.jackit/5548)
+[scope](http://article.gmane.org/gmane.comp.audio.jackit/5727),
+[udp](http://article.gmane.org/gmane.comp.audio.jackit/5548)
 
 [rd]: http://rd.slavepianos.org/
 [gpl]: http://gnu.org/copyleft/
