@@ -43,3 +43,6 @@ push-sp:
 
 pull-sp:
 	darcs pull -a http://rd.slavepianos.org/sw/rju
+
+indent:
+	indent -kr -nut -l96 -i2 -brf *.c
