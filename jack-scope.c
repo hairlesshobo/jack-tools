@@ -39,12 +39,12 @@ typedef bool(*control_fn_t) (const u8 *, i32, void *);
 #define MAX_CHANNELS 4
 
 struct scope {
-  int channels;
-  int window_size;
-  int data_frames;
-  int data_samples;
-  int draw_frames;
-  int data_location;
+  i32 channels;
+  i32 window_size;
+  i32 data_frames;
+  i32 data_samples;
+  i32 draw_frames;
+  i32 data_location;
   float *data;
   float *share;
   jack_port_t *port[MAX_CHANNELS];
@@ -52,32 +52,34 @@ struct scope {
   pthread_t osc_thread;
   float fps;
   float delay_msec;
-  int delay_frames;
-  int delay_location;
-  int mode;
+  i32 delay_frames;
+  i32 delay_location;
+  i32 mode;
   float input_gain;
   int pipe[2];
   char *image_directory;
-  int image_cnt;
+  i32 image_cnt;
   int fd;
   draw_fn_t child_draw[MODE_COUNT];
   control_fn_t child_control[MODE_COUNT];
   void *child_data[MODE_COUNT];
+  bool zero_crossing;
 };
 
 void jackscope_print(struct scope *d) {
-  eprintf("Channels        : %d\n", d->channels);
-  eprintf("WindowSize      : %d\n", d->window_size);
-  eprintf("DataFrames      : %d\n", d->data_frames);
-  eprintf("DataSamples     : %d\n", d->data_samples);
-  eprintf("DrawFrames      : %d\n", d->draw_frames);
-  eprintf("DataLocation    : %d\n", d->data_location);
-  eprintf("FramesPerSecond : %f\n", d->fps);
-  eprintf("DelayMSecs      : %f\n", d->delay_msec);
-  eprintf("DelayFrames     : %d\n", d->delay_frames);
-  eprintf("DelayLocation   : %d\n", d->delay_location);
-  eprintf("Mode            : %d\n", d->mode);
-  eprintf("InputGain       : %f\n", d->input_gain);
+  eprintf("channels          : %d\n", d->channels);
+  eprintf("window_size       : %d\n", d->window_size);
+  eprintf("data_frames       : %d\n", d->data_frames);
+  eprintf("data_samples      : %d\n", d->data_samples);
+  eprintf("draw_frames       : %d\n", d->draw_frames);
+  eprintf("data_location     : %d\n", d->data_location);
+  eprintf("frames_per_second : %f\n", d->fps);
+  eprintf("delay_msec        : %f\n", d->delay_msec);
+  eprintf("delay_frames      : %d\n", d->delay_frames);
+  eprintf("delay_location    : %d\n", d->delay_location);
+  eprintf("mode              : %d\n", d->mode);
+  eprintf("input_gain        : %f\n", d->input_gain);
+  eprintf("zero_crossing     : %s\n", d->zero_crossing ? "true" : "false");
 }
 
 #define OSC_PARSE_MSG(command,types)				\
@@ -284,8 +286,8 @@ void *jackscope_osc_thread_procedure(void *PTR) {
 void *jackscope_draw_thread_procedure(void *PTR) {
   struct scope *d = (struct scope *) PTR;
   Ximg_t *x = ximg_open(d->window_size, d->window_size, "jack-scope");
-  int image_n = d->window_size * d->window_size * 3;
-  uint8_t *image = xmalloc(image_n);
+  i32 image_n = d->window_size * d->window_size * 3;
+  u8 *image = xmalloc(image_n);
   float *local = xmalloc(d->data_samples * sizeof(float));
   while (!observe_end_of_process()) {
     char b;
@@ -317,22 +319,22 @@ void *jackscope_draw_thread_procedure(void *PTR) {
 int jackscope_process(jack_nframes_t nframes, void *PTR) {
   struct scope *d = (struct scope *) PTR;
   float *in[MAX_CHANNELS];
-  int i;
-  for (i = 0; i < d->channels; i++) {
+  for (i32 i = 0; i < d->channels; i++) {
     in[i] = (float *) jack_port_get_buffer(d->port[i], nframes);
   }
-  int k = d->data_location;
-  int l = d->delay_location;
-  for (i = 0; i < nframes; i++) {
-    int j;
-    for (j = 0; j < d->channels; j++) {
+  i32 k = d->data_location;
+  i32 l = d->delay_location;
+  for (i32 i = 0; i < nframes; i++) {
+    for (i32 j = 0; j < d->channels; j++) {
       d->data[k++] = (float) in[j][i] * d->input_gain;
       if (k >= d->data_samples) {
         k = 0;
       }
     }
     l++;
-    if (l >= d->delay_frames) {
+    if (l >= d->delay_frames && (!d->zero_crossing ||
+                                 (i > 0 && in[0][i] > 0.0 && in[0][i - 1] <= 0.0) ||
+                                 l >= d->delay_frames * 2)) {
       signal_copy_circular(d->share, d->data, d->data_samples, k);
       l = 0;
       char b = 1;
@@ -346,15 +348,16 @@ int jackscope_process(jack_nframes_t nframes, void *PTR) {
 
 void jackscope_usage(void) {
   eprintf("Usage: jack-scope [options] sound-file\n");
-  eprintf(" -b I : Scope size in frames (default=512)\n");
-  eprintf(" -d R : Delay time in ms between scope udpates (default=100)\n");
-  eprintf(" -f S : Request images be stored at location (default=NULL)\n");
-  eprintf(" -m S : Scope operating mode (default=signal)\n");
-  eprintf(" -n I : Number of channels (default=1)\n");
-  eprintf(" -p S : Jack port pattern to connect to (default=nil)\n");
-  eprintf(" -s S : Drawing style for signal mode (default=dot)\n");
-  eprintf(" -u I : UDP port number for OSC packets (default=57140)\n");
-  eprintf(" -w I : Scope size in pixels (default=512)\n");
+  eprintf(" -b INT  : Scope size in frames (default=512)\n");
+  eprintf(" -d REAL : Delay time in ms between scope updates (default=100)\n");
+  eprintf(" -f STR  : Request images be stored at location (default=NULL)\n");
+  eprintf(" -m STR  : Scope operating mode (default=signal)\n");
+  eprintf(" -n INT  : Number of channels (default=1)\n");
+  eprintf(" -p STR  : Jack port pattern to connect to (default=nil)\n");
+  eprintf(" -s STR  : Drawing style for signal mode (default=dot)\n");
+  eprintf(" -u INT  : UDP port number for OSC packets (default=57140)\n");
+  eprintf(" -w INT  : Scope size in pixels (default=512)\n");
+  eprintf(" -z      : Do not align to zero-crossing\n");
   FAILURE;
 }
 
@@ -379,10 +382,11 @@ int main(int argc, char **argv) {
   d.child_control[1] = embed_control;
   d.image_directory = NULL;
   d.image_cnt = 0;
+  d.zero_crossing = true;
   int port_n = 57140;
   int o;
   char *p = NULL;
-  while ((o = getopt(argc, argv, "b:d:e:f:hi:m:n:p:s:u:w:")) != -1) {
+  while ((o = getopt(argc, argv, "b:d:e:f:hi:m:n:p:s:u:w:z")) != -1) {
     switch (o) {
     case 'b':
       d.data_frames = strtol(optarg, NULL, 0);
@@ -418,6 +422,9 @@ int main(int argc, char **argv) {
       break;
     case 'w':
       d.window_size = strtol(optarg, NULL, 0);
+      break;
+    case 'z':
+      d.zero_crossing = false;
       break;
     default:
       eprintf("jack-scope: illegal option, %c\n", (char) o);
