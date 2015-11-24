@@ -1,5 +1,5 @@
 prefix=$(HOME)/opt
-bin=jack-dl jack-osc jack-play jack-plumbing jack-record jack-scope jack-transport jack-udp
+bin=jack-dl jack-osc jack-play jack-play-sc3 jack-plumbing jack-record jack-scope jack-transport jack-udp
 
 CFLAGS=-Wall -D_POSIX_C_SOURCE=200112 -std=c99 -O3 -g
 LDLIBS=c-common/lib-c-common.a -ljack -lpthread -lm
