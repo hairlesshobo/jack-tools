@@ -224,7 +224,7 @@ void usage(void)
   eprintf("Usage: jack-play [ options ] sound-file...\n");
   eprintf("    -b N : Ring buffer size in frames (default=4096).\n");
   eprintf("    -c N : ID of conversion algorithm (default=2, SRC_SINC_FASTEST).\n");
-  eprintf("    -d N : Destination port patteren (default=NULL).\n");
+  eprintf("    -d N : Destination port pattern (default=NULL).\n");
   eprintf("    -g N : amplitude gain (multiplier, default=1).\n");
   eprintf("    -i N : Initial disk seek in frames (default=0).\n");
   eprintf("    -I N : Initial disk seek in seconds (default=0).\n");
