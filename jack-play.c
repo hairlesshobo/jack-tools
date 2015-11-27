@@ -21,7 +21,7 @@
 #include "c-common/memory.h"
 #include "c-common/observe-signal.h"
 #include "c-common/print.h"
-#include "c-common/sound-file.h"
+#include "c-common/sf-sndfile.h"
 
 struct player_opt
 {
