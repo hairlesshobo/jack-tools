@@ -428,6 +428,7 @@ int main(int argc, char *argv[])
       break;
     case 'I':
       o.seek_request_sec = strtod(optarg,NULL);
+      break;
     case 'l':
       o.loop = true;
       break;
