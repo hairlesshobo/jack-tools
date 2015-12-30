@@ -46,3 +46,6 @@ pull-sp:
 
 indent:
 	indent -kr -nut -l96 -i2 -brf jack-scope.c
+
+debian:
+	sudo apt-get install liblo-dev libsamplerate0-dev
