@@ -1,10 +1,10 @@
-#include <stdio.h>
+#include <stdio.h> /* C99 */
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
 #include <stdint.h>
 
-#include <unistd.h>
+#include <unistd.h> /* POSIX */
 #include <pthread.h>
 
 #include "c-common/byte-order.h"

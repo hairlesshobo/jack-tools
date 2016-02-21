@@ -1,22 +1,23 @@
-#include <pthread.h>
-#include <stdbool.h>
+#include <stdbool.h> /* C99 */
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include <pthread.h> /* POSIX */
 #include <unistd.h>
 
-#include <jack/jack.h>
+#include <jack/jack.h> /* libjack */
 #include <jack/thread.h>
 
-#include <samplerate.h>
+#include <samplerate.h> /* libsamplerate */
 
 #include "c-common/failure.h"
 #include "c-common/file.h"
 #include "c-common/int.h"
 #include "c-common/jack-client.h"
-#include "c-common/jack-ringbuffer.h"
 #include "c-common/jack-port.h"
+#include "c-common/jack-ringbuffer.h"
 #include "c-common/jack-transport.h"
 #include "c-common/memory.h"
 #include "c-common/observe-signal.h"

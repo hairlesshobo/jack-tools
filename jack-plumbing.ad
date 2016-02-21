@@ -60,7 +60,7 @@ SuperCollider gets connected to ardour and disconnected from
 everything else.
 
 This type of connection daemon has the following advantages over both
-environment variables and command line arguments: 
+environment variables and command line arguments:
 
 * it does not require any client connection support or logic at all
 * it provides a uniform user interface to all clients

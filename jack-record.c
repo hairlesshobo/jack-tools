@@ -1,9 +1,10 @@
-#include <unistd.h>
-#include <stdio.h>
+#include <stdio.h> /* C99 */
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
-#include <pthread.h>
+
+#include <pthread.h> /* POSIX */
+#include <unistd.h>
 
 #include "c-common/failure.h"
 #include "c-common/file.h"

@@ -1,11 +1,12 @@
-#include <unistd.h>
+#include <math.h> /* C99 */
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
 #include <string.h>
-#include <math.h>
-#include <pthread.h>
+
+#include <pthread.h> /* POSIX */
 #include <sys/time.h>
+#include <unistd.h>
 
 #include "c-common/byte-order.h"
 #include "c-common/client.h"

@@ -1,10 +1,13 @@
-#include <curses.h>
-#include <math.h>
+#include <math.h> /* C99 */
 #include <signal.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <time.h>
-#include <unistd.h>
+
+#include <unistd.h> /* POSIX */
+
+#include <curses.h>
+
 #include <jack/jack.h>
 #include <jack/transport.h>
 

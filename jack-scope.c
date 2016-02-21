@@ -1,14 +1,14 @@
+#include <errno.h> /* C99 */
+#include <math.h>
+#include <stdbool.h>
 #include <stdio.h>
-#include <errno.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include <pthread.h> /* POSIX */
+#include <semaphore.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <string.h>
-#include <pthread.h>
-#include <semaphore.h>
-#include <getopt.h>
-#include <math.h>
 
 #include "c-common/byte-order.h"
 #include "c-common/failure.h"

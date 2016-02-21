@@ -1,18 +1,21 @@
-#include <dlfcn.h>
-#include <math.h>
+#include <math.h> /* C99 */
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+
+#include <dlfcn.h> /* POSIX */
 #include <unistd.h>
 
 #include <jack/jack.h>
 #include <jack/thread.h>
+
 #include <lo/lo.h>
 
 #include "c-common/jack-port.h"
 #include "c-common/print.h"
+
 #include "jack-dl.h"
 
 void fail(char *s)

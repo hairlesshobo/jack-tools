@@ -1,15 +1,15 @@
-#include <unistd.h>
+#include <ctype.h> /* ISO C99 */
+#include <errno.h>
+#include <stdarg.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdarg.h>
-#include <stdbool.h>
-#include <errno.h>
 #include <time.h>
-#include <ctype.h>
-#include <regex.h>
+
+#include <regex.h> /* POSIX */
 #include <pthread.h>
-#include <pthread.h>
+#include <unistd.h>
 
 #include "c-common/file.h"
 #include "c-common/jack-client.h"
