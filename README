@@ -5,6 +5,7 @@ rju
 
 ---------------------------- --------------------------------------------------
 [jack-dl][-dl]               load dsp algorithms from shared libraries
+[jack-lxvst][-lxvst]         jack cli host for linux vst instruments
 [jack-osc][-osc]             jack <-> open sound control ([osc][osc]) daemon
 [jack-play][-play]           [resampling][sr] [soundfile][sf] playback
 [jack-plumbing][-plumbing]   [plumbing][plumb] daemon
@@ -14,23 +15,25 @@ rju
 [jack-udp][-udp]             jack over udp client (obsolete, see [netjack][nj])
 ---------------------------- --------------------------------------------------
 
-[-dl]: ?t=rju&e=jack-dl.ad
-[-osc]: ?t=rju&e=jack-osc.ad
-[-play]: ?t=rju&e=jack-play.ad
-[-plumbing]: ?t=rju&e=jack-plumbing.ad
-[-record]: ?t=rju&e=jack-record.ad
-[-scope]: ?t=rju&e=jack-scope.ad
-[-transport]: ?t=rju&e=jack-transport.ad
-[-udp]: ?t=rju&e=jack-udp.ad
+[-dl]: ?t=rju&e=md/jack-dl.md
+[-lxvst]: ?t=rju&e=md/jack-lxvst.md
+[-osc]: ?t=rju&e=md/jack-osc.md
+[-play]: ?t=rju&e=md/jack-play.md
+[-plumbing]: ?t=rju&e=md/jack-plumbing.md
+[-record]: ?t=rju&e=md/jack-record.md
+[-scope]: ?t=rju&e=md/jack-scope.md
+[-transport]: ?t=rju&e=md/jack-transport.md
+[-udp]: ?t=rju&e=md/jack-udp.md
 
 To build type:
 
 > make prefix=~/opt all install
 
 Documentation is in [asciidoc][ad] format, which is more or less
-interoperable with [markdown][markdown].  To build type:
+interoperable with [markdown][markdown] and here has a `.md` suffix.
+To build type:
 
-> for i in *.ad ; do asciidoc $i; done
+> cd md ; for i in *.md ; do asciidoc $i; done
 
 [jackd]: http://jackaudio.org/
 [sf]: http://mega-nerd.com/libsndfile/
