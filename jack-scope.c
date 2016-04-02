@@ -448,7 +448,7 @@ int main(int argc, char **argv) {
   jack_set_process_callback(c, jackscope_process, &d);
   d.fps = (float) jack_get_sample_rate(c);
   d.delay_frames = floorf((d.delay_msec / 1000.0) * d.fps);
-  jack_port_make_standard(c, d.port, d.channels, 0);
+  jack_port_make_standard(c, d.port, d.channels, false, false);
   if (jack_client_activate(c)) {
     eprintf("jack-scope: jack_activate() failed\n");
     FAILURE;

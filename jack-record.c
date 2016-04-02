@@ -281,7 +281,7 @@ int main(int argc, char *argv[])
 		  &d);
 
   /* Create ports, connect to if given, activate client. */
-  jack_port_make_standard(client, d.input_port, d.channels, false);
+  jack_port_make_standard(client, d.input_port, d.channels, false, false);
   jack_client_activate(client);
   if (p) {
     char q[128];

@@ -355,7 +355,7 @@ int jackplay(const char *file_name,
 
   /* Create output ports, connect if env variable set and activate
      client. */
-  jack_port_make_standard(d.client, d.output_port, d.channels, true);
+  jack_port_make_standard(d.client, d.output_port, d.channels, true, false);
   jack_client_activate(d.client);
   if (o.dst_pattern == NULL) {
     o.dst_pattern = getenv("JACK_PLAY_CONNECT_TO");

@@ -140,8 +140,8 @@ void world_init(struct world *w, int nc, int nk, int nb)
   if(!w->c) fail("could not create jack client\n");
   jack_set_process_callback(w->c, dsp_run, w);
   w->sr = (float)jack_get_sample_rate(w->c);
-  jack_port_make_standard(w->c, w->ip, w->nc, false);
-  jack_port_make_standard(w->c, w->op, w->nc, true);
+  jack_port_make_standard(w->c, w->ip, w->nc, false, false);
+  jack_port_make_standard(w->c, w->op, w->nc, true, false);
 }
 
 void usage(void)

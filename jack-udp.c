@@ -288,7 +288,7 @@ int main (int argc, char **argv)
   jack_set_process_callback(client,
 			    recv_mode ? jackudp_recv : jackudp_send,
 			    &d);
-  jack_port_make_standard(client, d.j_port, d.channels, recv_mode);
+  jack_port_make_standard(client, d.j_port, d.channels, recv_mode, false);
   jack_client_activate(client);
   pthread_create(&(d.c_thread),
 		 NULL,
