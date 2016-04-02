@@ -49,3 +49,10 @@ indent:
 
 debian:
 	sudo apt-get install liblo-dev libsamplerate0-dev
+
+# VST
+
+VST_SDK = $(HOME)/opt/src/vstsdk2.4
+
+jack-lxvst: jack-lxvst.cpp
+	g++ -I$(VST_SDK) -ljack -ldl -lpthread -lX11 -o jack-lxvst jack-lxvst.cpp
