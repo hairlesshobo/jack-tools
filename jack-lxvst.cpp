@@ -132,8 +132,9 @@ int main (int argc, char* argv[])
 	return -1;
     }
 
-    printf ("HOST> Init sequence...\n");
+    printf ("HOST> OPEN EFFECT\n");
     d.effect->dispatcher (d.effect, effOpen, 0, 0, 0, 0);
+    printf ("HOST> SET SAMPLE RATE\n");
     d.effect->dispatcher (d.effect, effSetSampleRate, 0, 0, 0, d.sample_rate);
 
     pthread_t x11_thread;
@@ -216,7 +217,7 @@ void *x11_thread_proc (void *ptr)
 
     // Get and prepare editor size
     ERect* eRect = 0;
-    printf ("HOST> Get editor rect..\n");
+    printf ("HOST> EDITOR GET RECT\n");
     effect->dispatcher (effect, effEditGetRect, 0, 0, &eRect, 0);
     if (eRect) {
 	int width = eRect->right - eRect->left;
@@ -227,7 +228,7 @@ void *x11_thread_proc (void *ptr)
 
     // ? Is it correct to effEditGetRect above, before effEditOpen ?
     // Display the window, let the plugin populate it
-    printf ("HOST> Open editor...\n");
+    printf ("HOST> EDITOR OPEN\n");
     XMapWindow(dpy, win);
     XFlush(dpy);
     effect->dispatcher (effect, effEditOpen, 0, (VstIntPtr) dpy, (void*) win, 0);
