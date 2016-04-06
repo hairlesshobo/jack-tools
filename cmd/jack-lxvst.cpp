@@ -38,10 +38,10 @@ void *x11_thread_proc (void *ptr);
 
 void verify_platform (void)
 {
-    printf("HOST> SIZEOF VSTINTPTR = %d\n", sizeof(VstIntPtr));
-    printf("HOST> SIZEOF VSTINT32 = %d\n", sizeof(VstInt32));
-    printf("HOST> SIZEOF VOID* = %d\n", sizeof(void*));
-    printf("HOST> SIZEOF AEFFECT = %d\n", sizeof(AEffect));
+    printf("HOST> SIZEOF VSTINTPTR = %lu\n", sizeof(VstIntPtr));
+    printf("HOST> SIZEOF VSTINT32 = %lu\n", sizeof(VstInt32));
+    printf("HOST> SIZEOF VOID* = %lu\n", sizeof(void*));
+    printf("HOST> SIZEOF AEFFECT = %lu\n", sizeof(AEffect));
     if (sizeof(VstIntPtr) != sizeof(void*)) {
 	printf("HOST> PLATFORM VERIFICATION FAILED\n");
 	exit(EXIT_FAILURE);
@@ -104,7 +104,7 @@ void midi_proc(lxvst *d,jack_nframes_t nframes) {
 	VstEventSet vst_e;
 	vst_e.numEvents = 0;
 	vst_e.reserved = 0;
-	for(int i = 0; i < jack_e_n; i++) {
+	for(jack_nframes_t i = 0; i < jack_e_n; i++) {
 	    jack_midi_event_t e;
 	    jack_midi_event_get(&e,b,i);
 	    if(e.size <= 4) {
@@ -266,7 +266,6 @@ void *x11_thread_proc (void *ptr)
     Display *dpy;
     Window win;
     char effect_name[256]; // arbitrary, vst GetEffectName is max 32 chars
-    Atom wmDeleteMessage, prop_atom, val_atom;
 
     // create the window
     dpy = XOpenDisplay(NULL);
@@ -274,12 +273,12 @@ void *x11_thread_proc (void *ptr)
     win = XCreateSimpleWindow(dpy, DefaultRootWindow(dpy), 0, 0, 300, 300, 0, 0, 0);
 
     // we want an event when the window is being closed
-    wmDeleteMessage = XInternAtom(dpy, "WM_DELETE_WINDOW", false);
+    Atom wmDeleteMessage = XInternAtom(dpy, "WM_DELETE_WINDOW", false);
     XSetWMProtocols(dpy, win, &wmDeleteMessage, 1);
 
     // Make the window a Dialog, maybe the window manager will place it centered
-    prop_atom = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE", False);
-    val_atom = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_DIALOG", False);
+    Atom prop_atom = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE", False);
+    Atom val_atom = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_DIALOG", False);
     XChangeProperty(dpy, win, prop_atom, XA_ATOM, 32, PropModeReplace, (unsigned char *)&val_atom, 1);
 
     // prepare the plugin name in the title bar
@@ -313,7 +312,7 @@ void *x11_thread_proc (void *ptr)
 	XEvent e;
 	XNextEvent(dpy, &e);
 	// handle events as needed
-	if (e.type == ClientMessage && e.xclient.data.l[0] == wmDeleteMessage) {
+	if (e.type == ClientMessage && (Atom)e.xclient.data.l[0] == wmDeleteMessage) {
 	    printf("HOST> XEVENT == wmDeleteMessage\n");
 	    d->x11_closed = true;
 	    return NULL;
