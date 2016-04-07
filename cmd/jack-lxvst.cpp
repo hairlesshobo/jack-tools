@@ -18,6 +18,8 @@
 #include <X11/Xos.h>
 #include <X11/Xatom.h>
 
+#include <lo/lo.h>
+
 #include "c-common/jack-client.h" /* sw/c-common */
 #include "c-common/jack-client.c"
 #include "c-common/jack-port.h"
@@ -132,6 +134,40 @@ int audio_proc(jack_nframes_t nframes, void *ptr)
     return 0;
 }
 
+void osc_error(int n, const char *m, const char *p)
+{
+  fprintf(stderr,"HOST> OSC> error %d in path %s: %s\n", n, p, m);
+}
+
+#define break_on(x,s)                                                          \
+    if(x){								       \
+	fprintf(stderr,"HOST> BREAK ON> %s: %s, %d\n", s, __FILE__, __LINE__); \
+	return 0;							       \
+    }
+
+/*
+int osc_pgm_set(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
+{
+  struct lxvst *lxvst = (struct lxvst *)u;
+  VstInt32 pgm = (VstInt32)a[0]->i;
+  break_on(pgm >= lxvst->effect->numPrograms, "PROGRAM INDEX");
+  fprintf(stderr,"PGM_SET: %d\n", pgm);
+  lxvst->effect->setProgram(lxvst->effect,pgm);
+  return 0;
+}
+*/
+
+int osc_p_set(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
+{
+  struct lxvst *lxvst = (struct lxvst *)u;
+  VstInt32 ix = (VstInt32)a[0]->i;
+  float val = a[1]->f;
+  break_on(ix >= lxvst->effect->numParams, "PARAMETER INDEX");
+  fprintf(stderr,"P_SET: %d = %f\n", ix, val);
+  lxvst->effect->setParameter(lxvst->effect,ix,val);
+  return 0;
+}
+
 int main (int argc, char* argv[])
 {
     void* module;
@@ -156,6 +192,11 @@ int main (int argc, char* argv[])
     }
     printf("HOST> XINITTHREADS\n");
     XInitThreads();
+    printf("HOST> START OSC THREAD\n");
+    lo_server_thread osc = lo_server_thread_new("57210", osc_error);
+    /*lo_server_thread_add_method(osc, "/pgm_set", "i", osc_pgm_set, &d);*/
+    lo_server_thread_add_method(osc, "/p_set", "if", osc_p_set, &d);
+    lo_server_thread_start(osc);
     printf("HOST> DLYSM VSTPLUGINMAIN\n");
     PluginEntryProc vst_main = (PluginEntryProc) dlsym(module, "VSTPluginMain");
     if (!vst_main) {
@@ -231,6 +272,8 @@ int main (int argc, char* argv[])
     pthread_join(x11_thread, NULL);
     printf("HOST> CLOSE X11\n");
     XCloseDisplay(d.x11_dpy);
+    printf("HOST> OSC THREAD FREE\n");
+    lo_server_thread_free(osc);
     printf("HOST> CLOSE MODULE\n");
     dlclose(module);
     printf("HOST> FREE MEMORY\n");

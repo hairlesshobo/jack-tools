@@ -11,7 +11,7 @@ jack-dl: jack-dl.c
 	gcc $(CFLAGS) -o jack-dl jack-dl.c $(LDLIBS) -ldl -llo
 
 jack-lxvst: jack-lxvst.cpp
-	g++ -Wall -I$(VST_SDK) -ljack -ldl -lpthread -lX11 -o jack-lxvst jack-lxvst.cpp
+	g++ -Wall -I$(VST_SDK) -ljack -ldl -lpthread -lX11 -llo -o jack-lxvst jack-lxvst.cpp
 
 jack-play: jack-play.c
 	gcc $(CFLAGS) -o jack-play jack-play.c $(LDLIBS) -lsndfile -lsamplerate
