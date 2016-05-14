@@ -23,7 +23,7 @@ jack-scope: jack-scope.c
 	gcc $(CFLAGS) -o jack-scope jack-scope.c $(LDLIBS) -lX11 -lXext
 
 jack-transport: jack-transport.c
-	gcc $(CFLAGS) -o jack-transport jack-transport.c $(LDLIBS) -lcurses
+	gcc $(CFLAGS) -o jack-transport jack-transport.c $(LDLIBS) -lncurses -ltinfo
 
 clean:
 	rm -f $(bin) *.o
