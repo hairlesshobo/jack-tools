@@ -10,6 +10,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include <samplerate.h> /* libsamplerate */
+
 #include "c-common/byte-order.h"
 #include "c-common/failure.h"
 #include "c-common/file.h"
@@ -28,25 +30,27 @@
 #include "c-common/signal-interpolate.h"
 #include "c-common/ximg.h"
 
+/* img = image ; img_sz =  image size ; s = uninterleaved signal data ; nf = signal frame count ; d = drawing frame count ; nc = channel count ; ptr = drawing data */
 typedef void (*draw_fn_t) (u8 *, i32, const f32 *, i32, i32, i32, void *);
 
 typedef bool(*control_fn_t) (const u8 *, i32, void *);
 
 #define SIGNAL_MODE 0
 #define EMBED_MODE 1
-#define MODE_COUNT 2
+#define HLINE_MODE 2
+#define MODE_COUNT 3
 
 #define MAX_CHANNELS 4
 
 struct scope {
-  i32 channels;
-  i32 window_size;
-  i32 data_frames;
-  i32 data_samples;
-  i32 draw_frames;
-  i32 data_location;
-  float *data;
-  float *share;
+  i32 channels;			/* INIT, <= MAX_CHANNELS */
+  i32 window_size;		/* width & height (square), INIT */
+  i32 data_frames;		/* number of frames per block, INIT */
+  i32 data_samples;		/* data_frames * channels */
+  i32 draw_frames;		/* VARIABLE, <= data_frames */
+  i32 data_location;		/* write index to data */
+  float *data;			/* data_samples store */
+  float *share;			/* uninterleaved data, draw thread copy */
   jack_port_t *port[MAX_CHANNELS];
   pthread_t draw_thread;
   pthread_t osc_thread;
@@ -219,16 +223,17 @@ void *signal_init(void) {
   return s;
 }
 
-void signal_draw(u8 * image, i32 size, const f32 * signal, i32 f, i32 d, i32 c, void *PTR) {
-  struct signal *s = (struct signal *) PTR;
-  signal_draw_grid(image, size);
-  for (i32 i = 0; i < c; i++) {
-    u8 color[12] = { 128, 32, 32,
-      32, 32, 128,
+void signal_draw(u8 *img, i32 img_sz, const f32 *s, i32 nf, i32 d, i32 nc, void *PTR) {
+  struct signal *usr = (struct signal *) PTR;
+  signal_draw_grid(img, img_sz);
+  for (i32 i = 0; i < nc; i++) {
+    u8 color[12] = {
+      128,  32,  32,
+       32,  32, 128,
       128, 224, 224,
       224, 224, 128
     };
-    signal_draw_data(image, size, signal + (i * f), d, color + (i * 3), s->style);
+    signal_draw_data(img, img_sz, s + (i * nf), d, color + (i * 3), usr->style);
   }
 }
 
@@ -242,11 +247,37 @@ bool signal_control(const u8 * packet, i32 packet_sz, void *PTR) {
   return false;
 }
 
+struct hline {
+};
+
+void *hline_init(void) {
+  printf("hline_init\n");
+  return NULL;
+}
+
+void hline_draw(u8 *img, i32 img_sz, const f32 *s, i32 nf, i32 d, i32 nc, void *PTR) {
+  /* printf("hline_draw\n"); */
+  for (i32 i = 0; i < img_sz; i++) {
+    u8 g = (u8) (fabsf(s[i]) * 256.0);
+    u8 color[3] = {g,g,g};
+    for (i32 j = 0; j < img_sz; j++) {
+        img_set_pixel(img, img_sz, j, i, color);
+      }
+  }
+}
+
+bool hline_control(const u8 * packet, i32 packet_sz, void *PTR) {
+  printf("hline_control\n");
+  return false;
+}
+
 void set_mode(struct scope *d, const char *mode) {
   if (strncmp("signal", mode, 6) == 0) {
     d->mode = SIGNAL_MODE;
   } else if (strncmp("embed", mode, 5) == 0) {
     d->mode = EMBED_MODE;
+  } else if (strncmp("hline", mode, 5) == 0) {
+    d->mode = HLINE_MODE;
   } else {
     eprintf("jack-scope: illegal mode, %s\n", mode);
   }
@@ -260,7 +291,8 @@ void *jackscope_osc_thread_procedure(void *PTR) {
     int packet_sz = xrecv(d->fd, packet, 32, 0);
     osc_data_t o[1];
     if (!(d->child_control[0] (packet, packet_sz, d->child_data[0]) ||
-          d->child_control[1] (packet, packet_sz, d->child_data[1]))) {
+          d->child_control[1] (packet, packet_sz, d->child_data[1]) ||
+	  d->child_control[2] (packet, packet_sz, d->child_data[2]))) {
       if (OSC_PARSE_MSG("/frames", ",i")) {
         d->draw_frames = o[0].i > d->data_frames ? d->data_frames : o[0].i;
       } else if (OSC_PARSE_MSG("/mode", ",s")) {
@@ -380,6 +412,9 @@ int main(int argc, char **argv) {
   d.child_data[1] = embed_init();
   d.child_draw[1] = embed_draw;
   d.child_control[1] = embed_control;
+  d.child_data[2] = hline_init();
+  d.child_draw[2] = hline_draw;
+  d.child_control[2] = hline_control;
   d.image_directory = NULL;
   d.image_cnt = 0;
   d.zero_crossing = true;
