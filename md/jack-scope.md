@@ -60,7 +60,8 @@ control of drawing parameters.
 
 The operating mode of jack-scope is set using *-m*.  In signal mode
 jack-scope draws a time domain signal trace, in embed mode jack-scope
-draws a self correlation trace.
+draws a self correlation trace, in hline mode an _optical sound_ picture
+is made.
 
 The size of the jack-scope window is set using *-w*, the scope window
 is square.  The window is of fixed size and has centered gravity.  The
@@ -84,6 +85,14 @@ In embed mode the trace is a self correlation signal with a sample
 delay set using `/embed`.  The delayed sample is on the x-axis.  The
 interpolation increment is set using `/incr`, increment values less
 than one result in increasingly continuous trace paths.
+
+In hline the data block is resampled to the window size and each
+sample is is drawn as a greyscale horizontal line.  If the sample rate
+is 48000, the block size is 2400, the window size is 800 and the image
+delay is 40 then each frame is a consecutive drawing of 1/25 of a
+second of the input signal.
+
+    jack-scope -m hline -n 1 -b 2400 -w 800 -d 40 -p jack-play-7118:out_%d
 
 jack-scope can store the animation as a sequence of uncompressed
 ppm(5) image files.  To request this use the *-f* option with the

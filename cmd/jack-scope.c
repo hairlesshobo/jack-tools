@@ -41,6 +41,7 @@ typedef bool(*control_fn_t) (const u8 *, i32, void *);
 #define MODE_COUNT 3
 
 #define MAX_CHANNELS 4
+#define MAX_WINDOW_SIZE 4096
 
 struct scope {
   i32 channels;			/* INIT, <= MAX_CHANNELS */
@@ -251,14 +252,24 @@ struct hline {
 };
 
 void *hline_init(void) {
-  printf("hline_init\n");
-  return NULL;
+  return xmalloc(MAX_WINDOW_SIZE * sizeof(float));
 }
 
 void hline_draw(u8 *img, i32 img_sz, const f32 *s, i32 nf, i32 d, i32 nc, void *PTR) {
   /* printf("hline_draw\n"); */
+  SRC_DATA src;
+  src.data_in = (float *)s;
+  src.input_frames = (long)nf;
+  src.data_out = (float *)PTR;
+  src.output_frames = (long)img_sz;
+  src.src_ratio = (double)(img_sz + 1) / (double)nf;
+  int src_err = src_simple (&src, SRC_SINC_MEDIUM_QUALITY, (int)nc);
+  if(src_err != 0 || src.output_frames_gen != (long)img_sz) {
+      printf("hline_draw? src_err=%d, src.output_frames_gen=%ld, img_sz = %d\n",
+	     src_err,src.output_frames_gen,(int)img_sz);
+  }
   for (i32 i = 0; i < img_sz; i++) {
-    u8 g = (u8) (fabsf(s[i]) * 256.0);
+    u8 g = (u8) (fabsf(src.data_out[i]) * 256.0);
     u8 color[3] = {g,g,g};
     for (i32 j = 0; j < img_sz; j++) {
         img_set_pixel(img, img_sz, j, i, color);
