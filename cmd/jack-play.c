@@ -234,6 +234,7 @@ void usage(void)
   eprintf("    -q N : Frames to request from ring buffer (default=64).\n");
   eprintf("    -r N : Resampling ratio multiplier (default=1.0).\n");
   eprintf("    -t   : Jack transport awareness.\n");
+  eprintf("    -u   : Do not generate unique jack client name (ie. do not append PID)\n");
   FAILURE;
 }
 

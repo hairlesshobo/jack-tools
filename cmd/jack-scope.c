@@ -17,6 +17,7 @@
 #include "c-common/file.h"
 #include "c-common/img.h"
 #include "c-common/img-ppm.h"
+#include "c-common/int.h"
 #include "c-common/jack-client.h"
 #include "c-common/jack-port.h"
 #include "c-common/memory.h"
@@ -30,8 +31,8 @@
 #include "c-common/signal-interpolate.h"
 #include "c-common/ximg.h"
 
-/* img = image ; img_sz =  image size ; s = uninterleaved signal data ; nf = signal frame count ; d = drawing frame count ; nc = channel count ; ptr = drawing data */
-typedef void (*draw_fn_t) (u8 *, i32, const f32 *, i32, i32, i32, void *);
+/* img = image ; img_sz =  image size ; s_il = signal data ; s_ul = uninterleaved s ; nf = signal frame count ; d = drawing frame count ; nc = channel count ; ptr = drawing data */
+typedef void (*draw_fn_t) (u8 *img, i32 img_sz, const f32 *s_il, const f32 *s_ul, i32 nf, i32 d, i32 nc, void *ptr);
 
 typedef bool(*control_fn_t) (const u8 *, i32, void *);
 
@@ -40,18 +41,19 @@ typedef bool(*control_fn_t) (const u8 *, i32, void *);
 #define HLINE_MODE 2
 #define MODE_COUNT 3
 
-#define MAX_CHANNELS 4
+#define MAX_CHANNELS 8
 #define MAX_WINDOW_SIZE 4096
 
 struct scope {
-  i32 channels;			/* INIT, <= MAX_CHANNELS */
-  i32 window_size;		/* width & height (square), INIT */
-  i32 data_frames;		/* number of frames per block, INIT */
-  i32 data_samples;		/* data_frames * channels */
-  i32 draw_frames;		/* VARIABLE, <= data_frames */
-  i32 data_location;		/* write index to data */
-  float *data;			/* data_samples store */
-  float *share;			/* uninterleaved data, draw thread copy */
+  i32 channels;                 /* INIT, <= MAX_CHANNELS */
+  i32 window_size;              /* width & height (square), INIT, <= MAX_WINDOW_SIZE */
+  i32 data_frames;              /* number of frames per block, INIT */
+  i32 data_samples;             /* data_frames * channels */
+  i32 draw_frames;              /* VARIABLE, <= data_frames */
+  i32 data_location;            /* write index to data */
+  float *data;                  /* data_samples store */
+  float *share;                 /* data, draw thread copy */
+  float *share_ul;              /* de-interleaved share */
   jack_port_t *port[MAX_CHANNELS];
   pthread_t draw_thread;
   pthread_t osc_thread;
@@ -87,7 +89,7 @@ void jackscope_print(struct scope *d) {
   eprintf("zero_crossing     : %s\n", d->zero_crossing ? "true" : "false");
 }
 
-#define OSC_PARSE_MSG(command,types)				\
+#define OSC_PARSE_MSG(command,types)                            \
   osc_parse_message(command, types, packet, packet_sz, o)
 
 struct embed {
@@ -136,17 +138,17 @@ void *embed_init(void) {
   return e;
 }
 
-void embed_draw(u8 * image, i32 size, const f32 * signal, i32 f, i32 d, i32 c, void *PTR) {
-  struct embed *e = (struct embed *) PTR;
-  embed_draw_grid(image, size);
-  for (i32 i = 0; i < c; i++) {
+void embed_draw(u8 *img, i32 img_sz, const f32 *s_il, const f32 *s_ul, i32 nf, i32 d, i32 nc, void *ptr) {
+  struct embed *e = (struct embed *) ptr;
+  embed_draw_grid(img, img_sz);
+  for (i32 i = 0; i < nc; i++) {
     u8 color[12] = { 128, 32, 32, 32, 32, 128, 128, 224, 224, 224, 224, 128 };
-    embed_draw_data(image, size, signal + (i * f), d, color + (i * 3), e->embed, e->incr);
+    embed_draw_data(img, img_sz, s_ul + (i * nf), d, color + (i * 3), e->embed, e->incr);
   }
 }
 
-bool embed_control(const u8 * packet, i32 packet_sz, void *PTR) {
-  struct embed *e = (struct embed *) PTR;
+bool embed_control(const u8 * packet, i32 packet_sz, void *ptr) {
+  struct embed *e = (struct embed *) ptr;
   osc_data_t o[1];
   if (OSC_PARSE_MSG("/embed", ",i")) {
     e->embed = o[0].i;
@@ -176,8 +178,7 @@ static void signal_draw_grid(u8 * image, i32 size) {
   }
 }
 
-static void signal_draw_data(u8 * image, i32 size, const f32 * signal, i32 n, const u8 * color,
-                             i32 style) {
+static void signal_draw_data(u8 * image, i32 size, const f32 * signal, i32 n, const u8 * color, i32 style) {
   f32 incr = (f32) n / (f32) size;
   f32 index = 0.0;
   for (i32 i = 0; i < size; i++) {
@@ -224,8 +225,8 @@ void *signal_init(void) {
   return s;
 }
 
-void signal_draw(u8 *img, i32 img_sz, const f32 *s, i32 nf, i32 d, i32 nc, void *PTR) {
-  struct signal *usr = (struct signal *) PTR;
+void signal_draw(u8 *img, i32 img_sz, const f32 *s_il, const f32* s_ul, i32 nf, i32 d, i32 nc, void *ptr) {
+  struct signal *usr = (struct signal *) ptr;
   signal_draw_grid(img, img_sz);
   for (i32 i = 0; i < nc; i++) {
     u8 color[12] = {
@@ -234,12 +235,12 @@ void signal_draw(u8 *img, i32 img_sz, const f32 *s, i32 nf, i32 d, i32 nc, void 
       128, 224, 224,
       224, 224, 128
     };
-    signal_draw_data(img, img_sz, s + (i * nf), d, color + (i * 3), usr->style);
+    signal_draw_data(img, img_sz, s_ul + (i * nf), d, color + (i * 3), usr->style);
   }
 }
 
-bool signal_control(const u8 * packet, i32 packet_sz, void *PTR) {
-  struct signal *s = (struct signal *) PTR;
+bool signal_control(const u8 * packet, i32 packet_sz, void *ptr) {
+  struct signal *s = (struct signal *) ptr;
   osc_data_t o[1];
   if (OSC_PARSE_MSG("/style", ",s")) {
     signal_set_style(s, o[0].s);
@@ -252,33 +253,47 @@ struct hline {
 };
 
 void *hline_init(void) {
-  return xmalloc(MAX_WINDOW_SIZE * sizeof(float));
+  return xmalloc(MAX_WINDOW_SIZE * MAX_CHANNELS * sizeof(float));
 }
 
-void hline_draw(u8 *img, i32 img_sz, const f32 *s, i32 nf, i32 d, i32 nc, void *PTR) {
-  /* printf("hline_draw\n"); */
-  SRC_DATA src;
-  src.data_in = (float *)s;
-  src.input_frames = (long)nf;
-  src.data_out = (float *)PTR;
-  src.output_frames = (long)img_sz;
-  src.src_ratio = (double)(img_sz + 1) / (double)nf;
-  int src_err = src_simple (&src, SRC_SINC_MEDIUM_QUALITY, (int)nc);
-  if(src_err != 0 || src.output_frames_gen != (long)img_sz) {
-      printf("hline_draw? src_err=%d, src.output_frames_gen=%ld, img_sz = %d\n",
-	     src_err,src.output_frames_gen,(int)img_sz);
+bool src_resample_block(float *dst,long dst_n,float *src,long src_n,int nc) {
+  if(dst_n == src_n) {
+    memcpy(dst,src,(size_t)dst_n * (size_t)nc * sizeof(float));
+  } else {
+    SRC_DATA c;
+    c.data_in = src;
+    c.input_frames = src_n;
+    c.data_out = dst;
+    c.output_frames = dst_n;
+    c.src_ratio = (double)(dst_n + 1) / (double)src_n;
+    int err = src_simple (&c, SRC_SINC_MEDIUM_QUALITY, nc);
+    if(err != 0 || c.output_frames_gen != dst_n) {
+      printf("src_resample_block: err=%d, output_frames_gen=%ld, dst_n = %ld\n",
+             err,c.output_frames_gen,dst_n);
+      return false;
+    }
   }
-  for (i32 i = 0; i < img_sz; i++) {
-    u8 g = (u8) (fabsf(src.data_out[i]) * 256.0);
-    u8 color[3] = {g,g,g};
-    for (i32 j = 0; j < img_sz; j++) {
+  return true;
+}
+
+void hline_draw(u8 *img, i32 img_sz, const f32 *s_il, const f32 *s_ul, i32 nf, i32 d, i32 nc, void *ptr) {
+  /* printf("hline_draw\n"); */
+  float *dst = (float *)ptr;
+  int c_width = img_sz / nc;
+  src_resample_block(dst,(long)img_sz,(float *)s_il,(long)nf,(int)nc);
+  for (i32 c = 0; c < nc; c++) { /* c = channel */
+    for (i32 i = 0; i < img_sz; i++) { /* i = row */
+      u8 g = (u8) (fabsf(dst[(i * nc) + c]) * 256.0);
+      u8 color[3] = {g,g,g};
+      for (i32 j = c * c_width; j < (c + 1) * c_width; j++) { /* j = column */
         img_set_pixel(img, img_sz, j, i, color);
       }
+    }
   }
 }
 
-bool hline_control(const u8 * packet, i32 packet_sz, void *PTR) {
-  printf("hline_control\n");
+bool hline_control(const u8 * packet, i32 packet_sz, void *ptr) {
+  /*printf("hline_control\n");*/
   return false;
 }
 
@@ -294,8 +309,8 @@ void set_mode(struct scope *d, const char *mode) {
   }
 }
 
-void *jackscope_osc_thread_procedure(void *PTR) {
-  struct scope *d = (struct scope *) PTR;
+void *jackscope_osc_thread_procedure(void *ptr) {
+  struct scope *d = (struct scope *) ptr;
   while (1) {
     const int packet_extent = 32;
     uint8_t packet[packet_extent];
@@ -303,7 +318,7 @@ void *jackscope_osc_thread_procedure(void *PTR) {
     osc_data_t o[1];
     if (!(d->child_control[0] (packet, packet_sz, d->child_data[0]) ||
           d->child_control[1] (packet, packet_sz, d->child_data[1]) ||
-	  d->child_control[2] (packet, packet_sz, d->child_data[2]))) {
+          d->child_control[2] (packet, packet_sz, d->child_data[2]))) {
       if (OSC_PARSE_MSG("/frames", ",i")) {
         d->draw_frames = o[0].i > d->data_frames ? d->data_frames : o[0].i;
       } else if (OSC_PARSE_MSG("/mode", ",s")) {
@@ -321,25 +336,24 @@ void *jackscope_osc_thread_procedure(void *PTR) {
   return NULL;
 }
 
-/* The data is channel separated into a local buffer, 'local'.  The
-   image data 'image' is cleared and a user selected drawing procedure
-   is invoked.  The draw procedure must accept any combination of
-   window size and frame count, and any number of channels.  */
+/* The data is channel separated into 'share_ul'.  The image data
+   'image' is cleared and a user selected drawing procedure is
+   invoked.  The draw procedure must accept any combination of window
+   size and frame count, and any number of channels.  */
 
-void *jackscope_draw_thread_procedure(void *PTR) {
-  struct scope *d = (struct scope *) PTR;
+void *jackscope_draw_thread_procedure(void *ptr) {
+  struct scope *d = (struct scope *) ptr;
   Ximg_t *x = ximg_open(d->window_size, d->window_size, "jack-scope");
   i32 image_n = d->window_size * d->window_size * 3;
   u8 *image = xmalloc(image_n);
-  float *local = xmalloc(d->data_samples * sizeof(float));
   while (!observe_end_of_process()) {
     char b;
     xread(d->pipe[0], &b, 1);
-    signal_uninterleave(local, d->share, d->data_frames, d->channels);
-    signal_clip(local, d->data_frames * d->channels, -1.0, 1.0);
+    signal_clip(d->share, d->data_frames * d->channels, -1.0, 1.0);
+    signal_uninterleave(d->share_ul, d->share, d->data_frames, d->channels);
     memset(image, 255, image_n);
     d->child_draw[d->mode] (image, d->window_size,
-                            local, d->data_frames,
+                            d->share, d->share_ul, d->data_frames,
                             d->draw_frames, d->channels, d->child_data[d->mode]);
     ximg_blit(x, image);
     if (d->image_directory) {
@@ -351,7 +365,6 @@ void *jackscope_draw_thread_procedure(void *PTR) {
   }
   ximg_close(x);
   free(image);
-  free(local);
   return NULL;
 }
 
@@ -359,8 +372,8 @@ void *jackscope_draw_thread_procedure(void *PTR) {
    be displayed copy the accumulator into `d->share' and poke the
    drawing routine. */
 
-int jackscope_process(jack_nframes_t nframes, void *PTR) {
-  struct scope *d = (struct scope *) PTR;
+int jackscope_process(jack_nframes_t nframes, void *ptr) {
+  struct scope *d = (struct scope *) ptr;
   float *in[MAX_CHANNELS];
   for (i32 i = 0; i < d->channels; i++) {
     in[i] = (float *) jack_port_get_buffer(d->port[i], nframes);
@@ -394,6 +407,7 @@ void jackscope_usage(void) {
   eprintf(" -b INT  : Scope size in frames (default=512)\n");
   eprintf(" -d REAL : Delay time in ms between scope updates (default=100)\n");
   eprintf(" -f STR  : Request images be stored at location (default=NULL)\n");
+  eprintf(" -g REAL : Set input gain (default=1.0)\n");
   eprintf(" -m STR  : Scope operating mode (default=signal)\n");
   eprintf(" -n INT  : Number of channels (default=1)\n");
   eprintf(" -p STR  : Jack port pattern to connect to (default=nil)\n");
@@ -403,6 +417,12 @@ void jackscope_usage(void) {
   eprintf(" -z      : Do not align to zero-crossing\n");
   FAILURE;
 }
+
+#define opt_limit(nm,p,q) \
+      if (q > p) { \
+        eprintf("illegal option: %s (%d > %d)", nm, q, p); \
+        FAILURE; \
+      }
 
 int main(int argc, char **argv) {
   observe_signals();
@@ -432,7 +452,7 @@ int main(int argc, char **argv) {
   int port_n = 57140;
   int o;
   char *p = NULL;
-  while ((o = getopt(argc, argv, "b:d:e:f:hi:m:n:p:s:u:w:z")) != -1) {
+  while ((o = getopt(argc, argv, "b:d:e:f:g:hi:m:n:p:s:u:w:z")) != -1) {
     switch (o) {
     case 'b':
       d.data_frames = strtol(optarg, NULL, 0);
@@ -443,6 +463,9 @@ int main(int argc, char **argv) {
     case 'f':
       d.image_directory = optarg;
       break;
+    case 'g':
+      d.input_gain = strtod(optarg, NULL);
+      break;
     case 'h':
       jackscope_usage();
       break;
@@ -450,11 +473,8 @@ int main(int argc, char **argv) {
       set_mode(&d, optarg);
       break;
     case 'n':
-      d.channels = strtol(optarg, NULL, 0);
-      if (d.channels > MAX_CHANNELS) {
-        eprintf("illegal channel count: %d", d.channels);
-        FAILURE;
-      }
+      d.channels = (i32)strtol(optarg, NULL, 0);
+      opt_limit("channels",MAX_CHANNELS,d.channels);
       break;
     case 'p':
       p = malloc(128);
@@ -467,7 +487,8 @@ int main(int argc, char **argv) {
       port_n = strtol(optarg, NULL, 0);
       break;
     case 'w':
-      d.window_size = strtol(optarg, NULL, 0);
+      d.window_size = (i32)strtol(optarg, NULL, 0);
+      opt_limit("window_size",MAX_WINDOW_SIZE,d.window_size);
       break;
     case 'z':
       d.zero_crossing = false;
@@ -482,6 +503,7 @@ int main(int argc, char **argv) {
   d.data_samples = d.data_frames * d.channels;
   d.data = xmalloc(d.data_samples * sizeof(float));
   d.share = xmalloc(d.data_samples * sizeof(float));
+  d.share_ul = xmalloc(d.data_samples * sizeof(float));
   d.fd = socket_udp(0);
   bind_inet(d.fd, NULL, port_n);
   xpipe(d.pipe);
@@ -513,5 +535,6 @@ int main(int argc, char **argv) {
   close(d.pipe[1]);
   free(d.data);
   free(d.share);
+  free(d.share_ul);
   return EXIT_SUCCESS;
 }

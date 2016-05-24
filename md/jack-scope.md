@@ -86,13 +86,15 @@ delay set using `/embed`.  The delayed sample is on the x-axis.  The
 interpolation increment is set using `/incr`, increment values less
 than one result in increasingly continuous trace paths.
 
-In hline the data block is resampled to the window size and each
-sample is is drawn as a greyscale horizontal line.  If the sample rate
-is 48000, the block size is 2400, the window size is 800 and the image
-delay is 40 then each frame is a consecutive drawing of 1/25 of a
-second of the input signal.
+In hline mode the data block is resampled to the window size and each
+sample is drawn as an 8-bit greyscale horizontal line.  If the sample
+rate is 48000, the block size is 2400, the window size is 800 and the
+image delay is 50 then each frame is a consecutive drawing of 1/20 of
+a second of the input signal.  A block size of 1920 and window size of
+640 and delay of 40 gives consecutive drawings at 1/25 of a second.
 
-    jack-scope -m hline -n 1 -b 2400 -w 800 -d 40 -p jack-play-7118:out_%d
+    jack-scope -m hline -n 1 -b 2400 -w 800 -d 50 -p jack-play:out_%d
+    jack-scope -m hline -n 1 -b 1920 -w 640 -d 40 -p jack-play:out_%d
 
 jack-scope can store the animation as a sequence of uncompressed
 ppm(5) image files.  To request this use the *-f* option with the
