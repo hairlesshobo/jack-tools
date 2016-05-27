@@ -96,13 +96,6 @@ void jackscope_print(struct scope *d) {
 #define OSC_PARSE_MSG(command,types)                            \
   osc_parse_message(command, types, packet, packet_sz, o)
 
-void
-embed_init(struct scope *s)
-{
-  s->embed_n = 6;
-  s->embed_incr = 1.0;
-}
-
 static void embed_draw_grid(u8 * img, i32 img_sz) {
   u8 half[3] = { 128, 128, 128 };
   u8 feint[3] = { 192, 192, 192 };
@@ -222,12 +215,6 @@ static i32 signal_style_parse(const char *style) {
     eprintf("signal_style_parse: illegal style, %s\n", style);
   }
   return e;
-}
-
-void
-signal_init(struct scope *s)
-{
-  s->signal_style = DOT_STYLE;
 }
 
 void
@@ -451,8 +438,10 @@ void jackscope_usage(void) {
   eprintf("Usage: jack-scope [options] sound-file\n");
   eprintf(" -b INT  : Scope size in frames (default=512)\n");
   eprintf(" -d REAL : Delay time in ms between scope updates (default=100)\n");
+  eprintf(" -e INT  : Embedding delay in frames (default=6)\n");
   eprintf(" -f STR  : Request images be stored at location (default=NULL)\n");
   eprintf(" -g REAL : Set input gain (default=1.0)\n");
+  eprintf(" -i STR  : PNG file name for hline mask (default=NULL)\n");
   eprintf(" -m STR  : Scope operating mode (default=signal)\n");
   eprintf(" -n INT  : Number of channels (default=1)\n");
   eprintf(" -p STR  : Jack port pattern to connect to (default=nil)\n");
@@ -486,6 +475,9 @@ int main(int argc, char **argv) {
   d.image_directory = NULL;
   d.image_cnt = 0;
   d.zero_crossing = true;
+  d.signal_style = DOT_STYLE;
+  d.embed_n = 6;
+  d.embed_incr = 1.0;
   d.hline_img_fn = NULL;
   d.hline_dst = NULL;
   d.hline_img = NULL;
@@ -499,6 +491,9 @@ int main(int argc, char **argv) {
       break;
     case 'd':
       d.delay_msec = strtod(optarg, NULL);
+      break;
+    case 'e':
+      d.embed_n = strtol(optarg, NULL, 0);
       break;
     case 'f':
       d.image_directory = optarg;
@@ -548,8 +543,6 @@ int main(int argc, char **argv) {
   d.data = xmalloc(data_bytes);
   d.share_il = xmalloc(data_bytes);
   d.share_ul = xmalloc(data_bytes);
-  signal_init(&d);
-  embed_init(&d);
   hline_init(&d);
   d.fd = socket_udp(0);
   bind_inet(d.fd, NULL, port_n);
