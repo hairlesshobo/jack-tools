@@ -94,7 +94,7 @@ a second of the input signal.  A block size of 1920 and window size of
 640 and delay of 40 gives consecutive drawings at 1/25 of a second.
 
     jack-scope -m hline -n 1 -b 2400 -w 800 -d 50 -p jack-play:out_%d
-    jack-scope -m hline -n 1 -b 1920 -w 640 -d 40 -p jack-play:out_%d
+    jack-scope -m hline -n 2 -b 1920 -w 640 -d 40 -p jack-play:out_%d
 
 jack-scope can store the animation as a sequence of uncompressed
 ppm(5) image files.  To request this use the *-f* option with the

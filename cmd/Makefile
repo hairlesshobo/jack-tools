@@ -20,7 +20,7 @@ jack-record: jack-record.c
 	gcc $(CFLAGS) -o jack-record jack-record.c $(LDLIBS) -lsndfile
 
 jack-scope: jack-scope.c
-	gcc $(CFLAGS) -o jack-scope jack-scope.c $(LDLIBS) -lsamplerate -lX11 -lXext
+	gcc $(CFLAGS) -o jack-scope jack-scope.c $(LDLIBS) -lsamplerate -lX11 -lXext -lpng
 
 jack-transport: jack-transport.c
 	gcc $(CFLAGS) -o jack-transport jack-transport.c $(LDLIBS) -lncurses -ltinfo

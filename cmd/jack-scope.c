@@ -16,6 +16,7 @@
 #include "c-common/failure.h"
 #include "c-common/file.h"
 #include "c-common/img.h"
+#include "c-common/img-png.h"
 #include "c-common/img-ppm.h"
 #include "c-common/int.h"
 #include "c-common/jack-client.h"
@@ -31,7 +32,7 @@
 #include "c-common/signal-interpolate.h"
 #include "c-common/ximg.h"
 
-/* img = image ; img_sz =  image size ; s_il = signal data ; s_ul = uninterleaved s ; nf = signal frame count ; d = drawing frame count ; nc = channel count ; ptr = drawing data */
+/* img = image ; img_sz = image size (pixels) ; s_il = signal data ; s_ul = uninterleaved s ; nf = signal frame count ; d = drawing frame count ; nc = channel count ; ptr = drawing data */
 typedef void (*draw_fn_t) (u8 *img, i32 img_sz, const f32 *s_il, const f32 *s_ul, i32 nf, i32 d, i32 nc, void *ptr);
 
 typedef bool(*control_fn_t) (const u8 *, i32, void *);
@@ -52,7 +53,7 @@ struct scope {
   i32 draw_frames;              /* VARIABLE, <= data_frames */
   i32 data_location;            /* write index to data */
   float *data;                  /* data_samples store */
-  float *share;                 /* data, draw thread copy */
+  float *share_il;		/* data, draw thread copy */
   float *share_ul;              /* de-interleaved share */
   jack_port_t *port[MAX_CHANNELS];
   pthread_t draw_thread;
@@ -97,23 +98,23 @@ struct embed {
   f32 incr;
 };
 
-static void embed_draw_grid(u8 * image, i32 size) {
+static void embed_draw_grid(u8 * img, i32 img_sz) {
   u8 half[3] = { 128, 128, 128 };
   u8 feint[3] = { 192, 192, 192 };
-  for (i32 i = 0; i < size; i += 3) {
-    img_set_pixel(image, size, i, size / 2, half);
-    img_set_pixel(image, size, i, size / 6, feint);
-    img_set_pixel(image, size, i, size - (size / 6), feint);
+  for (i32 i = 0; i < img_sz; i += 3) {
+    img_set_pixel(img, img_sz, 3, i, img_sz / 2, half);
+    img_set_pixel(img, img_sz, 3, i, img_sz / 6, feint);
+    img_set_pixel(img, img_sz, 3, i, img_sz - (img_sz / 6), feint);
   }
-  for (i32 i = 0; i < size; i += 3) {
-    img_set_pixel(image, size, size / 2, i, half);
-    img_set_pixel(image, size, size / 6, i, feint);
-    img_set_pixel(image, size, size - (size / 6), i, feint);
+  for (i32 i = 0; i < img_sz; i += 3) {
+    img_set_pixel(img, img_sz, 3, img_sz / 2, i, half);
+    img_set_pixel(img, img_sz, 3, img_sz / 6, i, feint);
+    img_set_pixel(img, img_sz, 3, img_sz - (img_sz / 6), i, feint);
   }
 }
 
 static void
-embed_draw_data(u8 * image, i32 size,
+embed_draw_data(u8 * img, i32 img_sz,
                 const f32 * signal, i32 n, const u8 * color, i32 embed, f32 incr) {
   f32 xindex = 0.0;
   f32 yindex = (f32) embed;
@@ -122,17 +123,17 @@ embed_draw_data(u8 * image, i32 size,
   }
   while (yindex < n) {
     f32 xi = signal_interpolate_safe(signal, n, xindex);
-    i32 x = signal_x_to_screen_x(xi, size);
+    i32 x = signal_x_to_screen_x(xi, img_sz);
     f32 yi = signal_interpolate_safe(signal, n, yindex);
-    i32 y = signal_y_to_screen_y(yi, size);
+    i32 y = signal_y_to_screen_y(yi, img_sz);
     xindex += incr;
     yindex += incr;
-    img_set_pixel(image, size, x, y, color);
+    img_set_pixel(img, img_sz, 3, x, y, color);
   }
 }
 
 void *embed_init(void) {
-  struct embed *e = malloc(sizeof(struct embed));
+  struct embed *e = xmalloc(sizeof(struct embed));
   e->embed = 6;
   e->incr = 1.0;
   return e;
@@ -168,13 +169,13 @@ struct signal {
   i32 style;
 };
 
-static void signal_draw_grid(u8 * image, i32 size) {
-  for (i32 i = 0; i < size; i += 3) {
+static void signal_draw_grid(u8 * img, i32 img_sz) {
+  for (i32 i = 0; i < img_sz; i += 3) {
     u8 half[3] = { 128, 128, 128 };
     u8 feint[3] = { 192, 192, 192 };
-    img_set_pixel(image, size, i, size / 2, half);
-    img_set_pixel(image, size, i, size / 6, feint);
-    img_set_pixel(image, size, i, size - (size / 6), feint);
+    img_set_pixel(img, img_sz, 3, i, img_sz / 2, half);
+    img_set_pixel(img, img_sz, 3, i, img_sz / 6, feint);
+    img_set_pixel(img, img_sz, 3, i, img_sz - (img_sz / 6), feint);
   }
 }
 
@@ -185,15 +186,15 @@ static void signal_draw_data(u8 * image, i32 size, const f32 * signal, i32 n, co
     f32 s = signal_interpolate_safe(signal, n, index);
     i32 y = signal_y_to_screen_y(s, size);
     index += incr;
-    img_set_pixel(image, size, i, y, color);
+    img_set_pixel(image, size, 3, i, y, color);
     if (style == DOT_STYLE) {
-      img_set_pixel(image, size, i, y, color);
+      img_set_pixel(image, size, 3, i, y, color);
     } else if (style == FILL_STYLE) {
       i32 m = size / 2;
       i32 l = y > m ? m : y;
       i32 r = y > m ? y : m;
       for (i32 j = l; j < r; j++) {
-        img_set_pixel(image, size, i, j, color);
+        img_set_pixel(image, size, 3, i, j, color);
       }
     } else if (style == LINE_STYLE) {
       f32 ss = signal_interpolate_safe(signal, n, index);
@@ -201,7 +202,7 @@ static void signal_draw_data(u8 * image, i32 size, const f32 * signal, i32 n, co
       i32 l = yy > y ? y : yy;
       i32 r = yy > y ? yy : y;
       for (i32 j = l; j < r; j++) {
-        img_set_pixel(image, size, i, j, color);
+        img_set_pixel(image, size, 3, i, j, color);
       }
     }
   }
@@ -220,12 +221,12 @@ static void signal_set_style(struct signal *s, const char *style) {
 }
 
 void *signal_init(void) {
-  struct signal *s = malloc(sizeof(struct signal));
+  struct signal *s = xmalloc(sizeof(struct signal));
   s->style = DOT_STYLE;
   return s;
 }
 
-void signal_draw(u8 *img, i32 img_sz, const f32 *s_il, const f32* s_ul, i32 nf, i32 d, i32 nc, void *ptr) {
+void signal_draw(u8 *img, i32 img_sz, const f32 *s_il, const f32 *s_ul, i32 nf, i32 d, i32 nc, void *ptr) {
   struct signal *usr = (struct signal *) ptr;
   signal_draw_grid(img, img_sz);
   for (i32 i = 0; i < nc; i++) {
@@ -250,15 +251,28 @@ bool signal_control(const u8 * packet, i32 packet_sz, void *ptr) {
 }
 
 struct hline {
+  float *dst;	/* resampled audio data */
+  u8 *img;	/* the image that is masked, plain white by default */
 };
 
-void *hline_init(void) {
-  return xmalloc(MAX_WINDOW_SIZE * MAX_CHANNELS * sizeof(float));
+void *hline_init(char *fn) {
+  struct hline *h = xmalloc(sizeof(struct hline));
+  size_t signal_bytes = MAX_WINDOW_SIZE * MAX_CHANNELS * sizeof(float);
+  h->dst = xmalloc(signal_bytes);
+  if (fn) {
+    i32 png_w,png_h;
+    load_png_rgb8(fn,&png_w,&png_h,&(h->img));
+  } else {
+    size_t image_bytes = MAX_WINDOW_SIZE * MAX_WINDOW_SIZE;
+    h->img = xmalloc(image_bytes);
+    xmemset(h->img,255,image_bytes);
+  }
+  return h;
 }
 
 bool src_resample_block(float *dst,long dst_n,float *src,long src_n,int nc) {
   if(dst_n == src_n) {
-    memcpy(dst,src,(size_t)dst_n * (size_t)nc * sizeof(float));
+    xmemcpy(dst,src,(size_t)dst_n * (size_t)nc * sizeof(float));
   } else {
     SRC_DATA c;
     c.data_in = src;
@@ -276,17 +290,26 @@ bool src_resample_block(float *dst,long dst_n,float *src,long src_n,int nc) {
   return true;
 }
 
+void rgb_mul(u8 *c,float n)
+{
+    c[0] = c[0] * n;
+    c[1] = c[1] * n;
+    c[2] = c[2] * n;
+}
+
 void hline_draw(u8 *img, i32 img_sz, const f32 *s_il, const f32 *s_ul, i32 nf, i32 d, i32 nc, void *ptr) {
   /* printf("hline_draw\n"); */
-  float *dst = (float *)ptr;
+  struct hline *usr = (struct hline *) ptr;
   int c_width = img_sz / nc;
-  src_resample_block(dst,(long)img_sz,(float *)s_il,(long)nf,(int)nc);
+  src_resample_block(usr->dst,(long)img_sz,(float *)s_il,(long)nf,(int)nc);
   for (i32 c = 0; c < nc; c++) { /* c = channel */
     for (i32 i = 0; i < img_sz; i++) { /* i = row */
-      u8 g = (u8) (fabsf(dst[(i * nc) + c]) * 256.0);
-      u8 color[3] = {g,g,g};
       for (i32 j = c * c_width; j < (c + 1) * c_width; j++) { /* j = column */
-        img_set_pixel(img, img_sz, j, i, color);
+        u8 color[3];
+        img_get_pixel(usr->img, img_sz, 3, j, i, color);
+        float mul = fabsf(usr->dst[(i * nc) + c]);
+        rgb_mul(color,mul);
+        img_set_pixel(img, img_sz, 3, j, i, color);
       }
     }
   }
@@ -344,32 +367,32 @@ void *jackscope_osc_thread_procedure(void *ptr) {
 void *jackscope_draw_thread_procedure(void *ptr) {
   struct scope *d = (struct scope *) ptr;
   Ximg_t *x = ximg_open(d->window_size, d->window_size, "jack-scope");
-  i32 image_n = d->window_size * d->window_size * 3;
-  u8 *image = xmalloc(image_n);
+  i32 img_bytes = d->window_size * d->window_size * 3;
+  u8 *img = xmalloc(img_bytes);
   while (!observe_end_of_process()) {
     char b;
     xread(d->pipe[0], &b, 1);
-    signal_clip(d->share, d->data_frames * d->channels, -1.0, 1.0);
-    signal_uninterleave(d->share_ul, d->share, d->data_frames, d->channels);
-    memset(image, 255, image_n);
-    d->child_draw[d->mode] (image, d->window_size,
-                            d->share, d->share_ul, d->data_frames,
+    signal_clip(d->share_il, d->data_frames * d->channels, -1.0, 1.0);
+    signal_uninterleave(d->share_ul, d->share_il, d->data_frames, d->channels);
+    xmemset(img, 255, img_bytes);
+    d->child_draw[d->mode] (img, d->window_size,
+                            d->share_il, d->share_ul, d->data_frames,
                             d->draw_frames, d->channels, d->child_data[d->mode]);
-    ximg_blit(x, image);
+    ximg_blit(x, img);
     if (d->image_directory) {
       char name[256];
       snprintf(name, 256, "%s/jack-scope.%06d.ppm", d->image_directory, d->image_cnt);
-      img_write_ppm_file(image, d->window_size, d->window_size, name);
+      img_write_ppm_file(img, d->window_size, d->window_size, name);
     }
     d->image_cnt++;
   }
   ximg_close(x);
-  free(image);
+  free(img);
   return NULL;
 }
 
 /* Accumulate the input signal at `d->data'.  When an image is due to
-   be displayed copy the accumulator into `d->share' and poke the
+   be displayed copy the accumulator into `d->share_il' and poke the
    drawing routine. */
 
 int jackscope_process(jack_nframes_t nframes, void *ptr) {
@@ -391,7 +414,7 @@ int jackscope_process(jack_nframes_t nframes, void *ptr) {
     if (l >= d->delay_frames && (!d->zero_crossing ||
                                  (i > 0 && in[0][i] > 0.0 && in[0][i - 1] <= 0.0) ||
                                  l >= d->delay_frames * 2)) {
-      signal_copy_circular(d->share, d->data, d->data_samples, k);
+      signal_copy_circular(d->share_il, d->data, d->data_samples, k);
       l = 0;
       char b = 1;
       xwrite(d->pipe[1], &b, 1);
@@ -433,19 +456,20 @@ int main(int argc, char **argv) {
   d.data_location = 0;
   d.draw_frames = 0;
   d.delay_msec = 100.0;
+  d.fps = 0.0;			/* JACK sample-rate (ie. not VIDEO frame rate) */
   d.delay_location = 0;
   d.channels = 1;
   d.mode = SIGNAL_MODE;
   d.input_gain = 1.0;
-  d.child_data[0] = signal_init();
-  d.child_draw[0] = signal_draw;
-  d.child_control[0] = signal_control;
-  d.child_data[1] = embed_init();
-  d.child_draw[1] = embed_draw;
-  d.child_control[1] = embed_control;
-  d.child_data[2] = hline_init();
-  d.child_draw[2] = hline_draw;
-  d.child_control[2] = hline_control;
+  d.child_data[SIGNAL_MODE] = signal_init();
+  d.child_draw[SIGNAL_MODE] = signal_draw;
+  d.child_control[SIGNAL_MODE] = signal_control;
+  d.child_data[EMBED_MODE] = embed_init();
+  d.child_draw[EMBED_MODE] = embed_draw;
+  d.child_control[EMBED_MODE] = embed_control;
+  d.child_data[HLINE_MODE] = hline_init(NULL);
+  d.child_draw[HLINE_MODE] = hline_draw;
+  d.child_control[HLINE_MODE] = hline_control;
   d.image_directory = NULL;
   d.image_cnt = 0;
   d.zero_crossing = true;
@@ -477,11 +501,11 @@ int main(int argc, char **argv) {
       opt_limit("channels",MAX_CHANNELS,d.channels);
       break;
     case 'p':
-      p = malloc(128);
+      p = xmalloc(128);
       strncpy(p, optarg, 128);
       break;
     case 's':
-      signal_set_style(d.child_data[0], optarg);
+      signal_set_style(d.child_data[SIGNAL_MODE], optarg);
       break;
     case 'u':
       port_n = strtol(optarg, NULL, 0);
@@ -501,9 +525,10 @@ int main(int argc, char **argv) {
   }
   d.draw_frames = d.data_frames;
   d.data_samples = d.data_frames * d.channels;
-  d.data = xmalloc(d.data_samples * sizeof(float));
-  d.share = xmalloc(d.data_samples * sizeof(float));
-  d.share_ul = xmalloc(d.data_samples * sizeof(float));
+  size_t data_bytes = (size_t)d.data_samples * sizeof(float);
+  d.data = xmalloc(data_bytes);
+  d.share_il = xmalloc(data_bytes);
+  d.share_ul = xmalloc(data_bytes);
   d.fd = socket_udp(0);
   bind_inet(d.fd, NULL, port_n);
   xpipe(d.pipe);
@@ -534,7 +559,7 @@ int main(int argc, char **argv) {
   close(d.pipe[0]);
   close(d.pipe[1]);
   free(d.data);
-  free(d.share);
+  free(d.share_il);
   free(d.share_ul);
   return EXIT_SUCCESS;
 }

@@ -189,17 +189,17 @@ void *jackosc_osc_thread_procedure(void *PTR)
   return NULL;
 }
 
-inline f64 get_ticks_per_frame(f64 ticks_per_pulse,
-			       f64 pulses_per_minute,
-			       f64 frames_per_second)
+f64 get_ticks_per_frame(f64 ticks_per_pulse,
+			f64 pulses_per_minute,
+			f64 frames_per_second)
 {
   f64 pulses_per_second = pulses_per_minute / 60.0;
   f64 ticks_per_second = ticks_per_pulse * pulses_per_second;
   return ticks_per_second / frames_per_second;
 }
 
-inline f64 get_pulses_per_frame(f64 pulses_per_minute,
-				f64 frames_per_second)
+f64 get_pulses_per_frame(f64 pulses_per_minute,
+			 f64 frames_per_second)
 {
   f64 pulses_per_second = pulses_per_minute / 60.0;
   return pulses_per_second / frames_per_second;

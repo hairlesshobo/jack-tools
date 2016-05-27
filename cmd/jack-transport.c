@@ -131,6 +131,7 @@ int main(int argc, char **argv)
       refresh();
       break;
     case ' ':
+    case 's':
       if(t.rolling) {
 	jack_transport_stop(t.jk);
       } else {
