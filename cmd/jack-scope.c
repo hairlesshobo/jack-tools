@@ -3,10 +3,10 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
 #include <pthread.h> /* POSIX */
 #include <semaphore.h>
+#include <string.h> /* strdup */
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -35,7 +35,7 @@
 /* img = image ; img_sz = image size (pixels) ; s_il = signal data ; s_ul = uninterleaved s ; nf = signal frame count ; d = drawing frame count ; nc = channel count ; ptr = drawing data */
 typedef void (*draw_fn_t) (u8 *img, i32 img_sz, const f32 *s_il, const f32 *s_ul, i32 nf, i32 d, i32 nc, void *ptr);
 
-typedef bool(*control_fn_t) (const u8 *, i32, void *);
+typedef bool(*control_fn_t) (const u8 * packet, i32 packet_sz, void *d_ptr, void *usr_ptr);
 
 #define SIGNAL_MODE 0
 #define EMBED_MODE 1
@@ -68,10 +68,13 @@ struct scope {
   char *image_directory;
   i32 image_cnt;
   int fd;
-  draw_fn_t child_draw[MODE_COUNT];
-  control_fn_t child_control[MODE_COUNT];
-  void *child_data[MODE_COUNT];
   bool zero_crossing;
+  i32 signal_style;
+  i32 embed_n;
+  f32 embed_incr;
+  char *hline_img_fn;
+  float *hline_dst;	/* resampled audio data */
+  u8 *hline_img;	/* the image that is masked, plain white by default */
 };
 
 void jackscope_print(struct scope *d) {
@@ -93,10 +96,12 @@ void jackscope_print(struct scope *d) {
 #define OSC_PARSE_MSG(command,types)                            \
   osc_parse_message(command, types, packet, packet_sz, o)
 
-struct embed {
-  i32 embed;
-  f32 incr;
-};
+void
+embed_init(struct scope *s)
+{
+  s->embed_n = 6;
+  s->embed_incr = 1.0;
+}
 
 static void embed_draw_grid(u8 * img, i32 img_sz) {
   u8 half[3] = { 128, 128, 128 };
@@ -115,47 +120,43 @@ static void embed_draw_grid(u8 * img, i32 img_sz) {
 
 static void
 embed_draw_data(u8 * img, i32 img_sz,
-                const f32 * signal, i32 n, const u8 * color, i32 embed, f32 incr) {
+                const f32 * signal, i32 n, const u8 * color, i32 embed_n, f32 embed_incr) {
   f32 xindex = 0.0;
-  f32 yindex = (f32) embed;
-  if (incr <= 0.0) {
-    incr = 1.0;
+  f32 yindex = (f32) embed_n;
+  if (embed_incr <= 0.0) {
+    embed_incr = 1.0;
   }
   while (yindex < n) {
     f32 xi = signal_interpolate_safe(signal, n, xindex);
     i32 x = signal_x_to_screen_x(xi, img_sz);
     f32 yi = signal_interpolate_safe(signal, n, yindex);
     i32 y = signal_y_to_screen_y(yi, img_sz);
-    xindex += incr;
-    yindex += incr;
+    xindex += embed_incr;
+    yindex += embed_incr;
     img_set_pixel(img, img_sz, 3, x, y, color);
   }
 }
 
-void *embed_init(void) {
-  struct embed *e = xmalloc(sizeof(struct embed));
-  e->embed = 6;
-  e->incr = 1.0;
-  return e;
-}
-
-void embed_draw(u8 *img, i32 img_sz, const f32 *s_il, const f32 *s_ul, i32 nf, i32 d, i32 nc, void *ptr) {
-  struct embed *e = (struct embed *) ptr;
+void
+embed_draw(u8 *img, i32 img_sz, const f32 *s_il, const f32 *s_ul, i32 nf, i32 d, i32 nc, void *ptr) {
+  struct scope *s = (struct scope *) ptr;
   embed_draw_grid(img, img_sz);
   for (i32 i = 0; i < nc; i++) {
     u8 color[12] = { 128, 32, 32, 32, 32, 128, 128, 224, 224, 224, 224, 128 };
-    embed_draw_data(img, img_sz, s_ul + (i * nf), d, color + (i * 3), e->embed, e->incr);
+    embed_draw_data(img, img_sz, s_ul + (i * nf), d, color + (i * 3), s->embed_n, s->embed_incr);
   }
 }
 
-bool embed_control(const u8 * packet, i32 packet_sz, void *ptr) {
-  struct embed *e = (struct embed *) ptr;
+bool
+embed_control(const u8 * packet, i32 packet_sz, void *ptr)
+{
+  struct scope *s = (struct scope *)ptr;
   osc_data_t o[1];
   if (OSC_PARSE_MSG("/embed", ",i")) {
-    e->embed = o[0].i;
+    s->embed_n = o[0].i;
     return true;
   } else if (OSC_PARSE_MSG("/incr", ",f")) {
-    e->incr = o[0].f;
+    s->embed_incr = o[0].f;
     return true;
   }
   return false;
@@ -166,7 +167,6 @@ bool embed_control(const u8 * packet, i32 packet_sz, void *ptr) {
 #define LINE_STYLE 2
 
 struct signal {
-  i32 style;
 };
 
 static void signal_draw_grid(u8 * img, i32 img_sz) {
@@ -179,7 +179,9 @@ static void signal_draw_grid(u8 * img, i32 img_sz) {
   }
 }
 
-static void signal_draw_data(u8 * image, i32 size, const f32 * signal, i32 n, const u8 * color, i32 style) {
+static void
+signal_draw_data(u8 * image, i32 size, const f32 * signal, i32 n, const u8 * color, i32 style)
+{
   f32 incr = (f32) n / (f32) size;
   f32 index = 0.0;
   for (i32 i = 0; i < size; i++) {
@@ -208,26 +210,30 @@ static void signal_draw_data(u8 * image, i32 size, const f32 * signal, i32 n, co
   }
 }
 
-static void signal_set_style(struct signal *s, const char *style) {
+static i32 signal_style_parse(const char *style) {
+  i32 e = DOT_STYLE;
   if (strcmp("dot", style) == 0) {
-    s->style = DOT_STYLE;
+    e = DOT_STYLE;
   } else if (strcmp("fill", style) == 0) {
-    s->style = FILL_STYLE;
+    e = FILL_STYLE;
   } else if (strcmp("line", style) == 0) {
-    s->style = LINE_STYLE;
+    e = LINE_STYLE;
   } else {
-    eprintf("signal_set_style: illegal style, %s\n", style);
+    eprintf("signal_style_parse: illegal style, %s\n", style);
   }
+  return e;
 }
 
-void *signal_init(void) {
-  struct signal *s = xmalloc(sizeof(struct signal));
-  s->style = DOT_STYLE;
-  return s;
+void
+signal_init(struct scope *s)
+{
+  s->signal_style = DOT_STYLE;
 }
 
-void signal_draw(u8 *img, i32 img_sz, const f32 *s_il, const f32 *s_ul, i32 nf, i32 d, i32 nc, void *ptr) {
-  struct signal *usr = (struct signal *) ptr;
+void
+signal_draw(u8 *img, i32 img_sz, const f32 *s_il, const f32 *s_ul, i32 nf, i32 d, i32 nc, void *ptr)
+{
+  struct scope *s = (struct scope *)ptr;
   signal_draw_grid(img, img_sz);
   for (i32 i = 0; i < nc; i++) {
     u8 color[12] = {
@@ -236,38 +242,38 @@ void signal_draw(u8 *img, i32 img_sz, const f32 *s_il, const f32 *s_ul, i32 nf, 
       128, 224, 224,
       224, 224, 128
     };
-    signal_draw_data(img, img_sz, s_ul + (i * nf), d, color + (i * 3), usr->style);
+    signal_draw_data(img, img_sz, s_ul + (i * nf), d, color + (i * 3), s->signal_style);
   }
 }
 
 bool signal_control(const u8 * packet, i32 packet_sz, void *ptr) {
-  struct signal *s = (struct signal *) ptr;
+  struct scope *s = (struct scope *)ptr;
   osc_data_t o[1];
   if (OSC_PARSE_MSG("/style", ",s")) {
-    signal_set_style(s, o[0].s);
+    s->signal_style = signal_style_parse(o[0].s);
     return true;
   }
   return false;
 }
 
-struct hline {
-  float *dst;	/* resampled audio data */
-  u8 *img;	/* the image that is masked, plain white by default */
-};
-
-void *hline_init(char *fn) {
-  struct hline *h = xmalloc(sizeof(struct hline));
-  size_t signal_bytes = MAX_WINDOW_SIZE * MAX_CHANNELS * sizeof(float);
-  h->dst = xmalloc(signal_bytes);
-  if (fn) {
+void
+hline_init(struct scope *s)
+{
+  size_t signal_bytes = s->window_size * s->channels * sizeof(float);
+  s->hline_dst = xmalloc(signal_bytes);
+  if (s->hline_img_fn) {
     i32 png_w,png_h;
-    load_png_rgb8(fn,&png_w,&png_h,&(h->img));
-  } else {
-    size_t image_bytes = MAX_WINDOW_SIZE * MAX_WINDOW_SIZE;
-    h->img = xmalloc(image_bytes);
-    xmemset(h->img,255,image_bytes);
+    load_png_rgb8(s->hline_img_fn,&png_w,&png_h,&(s->hline_img));
+    if(png_w == s->window_size && png_h == s->window_size) {
+      return;
+    } else {
+      eprintf("hline_img_fn: incorrect size: (%d,%d) NEQ %d\n", png_w, png_h, s->window_size);
+      free(s->hline_img);
+    }
   }
-  return h;
+  size_t image_bytes = s->window_size * s->window_size * 3;
+  s->hline_img = xmalloc(image_bytes);
+  xmemset(s->hline_img,255,image_bytes);
 }
 
 bool src_resample_block(float *dst,long dst_n,float *src,long src_n,int nc) {
@@ -299,15 +305,15 @@ void rgb_mul(u8 *c,float n)
 
 void hline_draw(u8 *img, i32 img_sz, const f32 *s_il, const f32 *s_ul, i32 nf, i32 d, i32 nc, void *ptr) {
   /* printf("hline_draw\n"); */
-  struct hline *usr = (struct hline *) ptr;
+  struct scope *s = (struct scope *) ptr;
   int c_width = img_sz / nc;
-  src_resample_block(usr->dst,(long)img_sz,(float *)s_il,(long)nf,(int)nc);
+  src_resample_block(s->hline_dst,(long)img_sz,(float *)s_il,(long)nf,(int)nc);
   for (i32 c = 0; c < nc; c++) { /* c = channel */
     for (i32 i = 0; i < img_sz; i++) { /* i = row */
       for (i32 j = c * c_width; j < (c + 1) * c_width; j++) { /* j = column */
         u8 color[3];
-        img_get_pixel(usr->img, img_sz, 3, j, i, color);
-        float mul = fabsf(usr->dst[(i * nc) + c]);
+        img_get_pixel(s->hline_img, img_sz, 3, j, i, color);
+        float mul = fabsf(s->hline_dst[(i * nc) + c]);
         rgb_mul(color,mul);
         img_set_pixel(img, img_sz, 3, j, i, color);
       }
@@ -320,37 +326,37 @@ bool hline_control(const u8 * packet, i32 packet_sz, void *ptr) {
   return false;
 }
 
-void set_mode(struct scope *d, const char *mode) {
+void set_mode(struct scope *s, const char *mode) {
   if (strncmp("signal", mode, 6) == 0) {
-    d->mode = SIGNAL_MODE;
+    s->mode = SIGNAL_MODE;
   } else if (strncmp("embed", mode, 5) == 0) {
-    d->mode = EMBED_MODE;
+    s->mode = EMBED_MODE;
   } else if (strncmp("hline", mode, 5) == 0) {
-    d->mode = HLINE_MODE;
+    s->mode = HLINE_MODE;
   } else {
     eprintf("jack-scope: illegal mode, %s\n", mode);
   }
 }
 
 void *jackscope_osc_thread_procedure(void *ptr) {
-  struct scope *d = (struct scope *) ptr;
+  struct scope *s = (struct scope *) ptr;
   while (1) {
     const int packet_extent = 32;
     uint8_t packet[packet_extent];
-    int packet_sz = xrecv(d->fd, packet, 32, 0);
+    int packet_sz = xrecv(s->fd, packet, 32, 0);
     osc_data_t o[1];
-    if (!(d->child_control[0] (packet, packet_sz, d->child_data[0]) ||
-          d->child_control[1] (packet, packet_sz, d->child_data[1]) ||
-          d->child_control[2] (packet, packet_sz, d->child_data[2]))) {
+    if (!(signal_control(packet, packet_sz, s) ||
+          embed_control(packet, packet_sz, s) ||
+          hline_control(packet, packet_sz, s))) {
       if (OSC_PARSE_MSG("/frames", ",i")) {
-        d->draw_frames = o[0].i > d->data_frames ? d->data_frames : o[0].i;
+        s->draw_frames = o[0].i > s->data_frames ? s->data_frames : o[0].i;
       } else if (OSC_PARSE_MSG("/mode", ",s")) {
-        set_mode(d, o[0].s);
+        set_mode(s, o[0].s);
       } else if (OSC_PARSE_MSG("/input-gain", ",f")) {
-        d->input_gain = o[0].f;
+        s->input_gain = o[0].f;
       } else if (OSC_PARSE_MSG("/delay", ",f")) {
-        d->delay_msec = o[0].f;
-        d->delay_frames = floorf((d->delay_msec / 1000.0) * d->fps);
+        s->delay_msec = o[0].f;
+        s->delay_frames = floorf((s->delay_msec / 1000.0) * s->fps);
       } else {
         eprintf("jack-scope: dropped packet: %8s\n", packet);
       }
@@ -364,27 +370,43 @@ void *jackscope_osc_thread_procedure(void *ptr) {
    invoked.  The draw procedure must accept any combination of window
    size and frame count, and any number of channels.  */
 
+draw_fn_t
+draw_fn_select(i32 mode)
+{
+  if (mode == SIGNAL_MODE) {
+      return signal_draw;
+  } else if (mode == EMBED_MODE) {
+     return embed_draw;
+  } else if (mode == HLINE_MODE) {
+     return hline_draw;
+  } else {
+      eprintf("jack-scope: illegal mode, %d\n", mode);
+      return signal_draw;
+  }
+}
+
 void *jackscope_draw_thread_procedure(void *ptr) {
-  struct scope *d = (struct scope *) ptr;
-  Ximg_t *x = ximg_open(d->window_size, d->window_size, "jack-scope");
-  i32 img_bytes = d->window_size * d->window_size * 3;
+  struct scope *s = (struct scope *) ptr;
+  Ximg_t *x = ximg_open(s->window_size, s->window_size, "jack-scope");
+  i32 img_bytes = s->window_size * s->window_size * 3;
   u8 *img = xmalloc(img_bytes);
   while (!observe_end_of_process()) {
     char b;
-    xread(d->pipe[0], &b, 1);
-    signal_clip(d->share_il, d->data_frames * d->channels, -1.0, 1.0);
-    signal_uninterleave(d->share_ul, d->share_il, d->data_frames, d->channels);
+    xread(s->pipe[0], &b, 1);
+    signal_clip(s->share_il, s->data_frames * s->channels, -1.0, 1.0);
+    signal_uninterleave(s->share_ul, s->share_il, s->data_frames, s->channels);
     xmemset(img, 255, img_bytes);
-    d->child_draw[d->mode] (img, d->window_size,
-                            d->share_il, d->share_ul, d->data_frames,
-                            d->draw_frames, d->channels, d->child_data[d->mode]);
+    draw_fn_t draw_fn = draw_fn_select(s->mode);
+    draw_fn(img, s->window_size,
+            s->share_il, s->share_ul, s->data_frames,
+            s->draw_frames, s->channels, s);
     ximg_blit(x, img);
-    if (d->image_directory) {
+    if (s->image_directory) {
       char name[256];
-      snprintf(name, 256, "%s/jack-scope.%06d.ppm", d->image_directory, d->image_cnt);
-      img_write_ppm_file(img, d->window_size, d->window_size, name);
+      snprintf(name, 256, "%s/jack-scope.%06d.ppm", s->image_directory, s->image_cnt);
+      img_write_ppm_file(img, s->window_size, s->window_size, name);
     }
-    d->image_cnt++;
+    s->image_cnt++;
   }
   ximg_close(x);
   free(img);
@@ -461,18 +483,12 @@ int main(int argc, char **argv) {
   d.channels = 1;
   d.mode = SIGNAL_MODE;
   d.input_gain = 1.0;
-  d.child_data[SIGNAL_MODE] = signal_init();
-  d.child_draw[SIGNAL_MODE] = signal_draw;
-  d.child_control[SIGNAL_MODE] = signal_control;
-  d.child_data[EMBED_MODE] = embed_init();
-  d.child_draw[EMBED_MODE] = embed_draw;
-  d.child_control[EMBED_MODE] = embed_control;
-  d.child_data[HLINE_MODE] = hline_init(NULL);
-  d.child_draw[HLINE_MODE] = hline_draw;
-  d.child_control[HLINE_MODE] = hline_control;
   d.image_directory = NULL;
   d.image_cnt = 0;
   d.zero_crossing = true;
+  d.hline_img_fn = NULL;
+  d.hline_dst = NULL;
+  d.hline_img = NULL;
   int port_n = 57140;
   int o;
   char *p = NULL;
@@ -493,6 +509,9 @@ int main(int argc, char **argv) {
     case 'h':
       jackscope_usage();
       break;
+    case 'i':
+      d.hline_img_fn = strdup(optarg);
+      break;
     case 'm':
       set_mode(&d, optarg);
       break;
@@ -505,7 +524,7 @@ int main(int argc, char **argv) {
       strncpy(p, optarg, 128);
       break;
     case 's':
-      signal_set_style(d.child_data[SIGNAL_MODE], optarg);
+      d.signal_style = signal_style_parse(optarg);
       break;
     case 'u':
       port_n = strtol(optarg, NULL, 0);
@@ -529,6 +548,9 @@ int main(int argc, char **argv) {
   d.data = xmalloc(data_bytes);
   d.share_il = xmalloc(data_bytes);
   d.share_ul = xmalloc(data_bytes);
+  signal_init(&d);
+  embed_init(&d);
+  hline_init(&d);
   d.fd = socket_udp(0);
   bind_inet(d.fd, NULL, port_n);
   xpipe(d.pipe);
