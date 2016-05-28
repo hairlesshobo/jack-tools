@@ -98,6 +98,11 @@ a second of the input signal.  A block size of 1920 and window size of
     jack-scope -m hline -n 1 -b 2400 -h 800 -w 1280 -d 50 -p jack-play:out_%d
     jack-scope -m hline -n 2 -b 1920 -h 640 -w 640 -d 40 -p jack-play:out_%d
 
+The hscan mode is closely related, the block is resampled (if
+required) to the size of the window.
+
+    jack-scope -g 2 -m hscan -w 200 -h 200 -d 100 -b 40000 -p jack-play:out_%d
+
 jack-scope can store the animation as a sequence of uncompressed
 ppm(5) image files.  To request this use the *-f* option with the
 directory files should be written to as the argument.

@@ -35,7 +35,8 @@
 #define SIGNAL_MODE 0
 #define EMBED_MODE 1
 #define HLINE_MODE 2
-#define MODE_COUNT 3
+#define HSCAN_MODE 3
+#define MODE_COUNT 4
 
 #define DOT_STYLE 0
 #define FILL_STYLE 1
@@ -70,7 +71,8 @@ struct scope
   float *data;                  /* data_samples store */
   float *share_il;              /* data, draw thread copy */
   float *share_ul;              /* de-interleaved share */
-  float *src_dst;               /* resampled audio data (if required) */
+  float *hline_src_dst;	        /* resampled audio data (if required) */
+  float *hscan_src_dst;	        /* resampled audio data (if required) */
   jack_port_t *port[MAX_CHANNELS];
   pthread_t draw_thread;
   pthread_t osc_thread;
@@ -105,7 +107,8 @@ scope_init(struct scope *s)
   s->data = NULL;
   s->share_il = NULL;
   s->share_ul = NULL;
-  s->src_dst = NULL;
+  s->hline_src_dst = NULL;
+  s->hscan_src_dst = NULL;
 }
 
 void
@@ -257,7 +260,7 @@ void
 hline_init(struct scope *s)
 {
   size_t signal_bytes = s->img_w * s->channels * sizeof(float);
-  s->src_dst = xmalloc(signal_bytes);
+  s->hline_src_dst = xmalloc(signal_bytes);
   if (s->img_bg_fn) {
     i32 png_w,png_h;
     load_png_rgb8(s->img_bg_fn,&png_w,&png_h,&(s->img_bg));
@@ -295,7 +298,7 @@ src_resample_block(float *dst,long dst_n,float *src,long src_n,int nc)
   return true;
 }
 
-void rgb_mul(u8 *c,float n)
+void rgb_mul(u8 *c,f32 n)
 {
     c[0] = c[0] * n;
     c[1] = c[1] * n;
@@ -306,7 +309,7 @@ void
 hline_draw(u8 *img, struct scope *s)
 {
   int c_width = s->img_w / s->channels;
-  src_resample_block(s->src_dst,(long)s->img_h,
+  src_resample_block(s->hline_src_dst,(long)s->img_h,
 		     (float *)s->share_il,(long)s->data_frames,
 		     (int)s->channels);
   for (i32 c = 0; c < s->channels; c++) { /* c = channel */
@@ -314,11 +317,32 @@ hline_draw(u8 *img, struct scope *s)
       for (i32 j = c * c_width; j < (c + 1) * c_width; j++) { /* j = column */
         u8 color[3];
         img_get_pixel(s->img_bg, s->img_w, 3, j, i, color);
-        float mul = fabsf(s->src_dst[(i * s->channels) + c]);
+        float mul = fabsf(s->hline_src_dst[(i * s->channels) + c]);
         rgb_mul(color,mul);
         img_set_pixel(img, s->img_w, 3, j, i, color);
       }
     }
+  }
+}
+
+void
+hscan_init(struct scope *s)
+{
+  size_t n = s->img_w * s->img_h * sizeof(float);
+  s->hscan_src_dst = xmalloc(n);
+}
+
+void
+hscan_draw(u8 *img, struct scope *s)
+{
+  i32 n = s->img_h * s->img_w;
+  u8 *p = img;
+  src_resample_block(s->hscan_src_dst,(long)n,(float *)s->share_il,(long)s->data_frames,(int)s->channels);
+  for (i32 i = 0; i < n; i++) {
+    u8 g = 255 * fabsf(s->hscan_src_dst[i]);
+    u8 color[3] = {g,g,g};
+    xmemcpy(p, color, 3);
+    p += 3;
   }
 }
 
@@ -331,6 +355,8 @@ set_mode(struct scope *s, const char *mode)
     s->mode = EMBED_MODE;
   } else if (strncmp("hline", mode, 5) == 0) {
     s->mode = HLINE_MODE;
+  } else if (strncmp("hscan", mode, 5) == 0) {
+    s->mode = HSCAN_MODE;
   } else {
     eprintf("jack-scope: illegal mode, %s\n", mode);
   }
@@ -383,6 +409,8 @@ draw_fn_select(i32 mode)
      return embed_draw;
   } else if (mode == HLINE_MODE) {
      return hline_draw;
+  } else if (mode == HSCAN_MODE) {
+     return hscan_draw;
   } else {
       eprintf("jack-scope: illegal mode, %d\n", mode);
       return signal_draw;
@@ -548,6 +576,7 @@ main(int argc, char **argv)
   d.share_il = xmalloc(data_bytes);
   d.share_ul = xmalloc(data_bytes);
   hline_init(&d);
+  hscan_init(&d);
   d.fd = socket_udp(0);
   bind_inet(d.fd, NULL, port_n);
   xpipe(d.pipe);
