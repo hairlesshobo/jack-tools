@@ -35,68 +35,104 @@
 /* img = image ; img_sz = image size (pixels) ; s_il = signal data ; s_ul = uninterleaved s ; nf = signal frame count ; d = drawing frame count ; nc = channel count ; ptr = drawing data */
 typedef void (*draw_fn_t) (u8 *img, i32 img_sz, const f32 *s_il, const f32 *s_ul, i32 nf, i32 d, i32 nc, void *ptr);
 
-typedef bool(*control_fn_t) (const u8 * packet, i32 packet_sz, void *d_ptr, void *usr_ptr);
-
 #define SIGNAL_MODE 0
 #define EMBED_MODE 1
 #define HLINE_MODE 2
 #define MODE_COUNT 3
 
+#define DOT_STYLE 0
+#define FILL_STYLE 1
+#define LINE_STYLE 2
+
 #define MAX_CHANNELS 8
 #define MAX_WINDOW_SIZE 4096
 
-struct scope {
+struct scope
+{
   i32 channels;                 /* INIT, <= MAX_CHANNELS */
   i32 window_size;              /* width & height (square), INIT, <= MAX_WINDOW_SIZE */
   i32 data_frames;              /* number of frames per block, INIT */
   i32 data_samples;             /* data_frames * channels */
   i32 draw_frames;              /* VARIABLE, <= data_frames */
   i32 data_location;            /* write index to data */
+  float fps;                    /* JACK sample-rate (ie. not VIDEO frame rate) */
+  float delay_msec;             /* VIDEO frame delay (ms) */
+  i32 delay_frames;             /* delay_msec * fps */
+  i32 delay_location;           /* read index for embed delay (data_location - embed_n) */
+  float input_gain;             /* input signal multiplier */
+  bool zero_crossing;           /* sync display to zero crossing (oddly rhs) */
+  i32 mode;                     /* drawing mode */
+  i32 signal_style;             /* drawing style (signal mode) */
+  i32 embed_n;                  /* frame delay (embed mode) */
+  f32 embed_incr;               /* interpolation increment (embed mode) */
+  char *img_bg_fn;              /* image ground file name | NULL */
+  u8 *img_bg;                   /* the image that is masked, plain white by default */
+  char *image_directory;        /* OUTPUT image directory | NULL */
+  i32 image_cnt;                /* OUTPUT image frame counter (for file name) */
   float *data;                  /* data_samples store */
-  float *share_il;		/* data, draw thread copy */
+  float *share_il;              /* data, draw thread copy */
   float *share_ul;              /* de-interleaved share */
+  float *src_dst;               /* resampled audio data (if required) */
   jack_port_t *port[MAX_CHANNELS];
   pthread_t draw_thread;
   pthread_t osc_thread;
-  float fps;
-  float delay_msec;
-  i32 delay_frames;
-  i32 delay_location;
-  i32 mode;
-  float input_gain;
   int pipe[2];
-  char *image_directory;
-  i32 image_cnt;
   int fd;
-  bool zero_crossing;
-  i32 signal_style;
-  i32 embed_n;
-  f32 embed_incr;
-  char *hline_img_fn;
-  float *hline_dst;	/* resampled audio data */
-  u8 *hline_img;	/* the image that is masked, plain white by default */
 };
 
-void jackscope_print(struct scope *d) {
-  eprintf("channels          : %d\n", d->channels);
-  eprintf("window_size       : %d\n", d->window_size);
-  eprintf("data_frames       : %d\n", d->data_frames);
-  eprintf("data_samples      : %d\n", d->data_samples);
-  eprintf("draw_frames       : %d\n", d->draw_frames);
-  eprintf("data_location     : %d\n", d->data_location);
-  eprintf("frames_per_second : %f\n", d->fps);
-  eprintf("delay_msec        : %f\n", d->delay_msec);
-  eprintf("delay_frames      : %d\n", d->delay_frames);
-  eprintf("delay_location    : %d\n", d->delay_location);
-  eprintf("mode              : %d\n", d->mode);
-  eprintf("input_gain        : %f\n", d->input_gain);
-  eprintf("zero_crossing     : %s\n", d->zero_crossing ? "true" : "false");
+void
+scope_init(struct scope *s)
+{
+  s->channels = 1;
+  s->window_size = 512;
+  s->data_frames = 512;
+  s->data_samples = 512;
+  s->draw_frames = 0;
+  s->data_location = 0;
+  s->fps = -1.0;
+  s->delay_msec = 100.0;
+  s->delay_frames = -1.0;
+  s->delay_location = 0;
+  s->input_gain = 1.0;
+  s->zero_crossing = true;
+  s->mode = SIGNAL_MODE;
+  s->signal_style = DOT_STYLE;
+  s->embed_n = 6;
+  s->embed_incr = 1.0;
+  s->img_bg_fn = NULL;
+  s->img_bg = NULL;
+  s->image_directory = NULL;
+  s->image_cnt = 0;
+  s->data = NULL;
+  s->share_il = NULL;
+  s->share_ul = NULL;
+  s->src_dst = NULL;
+}
+
+void
+jackscope_print(struct scope *d)
+{
+  eprintf("channels            : %d\n", d->channels);
+  eprintf("window_size         : %d\n", d->window_size);
+  eprintf("data_frames         : %d\n", d->data_frames);
+  eprintf("data_samples        : %d\n", d->data_samples);
+  eprintf("draw_frames         : %d\n", d->draw_frames);
+  eprintf("data_location       : %d\n", d->data_location);
+  eprintf("fps (frames/second) : %f\n", d->fps);
+  eprintf("delay_msec          : %f\n", d->delay_msec);
+  eprintf("delay_frames        : %d\n", d->delay_frames);
+  eprintf("delay_location      : %d\n", d->delay_location);
+  eprintf("input_gain          : %f\n", d->input_gain);
+  eprintf("zero_crossing       : %s\n", d->zero_crossing ? "true" : "false");
+  eprintf("mode                : %d\n", d->mode);
 }
 
 #define OSC_PARSE_MSG(command,types)                            \
   osc_parse_message(command, types, packet, packet_sz, o)
 
-static void embed_draw_grid(u8 * img, i32 img_sz) {
+void
+embed_draw_grid(u8 *img, i32 img_sz)
+{
   u8 half[3] = { 128, 128, 128 };
   u8 feint[3] = { 192, 192, 192 };
   for (i32 i = 0; i < img_sz; i += 3) {
@@ -111,9 +147,9 @@ static void embed_draw_grid(u8 * img, i32 img_sz) {
   }
 }
 
-static void
-embed_draw_data(u8 * img, i32 img_sz,
-                const f32 * signal, i32 n, const u8 * color, i32 embed_n, f32 embed_incr) {
+void
+embed_draw_data(u8 *img, i32 img_sz,
+                const f32 *signal, i32 n, const u8 *color, i32 embed_n, f32 embed_incr) {
   f32 xindex = 0.0;
   f32 yindex = (f32) embed_n;
   if (embed_incr <= 0.0) {
@@ -140,29 +176,9 @@ embed_draw(u8 *img, i32 img_sz, const f32 *s_il, const f32 *s_ul, i32 nf, i32 d,
   }
 }
 
-bool
-embed_control(const u8 * packet, i32 packet_sz, void *ptr)
+void
+signal_draw_grid(u8 * img, i32 img_sz)
 {
-  struct scope *s = (struct scope *)ptr;
-  osc_data_t o[1];
-  if (OSC_PARSE_MSG("/embed", ",i")) {
-    s->embed_n = o[0].i;
-    return true;
-  } else if (OSC_PARSE_MSG("/incr", ",f")) {
-    s->embed_incr = o[0].f;
-    return true;
-  }
-  return false;
-}
-
-#define DOT_STYLE 0
-#define FILL_STYLE 1
-#define LINE_STYLE 2
-
-struct signal {
-};
-
-static void signal_draw_grid(u8 * img, i32 img_sz) {
   for (i32 i = 0; i < img_sz; i += 3) {
     u8 half[3] = { 128, 128, 128 };
     u8 feint[3] = { 192, 192, 192 };
@@ -172,7 +188,7 @@ static void signal_draw_grid(u8 * img, i32 img_sz) {
   }
 }
 
-static void
+void
 signal_draw_data(u8 * image, i32 size, const f32 * signal, i32 n, const u8 * color, i32 style)
 {
   f32 incr = (f32) n / (f32) size;
@@ -203,7 +219,9 @@ signal_draw_data(u8 * image, i32 size, const f32 * signal, i32 n, const u8 * col
   }
 }
 
-static i32 signal_style_parse(const char *style) {
+i32
+signal_style_parse(const char *style)
+{
   i32 e = DOT_STYLE;
   if (strcmp("dot", style) == 0) {
     e = DOT_STYLE;
@@ -233,37 +251,29 @@ signal_draw(u8 *img, i32 img_sz, const f32 *s_il, const f32 *s_ul, i32 nf, i32 d
   }
 }
 
-bool signal_control(const u8 * packet, i32 packet_sz, void *ptr) {
-  struct scope *s = (struct scope *)ptr;
-  osc_data_t o[1];
-  if (OSC_PARSE_MSG("/style", ",s")) {
-    s->signal_style = signal_style_parse(o[0].s);
-    return true;
-  }
-  return false;
-}
-
 void
 hline_init(struct scope *s)
 {
   size_t signal_bytes = s->window_size * s->channels * sizeof(float);
-  s->hline_dst = xmalloc(signal_bytes);
-  if (s->hline_img_fn) {
+  s->src_dst = xmalloc(signal_bytes);
+  if (s->img_bg_fn) {
     i32 png_w,png_h;
-    load_png_rgb8(s->hline_img_fn,&png_w,&png_h,&(s->hline_img));
+    load_png_rgb8(s->img_bg_fn,&png_w,&png_h,&(s->img_bg));
     if(png_w == s->window_size && png_h == s->window_size) {
       return;
     } else {
-      eprintf("hline_img_fn: incorrect size: (%d,%d) NEQ %d\n", png_w, png_h, s->window_size);
-      free(s->hline_img);
+      eprintf("img_bg_fn: incorrect size: (%d,%d) NEQ %d\n", png_w, png_h, s->window_size);
+      free(s->img_bg);
     }
   }
   size_t image_bytes = s->window_size * s->window_size * 3;
-  s->hline_img = xmalloc(image_bytes);
-  xmemset(s->hline_img,255,image_bytes);
+  s->img_bg = xmalloc(image_bytes);
+  xmemset(s->img_bg,255,image_bytes);
 }
 
-bool src_resample_block(float *dst,long dst_n,float *src,long src_n,int nc) {
+bool
+src_resample_block(float *dst,long dst_n,float *src,long src_n,int nc)
+{
   if(dst_n == src_n) {
     xmemcpy(dst,src,(size_t)dst_n * (size_t)nc * sizeof(float));
   } else {
@@ -290,17 +300,19 @@ void rgb_mul(u8 *c,float n)
     c[2] = c[2] * n;
 }
 
-void hline_draw(u8 *img, i32 img_sz, const f32 *s_il, const f32 *s_ul, i32 nf, i32 d, i32 nc, void *ptr) {
+void
+hline_draw(u8 *img, i32 img_sz, const f32 *s_il, const f32 *s_ul, i32 nf, i32 d, i32 nc, void *ptr)
+{
   /* printf("hline_draw\n"); */
   struct scope *s = (struct scope *) ptr;
   int c_width = img_sz / nc;
-  src_resample_block(s->hline_dst,(long)img_sz,(float *)s_il,(long)nf,(int)nc);
+  src_resample_block(s->src_dst,(long)img_sz,(float *)s_il,(long)nf,(int)nc);
   for (i32 c = 0; c < nc; c++) { /* c = channel */
     for (i32 i = 0; i < img_sz; i++) { /* i = row */
       for (i32 j = c * c_width; j < (c + 1) * c_width; j++) { /* j = column */
         u8 color[3];
-        img_get_pixel(s->hline_img, img_sz, 3, j, i, color);
-        float mul = fabsf(s->hline_dst[(i * nc) + c]);
+        img_get_pixel(s->img_bg, img_sz, 3, j, i, color);
+        float mul = fabsf(s->src_dst[(i * nc) + c]);
         rgb_mul(color,mul);
         img_set_pixel(img, img_sz, 3, j, i, color);
       }
@@ -308,12 +320,9 @@ void hline_draw(u8 *img, i32 img_sz, const f32 *s_il, const f32 *s_ul, i32 nf, i
   }
 }
 
-bool hline_control(const u8 * packet, i32 packet_sz, void *ptr) {
-  /*printf("hline_control\n");*/
-  return false;
-}
-
-void set_mode(struct scope *s, const char *mode) {
+void
+set_mode(struct scope *s, const char *mode)
+{
   if (strncmp("signal", mode, 6) == 0) {
     s->mode = SIGNAL_MODE;
   } else if (strncmp("embed", mode, 5) == 0) {
@@ -325,28 +334,32 @@ void set_mode(struct scope *s, const char *mode) {
   }
 }
 
-void *jackscope_osc_thread_procedure(void *ptr) {
+void *
+jackscope_osc_thread_procedure(void *ptr)
+{
   struct scope *s = (struct scope *) ptr;
   while (1) {
     const int packet_extent = 32;
     uint8_t packet[packet_extent];
     int packet_sz = xrecv(s->fd, packet, 32, 0);
     osc_data_t o[1];
-    if (!(signal_control(packet, packet_sz, s) ||
-          embed_control(packet, packet_sz, s) ||
-          hline_control(packet, packet_sz, s))) {
-      if (OSC_PARSE_MSG("/frames", ",i")) {
+    if (OSC_PARSE_MSG("/style", ",s")) {
+        s->signal_style = signal_style_parse(o[0].s);
+    } else if (OSC_PARSE_MSG("/embed", ",i")) {
+        s->embed_n = o[0].i;
+    } else if (OSC_PARSE_MSG("/incr", ",f")) {
+        s->embed_incr = o[0].f;
+    } else if (OSC_PARSE_MSG("/frames", ",i")) {
         s->draw_frames = o[0].i > s->data_frames ? s->data_frames : o[0].i;
-      } else if (OSC_PARSE_MSG("/mode", ",s")) {
+    } else if (OSC_PARSE_MSG("/mode", ",s")) {
         set_mode(s, o[0].s);
-      } else if (OSC_PARSE_MSG("/input-gain", ",f")) {
+    } else if (OSC_PARSE_MSG("/input-gain", ",f")) {
         s->input_gain = o[0].f;
-      } else if (OSC_PARSE_MSG("/delay", ",f")) {
+    } else if (OSC_PARSE_MSG("/delay", ",f")) {
         s->delay_msec = o[0].f;
         s->delay_frames = floorf((s->delay_msec / 1000.0) * s->fps);
-      } else {
+    } else {
         eprintf("jack-scope: dropped packet: %8s\n", packet);
-      }
     }
   }
   return NULL;
@@ -372,7 +385,9 @@ draw_fn_select(i32 mode)
   }
 }
 
-void *jackscope_draw_thread_procedure(void *ptr) {
+void *
+jackscope_draw_thread_procedure(void *ptr)
+{
   struct scope *s = (struct scope *) ptr;
   Ximg_t *x = ximg_open(s->window_size, s->window_size, "jack-scope");
   i32 img_bytes = s->window_size * s->window_size * 3;
@@ -404,7 +419,9 @@ void *jackscope_draw_thread_procedure(void *ptr) {
    be displayed copy the accumulator into `d->share_il' and poke the
    drawing routine. */
 
-int jackscope_process(jack_nframes_t nframes, void *ptr) {
+int
+jackscope_process(jack_nframes_t nframes, void *ptr)
+{
   struct scope *d = (struct scope *) ptr;
   float *in[MAX_CHANNELS];
   for (i32 i = 0; i < d->channels; i++) {
@@ -434,7 +451,9 @@ int jackscope_process(jack_nframes_t nframes, void *ptr) {
   return 0;
 }
 
-void jackscope_usage(void) {
+void
+jackscope_usage(void)
+{
   eprintf("Usage: jack-scope [options] sound-file\n");
   eprintf(" -b INT  : Scope size in frames (default=512)\n");
   eprintf(" -d REAL : Delay time in ms between scope updates (default=100)\n");
@@ -458,29 +477,12 @@ void jackscope_usage(void) {
         FAILURE; \
       }
 
-int main(int argc, char **argv) {
+int
+main(int argc, char **argv)
+{
   observe_signals();
   struct scope d;
-  d.window_size = 512;
-  d.data_frames = 512;
-  d.data_samples = 0;
-  d.data_location = 0;
-  d.draw_frames = 0;
-  d.delay_msec = 100.0;
-  d.fps = 0.0;			/* JACK sample-rate (ie. not VIDEO frame rate) */
-  d.delay_location = 0;
-  d.channels = 1;
-  d.mode = SIGNAL_MODE;
-  d.input_gain = 1.0;
-  d.image_directory = NULL;
-  d.image_cnt = 0;
-  d.zero_crossing = true;
-  d.signal_style = DOT_STYLE;
-  d.embed_n = 6;
-  d.embed_incr = 1.0;
-  d.hline_img_fn = NULL;
-  d.hline_dst = NULL;
-  d.hline_img = NULL;
+  scope_init(&d);
   int port_n = 57140;
   int o;
   char *p = NULL;
@@ -505,7 +507,7 @@ int main(int argc, char **argv) {
       jackscope_usage();
       break;
     case 'i':
-      d.hline_img_fn = strdup(optarg);
+      d.img_bg_fn = strdup(optarg);
       break;
     case 'm':
       set_mode(&d, optarg);
