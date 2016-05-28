@@ -32,9 +32,6 @@
 #include "c-common/signal-interpolate.h"
 #include "c-common/ximg.h"
 
-/* img = image ; img_sz = image size (pixels) ; s_il = signal data ; s_ul = uninterleaved s ; nf = signal frame count ; d = drawing frame count ; nc = channel count ; ptr = drawing data */
-typedef void (*draw_fn_t) (u8 *img, i32 img_sz, const f32 *s_il, const f32 *s_ul, i32 nf, i32 d, i32 nc, void *ptr);
-
 #define SIGNAL_MODE 0
 #define EMBED_MODE 1
 #define HLINE_MODE 2
@@ -44,13 +41,14 @@ typedef void (*draw_fn_t) (u8 *img, i32 img_sz, const f32 *s_il, const f32 *s_ul
 #define FILL_STYLE 1
 #define LINE_STYLE 2
 
-#define MAX_CHANNELS 8
+#define MAX_CHANNELS 4
 #define MAX_WINDOW_SIZE 4096
 
 struct scope
 {
   i32 channels;                 /* INIT, <= MAX_CHANNELS */
-  i32 window_size;              /* width & height (square), INIT, <= MAX_WINDOW_SIZE */
+  i32 img_w;                    /* image width, INIT, <= MAX_WINDOW_SIZE */
+  i32 img_h;                    /* image height, INIT, <= MAX_WINDOW_SIZE */
   i32 data_frames;              /* number of frames per block, INIT */
   i32 data_samples;             /* data_frames * channels */
   i32 draw_frames;              /* VARIABLE, <= data_frames */
@@ -84,7 +82,8 @@ void
 scope_init(struct scope *s)
 {
   s->channels = 1;
-  s->window_size = 512;
+  s->img_w = 512;
+  s->img_h = 512;
   s->data_frames = 512;
   s->data_samples = 512;
   s->draw_frames = 0;
@@ -113,7 +112,8 @@ void
 jackscope_print(struct scope *d)
 {
   eprintf("channels            : %d\n", d->channels);
-  eprintf("window_size         : %d\n", d->window_size);
+  eprintf("img_w               : %d\n", d->img_w);
+  eprintf("img_h               : %d\n", d->img_h);
   eprintf("data_frames         : %d\n", d->data_frames);
   eprintf("data_samples        : %d\n", d->data_samples);
   eprintf("draw_frames         : %d\n", d->draw_frames);
@@ -131,89 +131,97 @@ jackscope_print(struct scope *d)
   osc_parse_message(command, types, packet, packet_sz, o)
 
 void
-embed_draw_grid(u8 *img, i32 img_sz)
+embed_draw_grid(u8 *img, i32 w, i32 h)
 {
   u8 half[3] = { 128, 128, 128 };
   u8 feint[3] = { 192, 192, 192 };
-  for (i32 i = 0; i < img_sz; i += 3) {
-    img_set_pixel(img, img_sz, 3, i, img_sz / 2, half);
-    img_set_pixel(img, img_sz, 3, i, img_sz / 6, feint);
-    img_set_pixel(img, img_sz, 3, i, img_sz - (img_sz / 6), feint);
+  for (i32 i = 0; i < w; i += 3) {
+    img_set_pixel(img, w, 3, i, h / 2, half);
+    img_set_pixel(img, w, 3, i, h / 6, feint);
+    img_set_pixel(img, w, 3, i, h - (h / 6), feint);
   }
-  for (i32 i = 0; i < img_sz; i += 3) {
-    img_set_pixel(img, img_sz, 3, img_sz / 2, i, half);
-    img_set_pixel(img, img_sz, 3, img_sz / 6, i, feint);
-    img_set_pixel(img, img_sz, 3, img_sz - (img_sz / 6), i, feint);
+  for (i32 i = 0; i < h; i += 3) {
+    img_set_pixel(img, w, 3, w / 2, i, half);
+    img_set_pixel(img, w, 3, w / 6, i, feint);
+    img_set_pixel(img, w, 3, w - (w / 6), i, feint);
   }
 }
 
 void
-embed_draw_data(u8 *img, i32 img_sz,
-                const f32 *signal, i32 n, const u8 *color, i32 embed_n, f32 embed_incr) {
+embed_draw_data(u8 *img,const f32 *data,const u8 *color,struct scope *s)
+{
+  i32 n = s->draw_frames;
   f32 xindex = 0.0;
-  f32 yindex = (f32) embed_n;
-  if (embed_incr <= 0.0) {
-    embed_incr = 1.0;
+  f32 yindex = (f32) s->embed_n;
+  if (s->embed_incr <= 0.0) {
+    s->embed_incr = 1.0;
   }
   while (yindex < n) {
-    f32 xi = signal_interpolate_safe(signal, n, xindex);
-    i32 x = signal_x_to_screen_x(xi, img_sz);
-    f32 yi = signal_interpolate_safe(signal, n, yindex);
-    i32 y = signal_y_to_screen_y(yi, img_sz);
-    xindex += embed_incr;
-    yindex += embed_incr;
-    img_set_pixel(img, img_sz, 3, x, y, color);
+    f32 xi = signal_interpolate_safe(data, n, xindex);
+    i32 x = signal_x_to_screen_x(xi, s->img_w);
+    f32 yi = signal_interpolate_safe(data, n, yindex);
+    i32 y = signal_y_to_screen_y(yi, s->img_h);
+    xindex += s->embed_incr;
+    yindex += s->embed_incr;
+    img_set_pixel(img, s->img_w, 3, x, y, color);
   }
 }
 
-void
-embed_draw(u8 *img, i32 img_sz, const f32 *s_il, const f32 *s_ul, i32 nf, i32 d, i32 nc, void *ptr) {
-  struct scope *s = (struct scope *) ptr;
-  embed_draw_grid(img, img_sz);
-  for (i32 i = 0; i < nc; i++) {
-    u8 color[12] = { 128, 32, 32, 32, 32, 128, 128, 224, 224, 224, 224, 128 };
-    embed_draw_data(img, img_sz, s_ul + (i * nf), d, color + (i * 3), s->embed_n, s->embed_incr);
-  }
-}
+u8 c4_colors[12] = { 128, 32, 32,
+		     32, 32, 128,
+		     128, 224, 224,
+		     224, 224, 128 };
 
 void
-signal_draw_grid(u8 * img, i32 img_sz)
+embed_draw(u8 *img, struct scope *s)
 {
-  for (i32 i = 0; i < img_sz; i += 3) {
+  embed_draw_grid(img, s->img_w, s->img_h);
+  for (i32 i = 0; i < s->channels; i++) {
+    u8 *color = c4_colors + ((i % 4) * 3);
+    embed_draw_data(img, s->share_ul + (i * s->data_frames), color, s);
+  }
+}
+
+void
+signal_draw_grid(u8 * img, i32 w, i32 h)
+{
+  for (i32 i = 0; i < h; i += 3) {
     u8 half[3] = { 128, 128, 128 };
     u8 feint[3] = { 192, 192, 192 };
-    img_set_pixel(img, img_sz, 3, i, img_sz / 2, half);
-    img_set_pixel(img, img_sz, 3, i, img_sz / 6, feint);
-    img_set_pixel(img, img_sz, 3, i, img_sz - (img_sz / 6), feint);
+    img_set_pixel(img, w, 3, i, h / 2, half);
+    img_set_pixel(img, w, 3, i, h / 6, feint);
+    img_set_pixel(img, w, 3, i, h - (h / 6), feint);
   }
 }
 
 void
-signal_draw_data(u8 * image, i32 size, const f32 * signal, i32 n, const u8 * color, i32 style)
+signal_draw_data(u8 *img, const f32 *data, i32 n, const u8 *color, struct scope *s)
 {
-  f32 incr = (f32) n / (f32) size;
+  i32 w = s->img_w;
+  i32 h = s->img_h;
+  f32 incr = (f32) n / (f32) w;
   f32 index = 0.0;
-  for (i32 i = 0; i < size; i++) {
-    f32 s = signal_interpolate_safe(signal, n, index);
-    i32 y = signal_y_to_screen_y(s, size);
+  for (i32 i = 0; i < w; i++) {
+    f32 x = signal_interpolate_safe(data, n, index);
+    i32 y = signal_y_to_screen_y(x, h);
     index += incr;
-    img_set_pixel(image, size, 3, i, y, color);
-    if (style == DOT_STYLE) {
-      img_set_pixel(image, size, 3, i, y, color);
-    } else if (style == FILL_STYLE) {
-      i32 m = size / 2;
+    img_set_pixel(img, w, 3, i, y, color);
+    if (s->signal_style == DOT_STYLE) {
+      img_set_pixel(img, w, 3, i, y, color);
+    } else if (s->signal_style == FILL_STYLE) {
+      i32 m = h / 2;
       i32 l = y > m ? m : y;
       i32 r = y > m ? y : m;
       for (i32 j = l; j < r; j++) {
-        img_set_pixel(image, size, 3, i, j, color);
+        img_set_pixel(img, w, 3, i, j, color);
       }
-    } else if (style == LINE_STYLE) {
-      f32 ss = signal_interpolate_safe(signal, n, index);
-      i32 yy = signal_y_to_screen_y(ss, size);
+    } else if (s->signal_style == LINE_STYLE) {
+      f32 xx = signal_interpolate_safe(data, n, index);
+      i32 yy = signal_y_to_screen_y(xx, h);
       i32 l = yy > y ? y : yy;
       i32 r = yy > y ? yy : y;
       for (i32 j = l; j < r; j++) {
-        img_set_pixel(image, size, 3, i, j, color);
+        img_set_pixel(img, w, 3, i, j, color);
       }
     }
   }
@@ -236,37 +244,31 @@ signal_style_parse(const char *style)
 }
 
 void
-signal_draw(u8 *img, i32 img_sz, const f32 *s_il, const f32 *s_ul, i32 nf, i32 d, i32 nc, void *ptr)
+signal_draw(u8 *img, struct scope *s)
 {
-  struct scope *s = (struct scope *)ptr;
-  signal_draw_grid(img, img_sz);
-  for (i32 i = 0; i < nc; i++) {
-    u8 color[12] = {
-      128,  32,  32,
-       32,  32, 128,
-      128, 224, 224,
-      224, 224, 128
-    };
-    signal_draw_data(img, img_sz, s_ul + (i * nf), d, color + (i * 3), s->signal_style);
+  signal_draw_grid(img, s->img_w, s->img_h);
+  for (i32 i = 0; i < s->channels; i++) {
+    u8 *color = c4_colors + ((i % 4) * 3);
+    signal_draw_data(img, s->share_ul + (i * s->data_frames), s->draw_frames, color, s);
   }
 }
 
 void
 hline_init(struct scope *s)
 {
-  size_t signal_bytes = s->window_size * s->channels * sizeof(float);
+  size_t signal_bytes = s->img_w * s->channels * sizeof(float);
   s->src_dst = xmalloc(signal_bytes);
   if (s->img_bg_fn) {
     i32 png_w,png_h;
     load_png_rgb8(s->img_bg_fn,&png_w,&png_h,&(s->img_bg));
-    if(png_w == s->window_size && png_h == s->window_size) {
+    if(png_w == s->img_w && png_h == s->img_h) {
       return;
     } else {
-      eprintf("img_bg_fn: incorrect size: (%d,%d) NEQ %d\n", png_w, png_h, s->window_size);
+      eprintf("img_bg_fn: incorrect size: (%d,%d)/(%d,%d)\n", png_w, png_h, s->img_w, s->img_h);
       free(s->img_bg);
     }
   }
-  size_t image_bytes = s->window_size * s->window_size * 3;
+  size_t image_bytes = s->img_w * s->img_h * 3;
   s->img_bg = xmalloc(image_bytes);
   xmemset(s->img_bg,255,image_bytes);
 }
@@ -301,20 +303,20 @@ void rgb_mul(u8 *c,float n)
 }
 
 void
-hline_draw(u8 *img, i32 img_sz, const f32 *s_il, const f32 *s_ul, i32 nf, i32 d, i32 nc, void *ptr)
+hline_draw(u8 *img, struct scope *s)
 {
-  /* printf("hline_draw\n"); */
-  struct scope *s = (struct scope *) ptr;
-  int c_width = img_sz / nc;
-  src_resample_block(s->src_dst,(long)img_sz,(float *)s_il,(long)nf,(int)nc);
-  for (i32 c = 0; c < nc; c++) { /* c = channel */
-    for (i32 i = 0; i < img_sz; i++) { /* i = row */
+  int c_width = s->img_w / s->channels;
+  src_resample_block(s->src_dst,(long)s->img_h,
+		     (float *)s->share_il,(long)s->data_frames,
+		     (int)s->channels);
+  for (i32 c = 0; c < s->channels; c++) { /* c = channel */
+    for (i32 i = 0; i < s->img_h; i++) { /* i = row */
       for (i32 j = c * c_width; j < (c + 1) * c_width; j++) { /* j = column */
         u8 color[3];
-        img_get_pixel(s->img_bg, img_sz, 3, j, i, color);
-        float mul = fabsf(s->src_dst[(i * nc) + c]);
+        img_get_pixel(s->img_bg, s->img_w, 3, j, i, color);
+        float mul = fabsf(s->src_dst[(i * s->channels) + c]);
         rgb_mul(color,mul);
-        img_set_pixel(img, img_sz, 3, j, i, color);
+        img_set_pixel(img, s->img_w, 3, j, i, color);
       }
     }
   }
@@ -370,6 +372,8 @@ jackscope_osc_thread_procedure(void *ptr)
    invoked.  The draw procedure must accept any combination of window
    size and frame count, and any number of channels.  */
 
+typedef void (*draw_fn_t) (u8 *img, struct scope *s);
+
 draw_fn_t
 draw_fn_select(i32 mode)
 {
@@ -389,24 +393,21 @@ void *
 jackscope_draw_thread_procedure(void *ptr)
 {
   struct scope *s = (struct scope *) ptr;
-  Ximg_t *x = ximg_open(s->window_size, s->window_size, "jack-scope");
-  i32 img_bytes = s->window_size * s->window_size * 3;
-  u8 *img = xmalloc(img_bytes);
+  Ximg_t *x = ximg_open(s->img_w, s->img_h, "jack-scope");
+  u8 *img = img_alloc(s->img_w, s->img_h, 3);
   while (!observe_end_of_process()) {
     char b;
     xread(s->pipe[0], &b, 1);
     signal_clip(s->share_il, s->data_frames * s->channels, -1.0, 1.0);
     signal_uninterleave(s->share_ul, s->share_il, s->data_frames, s->channels);
-    xmemset(img, 255, img_bytes);
+    img_memset(img, s->img_w, s->img_h, 3, 255);
     draw_fn_t draw_fn = draw_fn_select(s->mode);
-    draw_fn(img, s->window_size,
-            s->share_il, s->share_ul, s->data_frames,
-            s->draw_frames, s->channels, s);
+    draw_fn(img, s);
     ximg_blit(x, img);
     if (s->image_directory) {
       char name[256];
       snprintf(name, 256, "%s/jack-scope.%06d.ppm", s->image_directory, s->image_cnt);
-      img_write_ppm_file(img, s->window_size, s->window_size, name);
+      img_write_ppm_file(img, s->img_w, s->img_h, name);
     }
     s->image_cnt++;
   }
@@ -466,7 +467,7 @@ jackscope_usage(void)
   eprintf(" -p STR  : Jack port pattern to connect to (default=nil)\n");
   eprintf(" -s STR  : Drawing style for signal mode (default=dot)\n");
   eprintf(" -u INT  : UDP port number for OSC packets (default=57140)\n");
-  eprintf(" -w INT  : Scope size in pixels (default=512)\n");
+  eprintf(" -w INT  : Scope width in pixels (default=512)\n");
   eprintf(" -z      : Do not align to zero-crossing\n");
   FAILURE;
 }
@@ -486,7 +487,7 @@ main(int argc, char **argv)
   int port_n = 57140;
   int o;
   char *p = NULL;
-  while ((o = getopt(argc, argv, "b:d:e:f:g:hi:m:n:p:s:u:w:z")) != -1) {
+  while ((o = getopt(argc, argv, "b:d:e:f:g:h:i:m:n:p:s:u:w:z")) != -1) {
     switch (o) {
     case 'b':
       d.data_frames = strtol(optarg, NULL, 0);
@@ -504,7 +505,8 @@ main(int argc, char **argv)
       d.input_gain = strtod(optarg, NULL);
       break;
     case 'h':
-      jackscope_usage();
+      d.img_h = (i32)strtol(optarg, NULL, 0);
+      opt_limit("img_h",MAX_WINDOW_SIZE,d.img_h);
       break;
     case 'i':
       d.img_bg_fn = strdup(optarg);
@@ -527,8 +529,8 @@ main(int argc, char **argv)
       port_n = strtol(optarg, NULL, 0);
       break;
     case 'w':
-      d.window_size = (i32)strtol(optarg, NULL, 0);
-      opt_limit("window_size",MAX_WINDOW_SIZE,d.window_size);
+      d.img_w = (i32)strtol(optarg, NULL, 0);
+      opt_limit("img_w",MAX_WINDOW_SIZE,d.img_w);
       break;
     case 'z':
       d.zero_crossing = false;

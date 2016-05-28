@@ -25,9 +25,12 @@ OPTIONS
 :   Request that a still image file of each frame be stored to the
     indicated directory.
 
+*-h*
+:   Set the scope height in pixels (default=512).
+
 *-m*
 :   Set the scope operating mode (default=signal).  The operating
-    modes are: signal and embed.
+    modes are: signal, embed, hline.
 
 *-n*
 :   Set the number of channels, and therefore the number of JACK input
@@ -47,8 +50,7 @@ OPTIONS
 :   Set the UDP port number to listen for OSC packets on (default=57140).
 
 *-w*
-:   Set the scope size in pixels (default=512).  The scope window is
-    square.
+:   Set the scope width in pixels (default=512).
 
 DESCRIPTION
 -----------
@@ -63,13 +65,13 @@ jack-scope draws a time domain signal trace, in embed mode jack-scope
 draws a self correlation trace, in hline mode an _optical sound_ picture
 is made.
 
-The size of the jack-scope window is set using *-w*, the scope window
-is square.  The window is of fixed size and has centered gravity.  The
-time interval that is displayed is determined by the frame size, set
-using *-b*.  The image refresh rate is determined by the delay
-interval, set using *-d*.  Note that the interval is truncated to the
-nearest frame boundary and that the time taken to compose the image
-and blit to the screen is indeterminate.
+The size of the jack-scope window is set using *-h* and *-w*.  The
+window is of fixed size and has centered gravity.  The time interval
+that is displayed is determined by the frame size, set using *-b*.
+The image refresh rate is determined by the delay interval, set using
+*-d*.  Note that the interval is truncated to the nearest frame
+boundary and that the time taken to compose the image and blit to the
+screen is indeterminate.
 
 The number of JACK input ports that jack-scope creates and monitors is
 set using *-n*.  Multiple channels are drawn in superimposition, each
@@ -93,8 +95,8 @@ image delay is 50 then each frame is a consecutive drawing of 1/20 of
 a second of the input signal.  A block size of 1920 and window size of
 640 and delay of 40 gives consecutive drawings at 1/25 of a second.
 
-    jack-scope -m hline -n 1 -b 2400 -w 800 -d 50 -p jack-play:out_%d
-    jack-scope -m hline -n 2 -b 1920 -w 640 -d 40 -p jack-play:out_%d
+    jack-scope -m hline -n 1 -b 2400 -h 800 -w 1280 -d 50 -p jack-play:out_%d
+    jack-scope -m hline -n 2 -b 1920 -h 640 -w 640 -d 40 -p jack-play:out_%d
 
 jack-scope can store the animation as a sequence of uncompressed
 ppm(5) image files.  To request this use the *-f* option with the
