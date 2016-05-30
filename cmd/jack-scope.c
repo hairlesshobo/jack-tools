@@ -10,9 +10,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include <samplerate.h> /* libsamplerate */
-
-#include "c-common/byte-order.h"
 #include "c-common/failure.h"
 #include "c-common/file.h"
 #include "c-common/img.h"
@@ -26,6 +23,7 @@
 #include "c-common/observe-signal.h"
 #include "c-common/osc.h"
 #include "c-common/print.h"
+#include "c-common/resample-src.h"
 #include "c-common/signal-copy.h"
 #include "c-common/signal-clip.h"
 #include "c-common/signal-interleave.h"
@@ -274,28 +272,6 @@ hline_init(struct scope *s)
   size_t image_bytes = s->img_w * s->img_h * 3;
   s->img_bg = xmalloc(image_bytes);
   xmemset(s->img_bg,255,image_bytes);
-}
-
-bool
-src_resample_block(float *dst,long dst_n,float *src,long src_n,int nc)
-{
-  if(dst_n == src_n) {
-    xmemcpy(dst,src,(size_t)dst_n * (size_t)nc * sizeof(float));
-  } else {
-    SRC_DATA c;
-    c.data_in = src;
-    c.input_frames = src_n;
-    c.data_out = dst;
-    c.output_frames = dst_n;
-    c.src_ratio = (double)(dst_n + 1) / (double)src_n;
-    int err = src_simple (&c, SRC_SINC_MEDIUM_QUALITY, nc);
-    if(err != 0 || c.output_frames_gen != dst_n) {
-      printf("src_resample_block: err=%d, output_frames_gen=%ld, dst_n = %ld\n",
-             err,c.output_frames_gen,dst_n);
-      return false;
-    }
-  }
-  return true;
 }
 
 void rgb_mul(u8 *c,f32 n)

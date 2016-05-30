@@ -1,3 +1,4 @@
+^cmd/jack-data$
 ^cmd/jack-dl$
 ^cmd/jack-lxvst$
 ^cmd/jack-osc$
