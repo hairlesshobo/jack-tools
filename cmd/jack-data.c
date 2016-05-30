@@ -26,9 +26,9 @@ struct jackdata
 {
   i32 nc;            /* number of channels */
   i32 read_sz;       /* read block size (frames) */
-  i32 read_k;        /* number of frames read */
   i32 write_sz;      /* write block size (frames) */
   enum numeric_type write_ty;
+  i32 data_ix;       /* data write index */
   float *data;       /* jack thread (read_sz) */
   float *src;        /* osc thread (read_sz) */
   float *dst;        /* osc thread (write_sz) */
@@ -102,11 +102,11 @@ int jackdata_process(jack_nframes_t nframes, void *ptr)
   }
   for (i32 i = 0; i < nframes; i++) {
     for (i32 j = 0; j < d->nc; j++) {
-      d->data[(d->read_k * d->nc) + j] = (float) in[j][i];
+      d->data[(d->data_ix * d->nc) + j] = (float) in[j][i];
     }
-    d->read_k++;
-    if (d->read_k == d->read_sz) {
-        d->read_k = 0;
+    d->data_ix++;
+    if (d->data_ix == d->read_sz) {
+        d->data_ix = 0;
         xmemcpy(d->src, d->data, d->read_sz * d->nc * sizeof(float));
         char b = 1;
         xwrite(d->pipe[1], &b, 1);
@@ -135,7 +135,7 @@ main(int argc, char **argv)
   d.write_sz = strtod(argv[3], NULL);
   d.write_ty = numeric_type_parse(argv[4]);
   d.udp_port = strtod(argv[5], NULL);
-  d.read_k = 0;
+  d.data_ix = 0;
   size_t read_bytes = (size_t)d.read_sz * d.nc * sizeof(float);
   size_t write_bytes = (size_t)d.write_sz * d.nc * numeric_type_sz(d.write_ty);
   d.data = xmalloc(read_bytes);

@@ -51,11 +51,11 @@ struct scope
   i32 data_frames;              /* number of frames per block, INIT */
   i32 data_samples;             /* data_frames * channels */
   i32 draw_frames;              /* VARIABLE, <= data_frames */
-  i32 data_location;            /* write index to data */
+  i32 data_location;            /* write index to data, interleaved sample count */
   float fps;                    /* JACK sample-rate (ie. not VIDEO frame rate) */
   float delay_msec;             /* VIDEO frame delay (ms) */
   i32 delay_frames;             /* delay_msec * fps */
-  i32 delay_location;           /* read index for embed delay (data_location - embed_n) */
+  i32 delay_location;           /* delay_frames counter */
   float input_gain;             /* input signal multiplier */
   bool zero_crossing;           /* sync display to zero crossing (oddly rhs) */
   i32 mode;                     /* drawing mode */
@@ -432,27 +432,24 @@ jackscope_process(jack_nframes_t nframes, void *ptr)
   for (i32 i = 0; i < d->channels; i++) {
     in[i] = (float *) jack_port_get_buffer(d->port[i], nframes);
   }
-  i32 k = d->data_location;
-  i32 l = d->delay_location;
   for (i32 i = 0; i < nframes; i++) {
     for (i32 j = 0; j < d->channels; j++) {
-      d->data[k++] = (float) in[j][i] * d->input_gain;
-      if (k >= d->data_samples) {
-        k = 0;
+      d->data[d->data_location++] = (float) in[j][i] * d->input_gain;
+      if (d->data_location >= d->data_samples) {
+        d->data_location = 0;
       }
     }
-    l++;
-    if (l >= d->delay_frames && (!d->zero_crossing ||
-                                 (i > 0 && in[0][i] > 0.0 && in[0][i - 1] <= 0.0) ||
-                                 l >= d->delay_frames * 2)) {
-      signal_copy_circular(d->share_il, d->data, d->data_samples, k);
-      l = 0;
+    d->delay_location++;
+    if (d->delay_location >= d->delay_frames &&
+	(!d->zero_crossing ||
+	 (i > 0 && in[0][i] > 0.0 && in[0][i - 1] <= 0.0) ||
+	 d->delay_location >= d->delay_frames * 2)) {
+      signal_copy_circular(d->share_il, d->data, d->data_samples, d->data_location);
+      d->delay_location = 0;
       char b = 1;
       xwrite(d->pipe[1], &b, 1);
     }
   }
-  d->data_location = k;
-  d->delay_location = l;
   return 0;
 }
 
