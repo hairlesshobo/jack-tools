@@ -10,6 +10,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "c-common/colour.h"
 #include "c-common/failure.h"
 #include "c-common/file.h"
 #include "c-common/img.h"
@@ -40,6 +41,9 @@
 #define FILL_STYLE 1
 #define LINE_STYLE 2
 
+#define IMG_GREY 0
+#define IMG_EGA_64 1
+
 #define MAX_CHANNELS 4
 #define MAX_WINDOW_SIZE 4096
 
@@ -64,6 +68,7 @@ struct scope
   f32 embed_incr;               /* interpolation increment (embed mode) */
   char *img_bg_fn;              /* image ground file name | NULL */
   u8 *img_bg;                   /* the image that is masked, plain white by default */
+  u8 img_colour_mode;		/* GREY | EGA_64 */
   char *image_directory;        /* OUTPUT image directory | NULL */
   i32 image_cnt;                /* OUTPUT image frame counter (for file name) */
   float *data;                  /* data_samples store */
@@ -100,6 +105,7 @@ scope_init(struct scope *s)
   s->embed_incr = 1.0;
   s->img_bg_fn = NULL;
   s->img_bg = NULL;
+  s->img_colour_mode = IMG_GREY;
   s->image_directory = NULL;
   s->image_cnt = 0;
   s->data = NULL;
@@ -228,8 +234,20 @@ signal_draw_data(u8 *img, const f32 *data, i32 n, const u8 *color, struct scope 
   }
 }
 
-i32
-signal_style_parse(const char *style)
+i32 img_colour_mode_parse(const char *s)
+{
+  i32 e = IMG_GREY;
+  if (strcmp("ega64", s) == 0) {
+    e = IMG_EGA_64;
+  } else if (strcmp("grey", s) == 0) {
+    e = IMG_GREY;
+  } else {
+    eprintf("img_colour_mode_parse: %s\n", s);
+  }
+  return e;
+}
+
+i32 signal_style_parse(const char *style)
 {
   i32 e = DOT_STYLE;
   if (strcmp("dot", style) == 0) {
@@ -274,13 +292,6 @@ hline_init(struct scope *s)
   xmemset(s->img_bg,255,image_bytes);
 }
 
-void rgb_mul(u8 *c,f32 n)
-{
-    c[0] = c[0] * n;
-    c[1] = c[1] * n;
-    c[2] = c[2] * n;
-}
-
 void
 hline_draw(u8 *img, struct scope *s)
 {
@@ -292,9 +303,16 @@ hline_draw(u8 *img, struct scope *s)
     for (i32 i = 0; i < s->img_h; i++) { /* i = row */
       for (i32 j = c * c_width; j < (c + 1) * c_width; j++) { /* j = column */
         u8 color[3];
-        img_get_pixel(s->img_bg, s->img_w, 3, j, i, color);
         float mul = fabsf(s->hline_src_dst[(i * s->channels) + c]);
-        rgb_mul(color,mul);
+	switch (s->img_colour_mode) {
+	case IMG_GREY:
+	  img_get_pixel(s->img_bg, s->img_w, 3, j, i, color);
+	  rgb_mul(color,mul);
+	  break;
+	case IMG_EGA_64:
+  	  ega_rgb_lookup_f32(mul,color);
+	  break;
+	}
         img_set_pixel(img, s->img_w, 3, j, i, color);
       }
     }
@@ -312,13 +330,21 @@ void
 hscan_draw(u8 *img, struct scope *s)
 {
   i32 n = s->img_h * s->img_w;
-  u8 *p = img;
   src_resample_block(s->hscan_src_dst,(long)n,(float *)s->share_il,(long)s->data_frames,(int)s->channels);
-  for (i32 i = 0; i < n; i++) {
-    u8 g = 255 * fabsf(s->hscan_src_dst[i]);
-    u8 color[3] = {g,g,g};
-    xmemcpy(p, color, 3);
-    p += 3;
+  for (i32 i = 0, j = 0; i < n; i++) {
+    f32 mul = fabsf(s->hscan_src_dst[i]);
+    u8 color[3];
+    switch (s->img_colour_mode) {
+    case IMG_GREY:
+      xmemcpy(color, s->img_bg + j, 3);
+      rgb_mul(color, mul);
+      break;
+    case IMG_EGA_64:
+      ega_rgb_lookup_f32(mul, color);
+      break;
+    }
+    xmemcpy(img + j, color, 3);
+    j += 3;
   }
 }
 
@@ -347,7 +373,9 @@ jackscope_osc_thread_procedure(void *ptr)
     uint8_t packet[packet_extent];
     int packet_sz = xrecv(s->fd, packet, 32, 0);
     osc_data_t o[1];
-    if (OSC_PARSE_MSG("/style", ",s")) {
+    if (OSC_PARSE_MSG("/colour-mode", ",s")) {
+        s->img_colour_mode = img_colour_mode_parse(o[0].s);
+    } else if (OSC_PARSE_MSG("/style", ",s")) {
         s->signal_style = signal_style_parse(o[0].s);
     } else if (OSC_PARSE_MSG("/embed", ",i")) {
         s->embed_n = o[0].i;
@@ -362,6 +390,8 @@ jackscope_osc_thread_procedure(void *ptr)
     } else if (OSC_PARSE_MSG("/delay", ",f")) {
         s->delay_msec = o[0].f;
         s->delay_frames = floorf((s->delay_msec / 1000.0) * s->fps);
+    } else if (OSC_PARSE_MSG("/print", ",i")) {
+	if(o[0].i > 0) jackscope_print(s);
     } else {
         eprintf("jack-scope: dropped packet: %8s\n", packet);
     }
@@ -458,6 +488,7 @@ jackscope_usage(void)
 {
   eprintf("Usage: jack-scope [options] sound-file\n");
   eprintf(" -b INT  : Scope size in frames (default=512)\n");
+  eprintf(" -c STR  : Colour mode, grey|ega64 (default=grey)\n");
   eprintf(" -d REAL : Delay time in ms between scope updates (default=100)\n");
   eprintf(" -e INT  : Embedding delay in frames (default=6)\n");
   eprintf(" -f STR  : Request images be stored at location (default=NULL)\n");
@@ -488,10 +519,13 @@ main(int argc, char **argv)
   int port_n = 57140;
   int o;
   char *p = NULL;
-  while ((o = getopt(argc, argv, "b:d:e:f:g:h:i:m:n:p:s:u:w:z")) != -1) {
+  while ((o = getopt(argc, argv, "b:c:d:e:f:g:h:i:m:n:p:s:u:w:z")) != -1) {
     switch (o) {
     case 'b':
       d.data_frames = strtol(optarg, NULL, 0);
+      break;
+    case 'c':
+      d.img_colour_mode = img_colour_mode_parse(optarg);
       break;
     case 'd':
       d.delay_msec = strtod(optarg, NULL);

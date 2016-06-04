@@ -8,7 +8,8 @@
     (send fd (list cmd arg))))
 
 (set-scope "/frames" (* 512 2))
-(set-scope "/delay" (/ 1000.0 24.0))
+(set-scope "/delay" (/ 1000.0 25.0))
+(set-scope "/delay" 100)
 
 (set-scope "/mode" "signal")
 (set-scope "/style" "fill")
@@ -19,6 +20,17 @@
 (set-scope "/incr" 0.1)
 (set-scope "/embed" 64)
 
+(set-scope "/mode" "hline")
+(set-scope "/colour-mode" "grey")
+(set-scope "/colour-mode" "ega64")
+(set-scope "/frames" 480)
+(set-scope "/frames" (* 480 12))
+
+(set-scope "/mode" "hscan")
+
+(set-scope "/input-gain" 0.5)
 (set-scope "/input-gain" 2.0)
+
+(set-scope "/print" 1)
 
 (udp:close fd)
