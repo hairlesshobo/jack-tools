@@ -44,7 +44,7 @@
 #define IMG_GREY 0
 #define IMG_EGA_64 1
 
-#define MAX_CHANNELS 4
+#define MAX_CHANNELS 8
 #define MAX_WINDOW_SIZE 4096
 
 struct scope
@@ -68,14 +68,14 @@ struct scope
   f32 embed_incr;               /* interpolation increment (embed mode) */
   char *img_bg_fn;              /* image ground file name | NULL */
   u8 *img_bg;                   /* the image that is masked, plain white by default */
-  u8 img_colour_mode;		/* GREY | EGA_64 */
+  u8 img_colour_mode;           /* GREY | EGA_64 */
   char *image_directory;        /* OUTPUT image directory | NULL */
   i32 image_cnt;                /* OUTPUT image frame counter (for file name) */
   float *data;                  /* data_samples store */
   float *share_il;              /* data, draw thread copy */
   float *share_ul;              /* de-interleaved share */
-  float *hline_src_dst;	        /* resampled audio data (if required) */
-  float *hscan_src_dst;	        /* resampled audio data (if required) */
+  float *hline_src_dst;         /* resampled audio data (if required) */
+  float *hscan_src_dst;         /* resampled audio data (if required) */
   jack_port_t *port[MAX_CHANNELS];
   pthread_t draw_thread;
   pthread_t osc_thread;
@@ -175,9 +175,9 @@ embed_draw_data(u8 *img,const f32 *data,const u8 *color,struct scope *s)
 }
 
 u8 c4_colors[12] = { 128, 32, 32,
-		     32, 32, 128,
-		     128, 224, 224,
-		     224, 224, 128 };
+                     32, 32, 128,
+                     128, 224, 224,
+                     224, 224, 128 };
 
 void
 embed_draw(u8 *img, struct scope *s)
@@ -275,7 +275,7 @@ signal_draw(u8 *img, struct scope *s)
 void
 hline_init(struct scope *s)
 {
-  size_t signal_bytes = s->img_w * s->channels * sizeof(float);
+  size_t signal_bytes = s->img_h * s->channels * sizeof(float);
   s->hline_src_dst = xmalloc(signal_bytes);
   if (s->img_bg_fn) {
     i32 png_w,png_h;
@@ -295,25 +295,28 @@ hline_init(struct scope *s)
 void
 hline_draw(u8 *img, struct scope *s)
 {
-  int c_width = s->img_w / s->channels;
   src_resample_block(s->hline_src_dst,(long)s->img_h,
-		     (float *)s->share_il,(long)s->data_frames,
-		     (int)s->channels);
+                     (float *)s->share_il,(long)s->data_frames,
+                     (int)s->channels);
+  int c_width = s->img_w / s->channels;
   for (i32 c = 0; c < s->channels; c++) { /* c = channel */
     for (i32 i = 0; i < s->img_h; i++) { /* i = row */
-      for (i32 j = c * c_width; j < (c + 1) * c_width; j++) { /* j = column */
-        u8 color[3];
-        float mul = fabsf(s->hline_src_dst[(i * s->channels) + c]);
-	switch (s->img_colour_mode) {
-	case IMG_GREY:
-	  img_get_pixel(s->img_bg, s->img_w, 3, j, i, color);
-	  rgb_mul(color,mul);
-	  break;
-	case IMG_EGA_64:
-  	  ega_rgb_lookup_f32(mul,color);
-	  break;
-	}
-        img_set_pixel(img, s->img_w, 3, j, i, color);
+      float z = fabsf(s->hline_src_dst[(i * s->channels) + c]);
+      u8 color[3];
+      switch (s->img_colour_mode) {
+      case IMG_GREY:
+        for (i32 j = c * c_width; j < (c + 1) * c_width; j++) { /* j = column */
+          img_get_pixel(s->img_bg, s->img_w, 3, j, i, color);
+          rgb_mul(color,z);
+          img_set_pixel(img, s->img_w, 3, j, i, color);
+        }
+        break;
+      case IMG_EGA_64:
+        ega_rgb_lookup_f32(z,color);
+        for (i32 j = c * c_width; j < (c + 1) * c_width; j++) { /* j = column */
+          img_set_pixel(img, s->img_w, 3, j, i, color);
+        }
+        break;
       }
     }
   }
@@ -326,26 +329,61 @@ hscan_init(struct scope *s)
   s->hscan_src_dst = xmalloc(n);
 }
 
+/* j = column, i = row, z = (0.0,1.0) */
+void js_img_mod_plain(u8 *img,struct scope *s,i32 j,i32 i,f32 z)
+{
+    u8 color[3];
+    switch (s->img_colour_mode) {
+    case IMG_GREY:
+        img_get_pixel(s->img_bg, s->img_w, 3, j, i, color);
+        rgb_mul(color,z);
+        img_set_pixel(img, s->img_w, 3, j, i, color);
+        break;
+    case IMG_EGA_64:
+        ega_rgb_lookup_f32(z,color);
+        img_set_pixel(img, s->img_w, 3, j, i, color);
+        break;
+    }
+}
+
 void
 hscan_draw(u8 *img, struct scope *s)
 {
-  i32 n = s->img_h * s->img_w;
-  src_resample_block(s->hscan_src_dst,(long)n,(float *)s->share_il,(long)s->data_frames,(int)s->channels);
-  for (i32 i = 0, j = 0; i < n; i++) {
-    f32 mul = fabsf(s->hscan_src_dst[i]);
+  i32 n_pixels = s->img_h * s->img_w;
+  i32 n_frames = n_pixels / s->channels;
+  src_resample_block(s->hscan_src_dst,n_frames,s->share_il,s->data_frames,s->channels);
+
+#if 1
+  /* non-interleaved */
+  int c_width = s->img_w / s->channels;
+  for (i32 c = 0; c < s->channels; c++) { /* c = channel */
+    for (i32 i = 0, n = 0; i < s->img_h; i++) { /* i = row, n = frame */
+      for (i32 j = c * c_width; j < (c + 1) * c_width; j++, n++) { /* j = column */
+        i32 ix = (n * s->channels) + c;
+        float z = fabsf(s->hscan_src_dst[ix]);
+        js_img_mod_plain(img,s,j,i,z);
+      }
+    }
+  }
+#endif
+
+#if 0
+  /* interleaved */
+  for (i32 i = 0, j = 0; i < n_pixels; i++, j+=3) {
+    f32 z = fabsf(s->hscan_src_dst[i]);
     u8 color[3];
     switch (s->img_colour_mode) {
     case IMG_GREY:
       xmemcpy(color, s->img_bg + j, 3);
-      rgb_mul(color, mul);
+      rgb_mul(color, z);
       break;
     case IMG_EGA_64:
-      ega_rgb_lookup_f32(mul, color);
+      ega_rgb_lookup_f32(z, color);
       break;
     }
     xmemcpy(img + j, color, 3);
-    j += 3;
   }
+#endif
 }
 
 void
@@ -391,7 +429,7 @@ jackscope_osc_thread_procedure(void *ptr)
         s->delay_msec = o[0].f;
         s->delay_frames = floorf((s->delay_msec / 1000.0) * s->fps);
     } else if (OSC_PARSE_MSG("/print", ",i")) {
-	if(o[0].i > 0) jackscope_print(s);
+        if(o[0].i > 0) jackscope_print(s);
     } else {
         eprintf("jack-scope: dropped packet: %8s\n", packet);
     }
@@ -471,9 +509,9 @@ jackscope_process(jack_nframes_t nframes, void *ptr)
     }
     d->delay_location++;
     if (d->delay_location >= d->delay_frames &&
-	(!d->zero_crossing ||
-	 (i > 0 && in[0][i] > 0.0 && in[0][i - 1] <= 0.0) ||
-	 d->delay_location >= d->delay_frames * 2)) {
+        (!d->zero_crossing ||
+         (i > 0 && in[0][i] > 0.0 && in[0][i - 1] <= 0.0) ||
+         d->delay_location >= d->delay_frames * 2)) {
       signal_copy_circular(d->share_il, d->data, d->data_samples, d->data_location);
       d->delay_location = 0;
       char b = 1;
