@@ -296,7 +296,7 @@ void
 hline_draw(u8 *img, struct scope *s)
 {
   src_resample_block(s->hline_src_dst,(long)s->img_h,
-                     (float *)s->share_il,(long)s->data_frames,
+                     (float *)s->share_il,(long)s->draw_frames,
                      (int)s->channels);
   int c_width = s->img_w / s->channels;
   for (i32 c = 0; c < s->channels; c++) { /* c = channel */
@@ -351,7 +351,7 @@ hscan_draw(u8 *img, struct scope *s)
 {
   i32 n_pixels = s->img_h * s->img_w;
   i32 n_frames = n_pixels / s->channels;
-  src_resample_block(s->hscan_src_dst,n_frames,s->share_il,s->data_frames,s->channels);
+  src_resample_block(s->hscan_src_dst,n_frames,s->share_il,s->draw_frames,s->channels);
 
 #if 1
   /* non-interleaved */
@@ -537,6 +537,7 @@ jackscope_usage(void)
   eprintf(" -p STR  : Jack port pattern to connect to (default=nil)\n");
   eprintf(" -s STR  : Drawing style for signal mode (default=dot)\n");
   eprintf(" -u INT  : UDP port number for OSC packets (default=57140)\n");
+  eprintf(" -U      : Do not generate unique jack client name (ie. do not append PID)\n");
   eprintf(" -w INT  : Scope width in pixels (default=512)\n");
   eprintf(" -z      : Do not align to zero-crossing\n");
   FAILURE;
@@ -557,7 +558,8 @@ main(int argc, char **argv)
   int port_n = 57140;
   int o;
   char *p = NULL;
-  while ((o = getopt(argc, argv, "b:c:d:e:f:g:h:i:m:n:p:s:u:w:z")) != -1) {
+  bool unique = true;
+  while ((o = getopt(argc, argv, "b:c:d:e:f:g:h:i:m:n:p:s:u:Uw:z")) != -1) {
     switch (o) {
     case 'b':
       d.data_frames = strtol(optarg, NULL, 0);
@@ -601,6 +603,9 @@ main(int argc, char **argv)
     case 'u':
       port_n = strtol(optarg, NULL, 0);
       break;
+    case 'U':
+      unique = false;
+      break;
     case 'w':
       d.img_w = (i32)strtol(optarg, NULL, 0);
       opt_limit("img_w",MAX_WINDOW_SIZE,d.img_w);
@@ -628,7 +633,16 @@ main(int argc, char **argv)
   pthread_create(&(d.osc_thread), NULL, jackscope_osc_thread_procedure, &d);
   pthread_create(&(d.draw_thread), NULL, jackscope_draw_thread_procedure, &d);
   char nm[64] = "jack-scope";
-  jack_client_t *c = jack_client_unique_store(nm);
+  jack_client_t *c = NULL;
+  if(unique) {
+    c = jack_client_unique_store(nm);
+  } else {
+    c = jack_client_open(nm,JackNullOption,NULL);
+  }
+  if(!c) {
+    eprintf("jack-scope: could not create jack client: %s", nm);
+    FAILURE;
+  }
   jack_set_error_function(jack_client_minimal_error_handler);
   jack_on_shutdown(c, jack_client_minimal_shutdown_handler, 0);
   jack_set_process_callback(c, jackscope_process, &d);

@@ -31,7 +31,7 @@ struct player_opt
   i64 seek_request;
   double seek_request_sec;
   bool transport_aware;
-  int unique_name;
+  bool unique_name;
   double src_ratio;
   int rb_request_frames;
   int converter;

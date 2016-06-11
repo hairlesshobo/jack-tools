@@ -24,12 +24,14 @@
 (set-scope "/colour-mode" "grey")
 (set-scope "/colour-mode" "ega64")
 (set-scope "/frames" 480)
-(set-scope "/frames" (* 480 12))
+(set-scope "/frames" (* 480 4))
 
 (set-scope "/mode" "hscan")
 
 (set-scope "/input-gain" 0.5)
+(set-scope "/input-gain" 1.0)
 (set-scope "/input-gain" 2.0)
+(set-scope "/input-gain" 4.0)
 
 (set-scope "/print" 1)
 
