@@ -222,13 +222,9 @@ int main (int argc, char* argv[])
 	printf("HOST> NO MIDI INPUT\n");
 	return -1;
     }
-    printf("HOST> SET SAMPLE RATE\n");
-    d.effect->dispatcher (d.effect, effSetSampleRate, 0, 0, 0, d.sample_rate);
     printf("HOST> CREATE X11 EDITOR THREAD\n");
     pthread_t x11_thread;
     pthread_create (&x11_thread,NULL,x11_thread_proc,&d);
-    printf("HOST> START EFFECT\n");
-    d.effect->dispatcher (d.effect, effMainsChanged, 0, 1, 0, 0);
     printf("HOST> CONNECT TO JACK\n");
     char client_name[64] = "jack-lxvst";
     jack_client_t *client = jack_client_unique_store(client_name);
@@ -236,6 +232,10 @@ int main (int argc, char* argv[])
     jack_on_shutdown(client, jack_client_minimal_shutdown_handler, 0);
     jack_set_process_callback(client, audio_proc, &d);
     d.sample_rate = jack_get_sample_rate(client);
+    printf("HOST> SET SAMPLE RATE = %f\n",d.sample_rate);
+    d.effect->dispatcher (d.effect, effSetSampleRate, 0, 0, 0, d.sample_rate);
+    printf("HOST> START EFFECT\n");
+    d.effect->dispatcher (d.effect, effMainsChanged, 0, 1, 0, 0);
     printf("HOST> MAKE JACK MIDI INPUT PORT\n");
     jack_port_make_standard(client, &d.midi_in, 1, false, true);
     printf("HOST> MAKE JACK AUDIO OUTPUT PORTS\n");

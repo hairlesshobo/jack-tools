@@ -1,7 +1,7 @@
 prefix=$(HOME)/opt
 bin=jack-data jack-dl jack-lxvst jack-osc jack-play jack-play-sc3 jack-plumbing jack-record jack-scope jack-transport jack-udp
 
-VST_SDK = $(HOME)/opt/src/vstsdk2.4
+VST_SDK = $(HOME)/opt/src/vst3_sdk
 CFLAGS+=-Wall -D_POSIX_C_SOURCE=200809 -std=c99 -O3 -g
 LDLIBS=c-common/lib-c-common.a -ljack -lpthread -lm
 
