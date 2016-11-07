@@ -47,3 +47,4 @@ mk-local-c-common:
 
 indent:
 	indent -kr -nut -l96 -i2 -brf jack-scope.c
+	indent -kr -nut -l96 -i4 -blf -bls jack-lxvst.cpp
