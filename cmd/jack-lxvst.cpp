@@ -50,6 +50,11 @@ void verify_platform (void)
     }
 }
 
+struct lxvst_opt {
+    bool unique_name;
+    float sample_rate;
+};
+
 struct lxvst {
     AEffect *effect;
     Display *x11_dpy;
@@ -59,6 +64,7 @@ struct lxvst {
     jack_port_t **audio_out;
     jack_port_t *midi_in;
     float **out;
+    struct lxvst_opt opt;
 };
 
 typedef unsigned char u8;
@@ -168,10 +174,33 @@ int osc_p_set(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
   return 0;
 }
 
+void usage(void)
+{
+  eprintf("Usage: jack-lxvst [ options ] lxvst-file\n");
+  eprintf("    -r N : Sample rate (default=JACK SR)\n");
+  eprintf("    -u   : Do not generate unique jack client name (ie. do not append PID)\n");
+  FAILURE;
+}
+
 int main (int argc, char* argv[])
 {
-    void* module;
-    struct lxvst d = {NULL,NULL,false,-1,2,NULL,NULL,NULL};
+    struct lxvst d = {NULL,NULL,false,-1,2,NULL,NULL,NULL,{true,0}};
+
+    int c;
+    while((c = getopt(argc, argv, "hr:u")) != -1) {
+        switch(c) {
+        case 'h':
+            usage ();
+            break;
+        case 'r':
+            d.opt.sample_rate = strtof(optarg, NULL);
+            break;
+        case 'u':
+            d.opt.unique_name = false;
+            break;
+        }
+    }
+
     printf("HOST> ALLOCATE LXVST MEMORY\n");
     d.out = (float **)xmalloc(d.channels * sizeof(float *));
     d.audio_out = (jack_port_t **)xmalloc(d.channels * sizeof(jack_port_t *));
@@ -182,10 +211,13 @@ int main (int argc, char* argv[])
 	printf("HOST> USAGE = JACK-LXVST VST-FILE\n");
 	return -1;
     }
-    const char* vst_file = argv[1];
+    if(optind > argc - 1) {
+        usage ();
+    }
+    const char* vst_file = argv[optind];
     printf("HOST> VST FILE=%s\n",vst_file);
     printf("HOST> LOAD VST LIBRARY\n");
-    module = dlopen(vst_file, RTLD_LAZY);
+    void* module = dlopen(vst_file, RTLD_LAZY);
     if (!module) {
 	printf("HOST> DLOPEN ERROR: %s\n", dlerror());
 	return -1;
@@ -227,11 +259,16 @@ int main (int argc, char* argv[])
     pthread_create (&x11_thread,NULL,x11_thread_proc,&d);
     printf("HOST> CONNECT TO JACK\n");
     char client_name[64] = "jack-lxvst";
-    jack_client_t *client = jack_client_unique_store(client_name);
+    jack_client_t *client;
+    if(d.opt.unique_name) {
+        client = jack_client_unique_store(client_name);
+    } else {
+        client = jack_client_open(client_name,JackNullOption,NULL);
+    }
     jack_set_error_function(jack_client_minimal_error_handler);
     jack_on_shutdown(client, jack_client_minimal_shutdown_handler, 0);
     jack_set_process_callback(client, audio_proc, &d);
-    d.sample_rate = jack_get_sample_rate(client);
+    d.sample_rate = d.opt.sample_rate > 0 ? d.opt.sample_rate : jack_get_sample_rate(client);
     printf("HOST> SET SAMPLE RATE = %f\n",d.sample_rate);
     d.effect->dispatcher (d.effect, effSetSampleRate, 0, 0, 0, d.sample_rate);
     printf("HOST> START EFFECT\n");
