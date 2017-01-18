@@ -57,10 +57,15 @@ void verify_platform(void)
     }
 }
 
+typedef unsigned char u8;
+
 struct lxvst_opt
 {
     bool unique_name;
     float sample_rate;
+    u8 note_data_ch;
+    u8 param_data_ch;
+    float vel_mul;
 };
 
 struct lxvst
@@ -76,8 +81,6 @@ struct lxvst
     struct lxvst_opt opt;
 };
 
-typedef unsigned char u8;
-
 void pack_midi_event(jack_midi_data_t * b, size_t n, VstMidiEvent * e)
 {
 #if 0
@@ -91,8 +94,8 @@ void pack_midi_event(jack_midi_data_t * b, size_t n, VstMidiEvent * e)
     e->flags = kVstMidiEventIsRealtime;
     e->noteLength = 0;
     e->noteOffset = 0;
-    memset(e->midiData, 0, 4);
-    memcpy(e->midiData, b, n);
+    memset(e->midiData, 0, 4);  /* clear all four bytes */
+    memcpy(e->midiData, b, n);  /* write as many bytes as jack has provided */
     e->detune = 0;              /* char: -64 - +63 */
 #if 0
     if (st == 0x90 && m[1] == 60)
@@ -113,6 +116,10 @@ struct VstEventSet
     VstMidiEvent *events[MAX_MIDI_MESSAGES];
 };
 
+u8 status_ty(u8 st) {return (st >> 4);}
+u8 status_ch(u8 st) {return (st & 0x0F);}
+bool is_note_data(u8 ty) {return (ty == 0x8 || ty == 0x9);}
+
 void midi_proc(lxvst * d, jack_nframes_t nframes)
 {
     void *b = jack_port_get_buffer(d->midi_in, nframes);
@@ -129,9 +136,19 @@ void midi_proc(lxvst * d, jack_nframes_t nframes)
             jack_midi_event_t e;
             jack_midi_event_get(&e, b, i);
             if (e.size <= 4) {
-                vst_e.events[vst_e.numEvents] = (VstMidiEvent *) xmalloc(sizeof(VstMidiEvent));
-                pack_midi_event(e.buffer, e.size, vst_e.events[vst_e.numEvents]);
-                vst_e.numEvents += 1;
+                u8 st = e.buffer[0];
+                u8 st_ty = status_ty(st);
+                u8 st_ch = status_ch(st);
+                bool is_n = is_note_data(st_ty);
+                /* printf("st=0x%2X,ty=0x%02x,ch=0x%02X\n",st,st_ty,st_ch); */
+                if ((is_n && st_ch == d->opt.note_data_ch) || st_ch == d->opt.param_data_ch) {
+                    if (is_n) {
+                        e.buffer[2] = (u8)((float)e.buffer[2] * d->opt.vel_mul);
+                    }
+                    vst_e.events[vst_e.numEvents] = (VstMidiEvent *) xmalloc(sizeof(VstMidiEvent));
+                    pack_midi_event(e.buffer, e.size, vst_e.events[vst_e.numEvents]);
+                    vst_e.numEvents += 1;
+                }
             }
         }
         d->effect->dispatcher(d->effect, effProcessEvents, 0, 0, &vst_e, 0);
@@ -190,26 +207,38 @@ int osc_p_set(const char *p, const char *t, lo_arg ** a, int n, void *d, void *u
 void usage(void)
 {
     eprintf("Usage: jack-lxvst [ options ] lxvst-file\n");
+    eprintf("    -n N : Note data channel (default=0)\n");
+    eprintf("    -p N : Parameter data channel (default=0)\n");
     eprintf("    -r N : Sample rate (default=JACK SR)\n");
     eprintf("    -u   : Do not generate unique jack client name (ie. do not append PID)\n");
+    eprintf("    -v N : Key velocity multiplier (default=1)\n");
     FAILURE;
 }
 
 int main(int argc, char *argv[])
 {
-    struct lxvst d = { NULL, NULL, false, -1, 2, NULL, NULL, NULL, {true, 0} };
+    struct lxvst d = { NULL, NULL, false, -1, 2, NULL, NULL, NULL, {true, 0, 0, 0, 1}};
 
     int c;
-    while ((c = getopt(argc, argv, "hr:u")) != -1) {
+    while ((c = getopt(argc, argv, "hn:p:r:uv:")) != -1) {
         switch (c) {
         case 'h':
             usage();
+            break;
+        case 'n':
+            d.opt.note_data_ch = (u8)strtol(optarg, NULL, 10);
+            break;
+        case 'p':
+            d.opt.param_data_ch = (u8)strtol(optarg, NULL, 10);
             break;
         case 'r':
             d.opt.sample_rate = strtof(optarg, NULL);
             break;
         case 'u':
             d.opt.unique_name = false;
+            break;
+        case 'v':
+            d.opt.vel_mul = strtof(optarg, NULL);
             break;
         }
     }
