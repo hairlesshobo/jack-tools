@@ -62,6 +62,7 @@ typedef unsigned char u8;
 struct lxvst_opt
 {
     bool unique_name;
+    bool verbose;
     float sample_rate;
     u8 note_data_ch;
     u8 param_data_ch;
@@ -80,6 +81,12 @@ struct lxvst
     float **out;
     struct lxvst_opt opt;
 };
+
+struct lxvst lxvst_default()
+{
+    struct lxvst d = { NULL, NULL, false, -1, 2, NULL, NULL, NULL, {true, false, 0, 0, 0, 1}};
+    return d;
+}
 
 void pack_midi_event(jack_midi_data_t * b, size_t n, VstMidiEvent * e)
 {
@@ -140,7 +147,9 @@ void midi_proc(lxvst * d, jack_nframes_t nframes)
                 u8 st_ty = status_ty(st);
                 u8 st_ch = status_ch(st);
                 bool is_n = is_note_data(st_ty);
-                /* printf("st=0x%2X,ty=0x%02x,ch=0x%02X\n",st,st_ty,st_ch); */
+                if (d->opt.verbose) {
+                    printf("st=0x%2X,ty=0x%02X,ch=0x%02X\n",st,st_ty,st_ch);
+                }
                 if ((is_n && st_ch == d->opt.note_data_ch) || st_ch == d->opt.param_data_ch) {
                     if (is_n) {
                         e.buffer[2] = (u8)((float)e.buffer[2] * d->opt.vel_mul);
@@ -207,6 +216,7 @@ int osc_p_set(const char *p, const char *t, lo_arg ** a, int n, void *d, void *u
 void usage(void)
 {
     eprintf("Usage: jack-lxvst [ options ] lxvst-file\n");
+    eprintf("    -l   : Log (verbose) midi data etc.\n");
     eprintf("    -n N : Note data channel (default=0)\n");
     eprintf("    -p N : Parameter data channel (default=0)\n");
     eprintf("    -r N : Sample rate (default=JACK SR)\n");
@@ -217,13 +227,16 @@ void usage(void)
 
 int main(int argc, char *argv[])
 {
-    struct lxvst d = { NULL, NULL, false, -1, 2, NULL, NULL, NULL, {true, 0, 0, 0, 1}};
+    struct lxvst d = lxvst_default();
 
     int c;
-    while ((c = getopt(argc, argv, "hn:p:r:uv:")) != -1) {
+    while ((c = getopt(argc, argv, "hln:p:r:uv:")) != -1) {
         switch (c) {
         case 'h':
             usage();
+            break;
+        case 'l':
+            d.opt.verbose = true;
             break;
         case 'n':
             d.opt.note_data_ch = (u8)strtol(optarg, NULL, 10);
