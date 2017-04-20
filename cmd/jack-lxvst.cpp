@@ -82,10 +82,14 @@ struct lxvst
     struct lxvst_opt opt;
 };
 
+struct lxvst_opt lxvst_opt_default()
+{
+    return {false, false, 0, 0, 0, 1};
+}
+
 struct lxvst lxvst_default()
 {
-    struct lxvst d = { NULL, NULL, false, -1, 2, NULL, NULL, NULL, {true, false, 0, 0, 0, 1}};
-    return d;
+    return { NULL, NULL, false, -1, 2, NULL, NULL, NULL, lxvst_opt_default()};
 }
 
 void pack_midi_event(jack_midi_data_t * b, size_t n, VstMidiEvent * e)
@@ -220,7 +224,7 @@ void usage(void)
     eprintf("    -n N : Note data channel (default=0)\n");
     eprintf("    -p N : Parameter data channel (default=0)\n");
     eprintf("    -r N : Sample rate (default=JACK SR)\n");
-    eprintf("    -u   : Do not generate unique jack client name (ie. do not append PID)\n");
+    eprintf("    -u   : Generate unique jack client name (ie. append PID)\n");
     eprintf("    -v N : Key velocity multiplier (default=1)\n");
     FAILURE;
 }
@@ -248,7 +252,7 @@ int main(int argc, char *argv[])
             d.opt.sample_rate = strtof(optarg, NULL);
             break;
         case 'u':
-            d.opt.unique_name = false;
+            d.opt.unique_name = true;
             break;
         case 'v':
             d.opt.vel_mul = strtof(optarg, NULL);
