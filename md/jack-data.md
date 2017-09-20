@@ -22,7 +22,7 @@ DESCRIPTION
 in frames, `write` is the output block size (also in frames), `type`
 is output data type (either `u8` or `f32`), `udp` is the port number
 to send OSC packets to.  The packets are sent as `/data` messages
-withe the first four arguments (ie. nc, read, write and type) followed
+with the first four arguments (ie. nc, read, write and type) followed
 by the resampled (if required) interleaved audio data.
 
 

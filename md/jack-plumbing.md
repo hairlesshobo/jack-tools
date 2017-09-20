@@ -89,7 +89,7 @@ FILES
 
 AUTHOR
 ------
-Written by Rohan Drape <http://slavepianos.org/rd/>
+Written by Rohan Drape <http://rd.slavepianos.org/>
 
 SEE ALSO
 --------
