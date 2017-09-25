@@ -313,6 +313,7 @@ int main(int argc, char *argv[])
         printf("HOST> NO MIDI INPUT\n");
         return -1;
     }
+    printf("HOST> #PROGRAMS = %d, #PARAMS = %d\n", d.effect->numPrograms, d.effect->numParams);
     printf("HOST> CREATE X11 EDITOR THREAD\n");
     pthread_t x11_thread;
     pthread_create(&x11_thread, NULL, x11_thread_proc, &d);
