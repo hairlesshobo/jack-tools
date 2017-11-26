@@ -14,7 +14,7 @@ jack-dl: jack-dl.c
 	gcc $(CFLAGS) -o jack-dl jack-dl.c $(LDLIBS) -ldl -llo
 
 jack-dx7: jack-dx7.cpp
-	g++ -Wall -ljack -lpthread -o jack-dx7 jack-dx7.cpp dx7/lib-dx7.a
+	g++ -Wall -ljack -lpthread -lm -o jack-dx7 jack-dx7.cpp dx7/lib-dx7.a
 
 jack-lxvst: jack-lxvst.cpp
 	g++ -Wall -I$(VST_SDK) -ljack -ldl -lpthread -lX11 -llo -o jack-lxvst jack-lxvst.cpp

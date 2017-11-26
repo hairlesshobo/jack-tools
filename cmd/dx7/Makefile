@@ -8,10 +8,19 @@ O = dx7note.o env.o exp2.o fir.o fm_core.o fm_op_kernel.o freqlut.o lfo.o log2.o
 copy:
 	(cd $(MSFA); cp -f $(F) $(D))
 
+patch:
+	patch < aligned_buf.h.patch
+
 obj: $(O)
 
 arc: $(O)
 	ar -rcs lib-dx7.a $(O)
+
+all:
+	make copy
+	make patch
+	make obj
+	make arc
 
 clean:
 	rm -f $(F)

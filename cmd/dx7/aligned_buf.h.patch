@@ -1,0 +1,12 @@
+--- aligned_buf.h.orig	2017-11-26 17:13:23.732845184 +1100
++++ aligned_buf.h	2017-11-26 16:51:12.135050664 +1100
+@@ -21,6 +21,9 @@
+ #ifndef __ALIGNED_BUF_H
+ #define __ALIGNED_BUF_H
+ 
++#include <stdint.h>
++#include <stdlib.h>
++
+ template<typename T, size_t size, size_t alignment = 16>
+ class AlignedBuf {
+  public:

@@ -1,0 +1,4 @@
+URL = https://github.com/google/music-synthesizer-for-android
+DIR = app/src/main/jni/
+
+aligned_buf.h is patched

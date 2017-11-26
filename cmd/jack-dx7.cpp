@@ -24,6 +24,8 @@
 #include "c-common/jack-ringbuffer.c"
 #include "c-common/memory.h"
 #include "c-common/memory.c"
+#include "c-common/observe-signal.h"
+#include "c-common/observe-signal.c"
 #include "c-common/time-pause.h"
 #include "c-common/time-pause.c"
 #include "c-common/time-timespec.h"
@@ -67,13 +69,6 @@ struct dx7
     int16_t buf[MAX_BUF_SZ];
 };
 
-/*
-struct dx7 dx7_default()
-{
-    return { NULL, -1, NULL, NULL, NULL, dx7_opt_default(), NULL};
-}
-*/
-
 #define MAX_MIDI_MESSAGES 64
 
 void midi_proc(dx7 * d, jack_nframes_t nframes)
@@ -86,6 +81,7 @@ void midi_proc(dx7 * d, jack_nframes_t nframes)
     }
     if (jack_e_n > 0) {
         for (jack_nframes_t i = 0; i < jack_e_n; i++) {
+            /* printf("HOST> PROC MIDI EVENT\n"); */
             jack_midi_event_t e;
             jack_midi_event_get(&e, b, i);
             d->ring_buffer_.Write(e.buffer, e.size);
@@ -120,11 +116,12 @@ int load_syx(dx7 * d, const char *filename) {
   size_t err = fread((char *)syx_data, 1, 4104, fp);
   break_on(err != 4104, "LOAD SYX (READ)");
   d->ring_buffer_.Write(syx_data, 4104);
+  return 0;
 }
 
 void usage(void)
 {
-    eprintf("Usage: jack-dx7 [ options ] dx7-file\n");
+    eprintf("Usage: jack-dx7 [ options ] dx7-syx\n");
     eprintf("    -l   : Log (verbose) midi data etc.\n");
     eprintf("    -n N : Note data channel (default=0)\n");
     eprintf("    -p N : Parameter data channel (default=0)\n");
@@ -136,7 +133,8 @@ void usage(void)
 
 int main(int argc, char *argv[])
 {
-    struct dx7 d; /* = dx7_default(); */
+    observe_signals();
+    struct dx7 d;
 
     int c;
     while ((c = getopt(argc, argv, "hln:p:r:uv:")) != -1) {
@@ -167,12 +165,13 @@ int main(int argc, char *argv[])
 
     printf("HOST> PROCESS ARGUMENTS\n");
     if (argc < 2) {
-        printf("HOST> USAGE = JACK-DX7 VST-FILE\n");
+        printf("HOST> USAGE = JACK-DX7 DX7-SYX\n");
         return -1;
     }
     if (optind > argc - 1) {
         usage();
     }
+    const char *syx_fn = argv[optind];
     printf("HOST> CONNECT TO JACK\n");
     char client_name[64] = "jack-dx7";
     jack_client_t *client;
@@ -188,10 +187,7 @@ int main(int argc, char *argv[])
     printf("HOST> INIT DX7\n");
     d.synth_unit_ = new SynthUnit(&(d.ring_buffer_));
     SynthUnit::Init(d.sample_rate);
-    if (true) {
-        const char *fn = "/home/rohan/data/yamaha/DX7/yamaha/dx7/ROM1A.syx";
-        load_syx(&d,fn);
-    }
+    load_syx(&d,syx_fn);
     printf("HOST> MAKE JACK MIDI INPUT PORT\n");
     jack_port_make_standard(client, &d.midi_in, 1, false, true);
     printf("HOST> MAKE JACK AUDIO OUTPUT PORTS\n");
@@ -215,8 +211,8 @@ int main(int argc, char *argv[])
         jack_port_connect_named(client, audio_src_name, audio_dst_name);
     }
     printf("HOST> WAIT FOR...\n");
-    while (true) {
-        pause_for(0.5);
+    while(!observe_end_of_process()) {
+        pause_for(0.25);
     }
     printf("HOST> JACK CLIENT CLOSE\n");
     jack_client_close(client);
