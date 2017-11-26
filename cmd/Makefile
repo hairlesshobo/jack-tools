@@ -1,5 +1,5 @@
 prefix=$(HOME)/opt
-bin=jack-data jack-dl jack-lxvst jack-osc jack-play jack-play-sc3 jack-plumbing jack-record jack-scope jack-transport jack-udp
+bin=jack-data jack-dl jack-dx7 jack-lxvst jack-osc jack-play jack-play-sc3 jack-plumbing jack-record jack-scope jack-transport jack-udp
 
 VST_SDK = $(HOME)/opt/src/vst3_sdk
 CFLAGS+=-Wall -D_POSIX_C_SOURCE=200809 -std=c99 -O3 -g
@@ -12,6 +12,9 @@ jack-data: jack-data.c
 
 jack-dl: jack-dl.c
 	gcc $(CFLAGS) -o jack-dl jack-dl.c $(LDLIBS) -ldl -llo
+
+jack-dx7: jack-dx7.cpp
+	g++ -Wall -ljack -lpthread -o jack-dx7 jack-dx7.cpp dx7/lib-dx7.a
 
 jack-lxvst: jack-lxvst.cpp
 	g++ -Wall -I$(VST_SDK) -ljack -ldl -lpthread -lX11 -llo -o jack-lxvst jack-lxvst.cpp

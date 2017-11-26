@@ -26,6 +26,7 @@
 #include <lo/lo.h>
 
 /* sw/c-common */
+#include "c-common/int.h"
 #include "c-common/jack-client.h"
 #include "c-common/jack-client.c"
 #include "c-common/jack-port.h"
@@ -34,6 +35,8 @@
 #include "c-common/jack-ringbuffer.c"
 #include "c-common/memory.h"
 #include "c-common/memory.c"
+#include "c-common/midi.h"
+#include "c-common/midi.c"
 #include "c-common/time-pause.h"
 #include "c-common/time-pause.c"
 #include "c-common/time-timespec.h"
@@ -56,8 +59,6 @@ void verify_platform(void)
         exit(EXIT_FAILURE);
     }
 }
-
-typedef unsigned char u8;
 
 struct lxvst_opt
 {
@@ -126,10 +127,6 @@ struct VstEventSet
     VstIntPtr reserved;
     VstMidiEvent *events[MAX_MIDI_MESSAGES];
 };
-
-u8 status_ty(u8 st) {return (st >> 4);}
-u8 status_ch(u8 st) {return (st & 0x0F);}
-bool is_note_data(u8 ty) {return (ty == 0x8 || ty == 0x9);}
 
 void midi_proc(lxvst * d, jack_nframes_t nframes)
 {
