@@ -1,35 +1,37 @@
-prefix=$(HOME)/opt
-bin=jack-data jack-dl jack-dx7 jack-lxvst jack-osc jack-play jack-play-sc3 jack-plumbing jack-record jack-scope jack-transport jack-udp
+prefix = $(HOME)/opt
+bin = jack-data jack-dl jack-dx7 jack-lxvst jack-osc jack-play jack-play-sc3 jack-plumbing jack-record jack-scope jack-transport jack-udp
 
 VST_SDK = $(HOME)/opt/src/vst3_sdk
-CFLAGS+=-Wall -D_POSIX_C_SOURCE=200809 -std=c99 -O3 -g
-LDLIBS=c-common/lib-c-common.a -ljack -lpthread -lm
+CPPFLAGS += -Wall -pedantic -O3 -g
+CFLAGS += -D_POSIX_C_SOURCE=200809 -std=c99
+CXXFLAGS +=
+LDLIBS = c-common/lib-c-common.a -ljack -lpthread -lm
 
 all: $(bin)
 
 jack-data: jack-data.c
-	gcc $(CFLAGS) -o jack-data jack-data.c $(LDLIBS) -lsamplerate
+	gcc $(CPPFLAGS) $(CFLAGS) -o jack-data jack-data.c $(LDLIBS) -lsamplerate
 
 jack-dl: jack-dl.c
-	gcc $(CFLAGS) -o jack-dl jack-dl.c $(LDLIBS) -ldl -llo
+	gcc $(CPPFLAGS) -Wno-pedantic $(CFLAGS) -o jack-dl jack-dl.c $(LDLIBS) -ldl -llo
 
 jack-dx7: jack-dx7.cpp
-	g++ -Wall -ljack -lpthread -lm -o jack-dx7 jack-dx7.cpp dx7/lib-dx7.a
+	g++ $(CPPFLAGS) $(CXXFLAGS) -o jack-dx7 jack-dx7.cpp $(LDLIBS) dx7/lib-dx7.a
 
 jack-lxvst: jack-lxvst.cpp
-	g++ -Wall -I$(VST_SDK) -ljack -ldl -lpthread -lX11 -llo -o jack-lxvst jack-lxvst.cpp
+	g++ $(CPPFLAGS) $(CXXFLAGS) -I$(VST_SDK) -o jack-lxvst jack-lxvst.cpp $(LDLIBS) -ldl -lX11 -llo
 
 jack-play: jack-play.c
-	gcc $(CFLAGS) -o jack-play jack-play.c $(LDLIBS) -lsndfile -lsamplerate
+	gcc $(CPPFLAGS) $(CFLAGS) -o jack-play jack-play.c $(LDLIBS) -lsndfile -lsamplerate
 
 jack-record: jack-record.c
-	gcc $(CFLAGS) -o jack-record jack-record.c $(LDLIBS) -lsndfile
+	gcc $(CPPFLAGS) $(CFLAGS) -o jack-record jack-record.c $(LDLIBS) -lsndfile
 
 jack-scope: jack-scope.c
-	gcc $(CFLAGS) -o jack-scope jack-scope.c $(LDLIBS) -lsamplerate -lX11 -lXext -lpng
+	gcc $(CPPFLAGS) $(CFLAGS) -o jack-scope jack-scope.c $(LDLIBS) -lsamplerate -lX11 -lXext -lpng
 
 jack-transport: jack-transport.c
-	gcc $(CFLAGS) -o jack-transport jack-transport.c $(LDLIBS) -lncurses -ltinfo
+	gcc $(CPPFLAGS) $(CFLAGS) -o jack-transport jack-transport.c $(LDLIBS) -lncurses -ltinfo
 
 clean:
 	rm -f $(bin) *.o

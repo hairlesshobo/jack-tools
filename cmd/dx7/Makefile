@@ -1,12 +1,15 @@
-MSFA=$(HOME)/opt/src/music-synthesizer-for-android/app/src/main/jni/
-D=$(HOME)/sw/rju/cmd/dx7/
+MSFA = $(HOME)/opt/src/music-synthesizer-for-android/app/src/main/jni/
 
-F = aligned_buf.h controllers.h dx7note.cc dx7note.h env.cc env.h exp2.cc exp2.h fir.cc fir.h fm_core.cc fm_core.h fm_op_kernel.cc fm_op_kernel.h freqlut.cc freqlut.h lfo.cc lfo.h log2.cc log2.h module.h patch.cc patch.h pitchenv.cc pitchenv.h resofilter.cc resofilter.h ringbuffer.cc ringbuffer.h sawtooth.cc sawtooth.h sin.cc sin.h synth.h synth_unit.cc synth_unit.h
+D = $(HOME)/sw/rju/cmd/dx7/
 
-O = dx7note.o env.o exp2.o fir.o fm_core.o fm_op_kernel.o freqlut.o lfo.o log2.o patch.o pitchenv.o resofilter.o ringbuffer.o sawtooth.o sin.o synth_unit.o
+H = aligned_buf.h controllers.h module.h synth.h
+
+F = dx7note env exp2 fir fm_core fm_op_kernel freqlut lfo log2 patch pitchenv resofilter ringbuffer sawtooth sin synth_unit
+
+O = $(F:=.o)
 
 copy:
-	(cd $(MSFA); cp -f $(F) $(D))
+	(cd $(MSFA); cp -f $(H) $(F:=.cc) $(F:=.h) $(D))
 
 patch:
 	patch < aligned_buf.h.patch
@@ -23,6 +26,11 @@ all:
 	make arc
 
 clean:
-	rm -f $(F)
+	rm -f $(H) $(F:=.cc) $(F:=.h)
 	rm -f $(O)
 	rm -f lib-dx7.a
+
+DEXED = $(HOME)/opt/src/dexed/Source/msfa/
+
+diff-dexed:
+	(for i in $(F) ; do diff -u $(MSFA)/$$i $(DEXED)/$$i ; done)

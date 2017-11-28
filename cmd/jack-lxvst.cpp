@@ -93,13 +93,19 @@ struct lxvst lxvst_default()
     return { NULL, NULL, false, -1, 2, NULL, NULL, NULL, lxvst_opt_default()};
 }
 
-void pack_midi_event(jack_midi_data_t * b, size_t n, VstMidiEvent * e)
+#define break_on(x,s)                                                          \
+    if(x){								       \
+	fprintf(stderr,"HOST> BREAK ON> %s: %s, %d\n", s, __FILE__, __LINE__); \
+	return 0;							       \
+    }
+
+int pack_midi_event(u8 *b, size_t n, VstMidiEvent * e)
 {
 #if 0
-    u8 *m = (u8 *) b;
-    u8 st = m[0] & 0xF0;
+    u8 st = b[0] & 0xF0;
     printf("HOST> STATUS = %2X\n", st);
 #endif
+    break_on(n > 4,"PACK_MIDI_EVENT");
     e->type = kVstMidiType;
     e->byteSize = sizeof(VstMidiEvent);
     e->deltaFrames = 0;
@@ -110,13 +116,15 @@ void pack_midi_event(jack_midi_data_t * b, size_t n, VstMidiEvent * e)
     memcpy(e->midiData, b, n);  /* write as many bytes as jack has provided */
     e->detune = 0;              /* char: -64 - +63 */
 #if 0
-    if (st == 0x90 && m[1] == 60)
+    if (st == 0x90 && b[1] == 60) {
         e->detune = 50;
+    }
     printf("HOST> DETUNE = %d\n", e->detune);
 #endif
     e->noteOffVelocity = 0;
     e->reserved1 = 0;
     e->reserved2 = 0;
+    return 0;
 }
 
 #define MAX_MIDI_MESSAGES 64
@@ -159,6 +167,10 @@ void midi_proc(lxvst * d, jack_nframes_t nframes)
                     pack_midi_event(e.buffer, e.size, vst_e.events[vst_e.numEvents]);
                     vst_e.numEvents += 1;
                 }
+            } else {
+               if (d->opt.verbose) {
+                    printf("HOST> MIDI EVENT> NON IMMEDIATE EVENT: ST=0x%2X\n",e.buffer[0]);
+                }
             }
         }
         d->effect->dispatcher(d->effect, effProcessEvents, 0, 0, &vst_e, 0);
@@ -185,23 +197,15 @@ void osc_error(int n, const char *m, const char *p)
     fprintf(stderr, "HOST> OSC> error %d in path %s: %s\n", n, p, m);
 }
 
-#define break_on(x,s)                                                          \
-    if(x){								       \
-	fprintf(stderr,"HOST> BREAK ON> %s: %s, %d\n", s, __FILE__, __LINE__); \
-	return 0;							       \
-    }
-
-/*
 int osc_pgm_set(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
 {
   struct lxvst *lxvst = (struct lxvst *)u;
-  VstInt32 pgm = (VstInt32)a[0]->i;
+  VstIntPtr pgm = (VstIntPtr)a[0]->i;
   break_on(pgm >= lxvst->effect->numPrograms, "PROGRAM INDEX");
-  fprintf(stderr,"PGM_SET: %d\n", pgm);
-  lxvst->effect->setProgram(lxvst->effect,pgm);
+  fprintf(stderr,"PGM_SET: %ld\n", pgm);
+  lxvst->effect->dispatcher(lxvst->effect, effSetProgram, 0, pgm, NULL, 0.0);
   return 0;
 }
-*/
 
 int osc_p_set(const char *p, const char *t, lo_arg ** a, int n, void *d, void *u)
 {
@@ -282,7 +286,7 @@ int main(int argc, char *argv[])
     XInitThreads();
     printf("HOST> START OSC THREAD\n");
     lo_server_thread osc = lo_server_thread_new("57210", osc_error);
-    /*lo_server_thread_add_method(osc, "/pgm_set", "i", osc_pgm_set, &d); */
+    lo_server_thread_add_method(osc, "/pgm_set", "i", osc_pgm_set, &d);
     lo_server_thread_add_method(osc, "/p_set", "if", osc_p_set, &d);
     lo_server_thread_start(osc);
     printf("HOST> DLYSM VSTPLUGINMAIN\n");
