@@ -3,17 +3,15 @@ rju
 
 [jackd][jackd] utilities
 
----------------------------- --------------------------------------------------
-[jack-dl][-dl]               load dsp algorithms from shared libraries
-[jack-lxvst][-lxvst]         jack cli host for linux vst instruments
-[jack-osc][-osc]             jack <-> open sound control ([osc][osc]) daemon
-[jack-play][-play]           [resampling][sr] [soundfile][sf] playback
-[jack-plumbing][-plumbing]   [plumbing][plumb] daemon
-[jack-record][-record]       soundfile recording
-[jack-scope][-scope]         plain [X][x] oscilloscope
-[jack-transport][-transport] minimalist [ncurses][curses] jack transport
-[jack-udp][-udp]             jack over udp client (obsolete, see [netjack][nj])
----------------------------- --------------------------------------------------
+- [jack-dl][-dl]:               load dsp algorithms from shared libraries
+- [jack-lxvst][-lxvst]:         jack cli host for linux vst instruments
+- [jack-osc][-osc]:             jack <-> open sound control ([osc][osc]) daemon
+- [jack-play][-play]:           [resampling][sr] [soundfile][sf] playback
+- [jack-plumbing][-plumbing]:   [plumbing][plumb] daemon
+- [jack-record][-record]:       soundfile recording
+- [jack-scope][-scope]:         plain [X][x] oscilloscope
+- [jack-transport][-transport]: minimalist [ncurses][curses] jack transport
+- [jack-udp][-udp]:             jack over udp client (obsolete, see [netjack][nj])
 
 [-dl]: ?t=rju&e=md/jack-dl.md
 [-lxvst]: ?t=rju&e=md/jack-lxvst.md
@@ -43,7 +41,8 @@ To build type:
 [ad]: http://methods.co.nz/asciidoc/
 [markdown]: http://daringfireball.net/projects/markdown/
 [x]: http://x.org
-[plumb]: http://plan9.bell-labs.com/sys/doc/plumb.html
+[plumb]: https://9fans.github.io/plan9port/man/man7/plumb.html
+[plumb_]: http://plan9.bell-labs.com/sys/doc/plumb.html
 [curses]: http://gnu.org/software/ncurses/
 
 © [rohan drape][rd], 2003-2017, [gpl]. with contributions by:

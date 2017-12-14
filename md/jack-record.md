@@ -61,14 +61,14 @@ jack-record will write files in any format supported by libsndfile.
 The table below shows the most common file format masks.  For other
 values see the file 'sndfile.h'.
 
-Format             Code      Description
-------             ----      -----------
-SF_FORMAT_WAV      0x10000   Microsoft WAV format
-SF_FORMAT_AIFF     0x20000   Apple/SGI AIFF format
-SF_FORMAT_PCM_16   0x00002   Signed 16 bit data
-SF_FORMAT_PCM_24   0x00003   Signed 24 bit data
-SF_FORMAT_PCM_32   0x00004   Signed 32 bit data
-SF_FORMAT_FLOAT    0x00006   32 bit float data
+    Format             Code      Description
+    ------             ----      -----------
+    SF_FORMAT_WAV      0x10000   Microsoft WAV format
+    SF_FORMAT_AIFF     0x20000   Apple/SGI AIFF format
+    SF_FORMAT_PCM_16   0x00002   Signed 16 bit data
+    SF_FORMAT_PCM_24   0x00003   Signed 24 bit data
+    SF_FORMAT_PCM_32   0x00004   Signed 32 bit data
+    SF_FORMAT_FLOAT    0x00006   32 bit float data
 
 AUTHOR
 ------

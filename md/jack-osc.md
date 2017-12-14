@@ -34,13 +34,13 @@ server.  This packet has the form
 where category is a bit mask that indicates what categories of
 notification packets are requested.  The bit locations are:
 
-Category            Mask
---------            ----
-REQUEST_TICK        0x0000001
-REQUEST_PULSE       0x0000002
-REQUEST_CORRECTION  0x0000004
-REQUEST_TRANSPORT   0x0000008
-REQUEST_ALL         0xFFFFFFF
+    Category            Mask
+    --------            ----
+    REQUEST_TICK        0x0000001
+    REQUEST_PULSE       0x0000002
+    REQUEST_CORRECTION  0x0000004
+    REQUEST_TRANSPORT   0x0000008
+    REQUEST_ALL         0xFFFFFFF
 
 Clients request notification messages to be sent to an address that is
 not that of the packet that requests the notification by sending a

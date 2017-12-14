@@ -35,11 +35,11 @@ The dsp graph code must provide three functions:
 
 jack-dl accepts the OSC commands:
 
-Command   Arguments                             Description
--------   ---------                             -----------
-/b_alloc  id::int frames::int channels::int     buffer allocate
-/c_set    index::int value::float               control set
-/g_load   object-file::file-path                graph load
+    Command   Arguments                             Description
+    -------   ---------                             -----------
+    /b_alloc  id::int frames::int channels::int     buffer allocate
+    /c_set    index::int value::float               control set
+    /g_load   object-file::file-path                graph load
 
 jack-dl consults the `JACK_DL_CONNECT_TO` and `JACK_DL_CONNECT_FROM`
 environment variables.

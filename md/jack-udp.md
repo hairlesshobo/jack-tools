@@ -15,13 +15,17 @@ OPTIONS
 -------
 *-b*
 :   Set the ring buffer size in frames (default=4096).
+
 *-c*
 :   Set the client name (default=jack-udp-PID).
+
 *-n*
 :   Set the number of channels, and therefore the number of JACK ports
     (default=2).
+
 *-p*
 :   Set the port number (default=57160).
+
 *-r*
 :   The remote host name, for use in send mode (default="127.0.0.1").
 
