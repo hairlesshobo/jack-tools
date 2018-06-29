@@ -19,6 +19,7 @@
 
 struct recorder
 {
+  bool unique_name;
   int buffer_bytes;
   int buffer_samples;
   int buffer_frames;
@@ -160,6 +161,7 @@ void usage(void)
   eprintf("  -p S : Jack port pattern to connect to (default=nil).\n");
   eprintf("  -s   : Write to multiple single channel sound files.\n");
   eprintf("  -t N : Set a timer to record for N seconds (default=-1).\n");
+  eprintf("  -u   : Do not generate unique jack client name (ie. do not append PID)\n");
   FAILURE;
 }
 
@@ -167,6 +169,7 @@ int main(int argc, char *argv[])
 {
   observe_signals ();
   struct recorder d;
+  d.unique_name = true;
   d.buffer_frames = 4096;
   d.minimal_frames = 32;
   d.channels = 2;
@@ -175,9 +178,9 @@ int main(int argc, char *argv[])
   d.file_format = SF_FORMAT_WAV | SF_FORMAT_FLOAT;
   d.multiple_sound_files = 0;
   int c;
-  char *p = NULL;
+  char *p_pattern = NULL;
   int o = 0;
-  while((c = getopt(argc, argv, "b:f:hm:n:o:p:st:")) != -1) {
+  while((c = getopt(argc, argv, "b:f:hm:n:o:p:st:u")) != -1) {
     switch(c) {
     case 'b':
       d.buffer_frames = (int) strtol(optarg, NULL, 0);
@@ -198,14 +201,17 @@ int main(int argc, char *argv[])
       o = (int) strtol(optarg, NULL, 0);
       break;
     case 'p':
-      p = malloc(128);
-      strncpy(p,optarg,128);
+      p_pattern = malloc(256);
+      strncpy(p_pattern,optarg,256);
       break;
     case 's':
       d.multiple_sound_files = 1;
       break;
     case 't':
       d.timer_seconds = (float) strtod(optarg, NULL);
+      break;
+    case 'u':
+      d.unique_name = false;
       break;
     default:
       eprintf("jack-record: illegal option, %c\n", c);
@@ -228,7 +234,12 @@ int main(int argc, char *argv[])
 
   /* Connect to JACK. */
   char client_name[64] = "jack-record";
-  jack_client_t *client = jack_client_unique_store(client_name);
+  jack_client_t *client;
+  if(d.unique_name) {
+    client = jack_client_unique_store(client_name);
+  } else {
+    client = jack_client_open(client_name,JackNullOption,NULL);
+  }
   jack_set_error_function(jack_client_minimal_error_handler);
   jack_on_shutdown(client, jack_client_minimal_shutdown_handler, 0);
   jack_set_process_callback(client, process, &d);
@@ -283,10 +294,10 @@ int main(int argc, char *argv[])
   /* Create ports, connect to if given, activate client. */
   jack_port_make_standard(client, d.input_port, d.channels, false, false);
   jack_client_activate(client);
-  if (p) {
+  if(p_pattern) {
     char q[128];
     snprintf(q,128,"%s:in_%%d",client_name);
-    jack_port_connect_pattern(client,d.channels,o,p,q);
+    jack_port_connect_pattern(client,d.channels,o,p_pattern,q);
   }
 
   /* Wait for disk thread to end, which it does when it reaches the

@@ -1,5 +1,5 @@
 prefix = $(HOME)/opt
-bin = jack-data jack-dl jack-dx7 jack-lxvst jack-osc jack-play jack-play-sc3 jack-plumbing jack-record jack-scope jack-transport jack-udp
+bin = jack-data jack-dl jack-lxvst jack-osc jack-play jack-play-sc3 jack-plumbing jack-record jack-scope jack-transport jack-udp # jack-dx7
 
 VST_SDK = $(HOME)/opt/src/vst3_sdk
 CPPFLAGS += -Wall -pedantic -O3 -g

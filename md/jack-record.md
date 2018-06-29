@@ -48,8 +48,7 @@ OPTIONS
 DESCRIPTION
 -----------
 jack-record is a light-weight JACK capture client to write an
-arbitrary number of channels to disk.  It implements no connection
-logic, use jack-plumbing(1) instead.
+arbitrary number of channels to disk.
 
 If the default mode a single multiple channel sound file is written.
 If the *-s* option is given a set of single channel sound files are
