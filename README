@@ -45,7 +45,9 @@ To build type:
 [plumb_]: http://plan9.bell-labs.com/sys/doc/plumb.html
 [curses]: http://gnu.org/software/ncurses/
 
-© [rohan drape][rd], 2003-2017, [gpl]. with contributions by:
+tested-with: [gcc](http://gcc.gnu.org/) 7.3.0
+
+© [rohan drape][rd], 2003-2018, [gpl]. with contributions by:
 
 - jeremy hall
 

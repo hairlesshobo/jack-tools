@@ -108,11 +108,11 @@ add_rule_to_set(struct plumber *p, enum action command,
 {
   inform(p, "Add rule: '%d', '%s' - '%s'.", command, left, right);
   p->r[p->n].command = command;
-  snprintf(p->r[p->n].left, MAX_STR, "^%s$", left);
+  snprintf(p->r[p->n].left, MAX_STR, "^%.*s$", MAX_STR - 3, left);
   if(precompile_rule_p(p->r[p->n].command)) {
     xregcomp(&(p->r[p->n].left_c), p->r[p->n].left, REG_EXTENDED);
   }
-  snprintf(p->r[p->n].right, MAX_STR, "^%s$", right);
+  snprintf(p->r[p->n].right, MAX_STR, "^%.*s$", MAX_STR - 3, right);
   p->n += 1;
 }
 
