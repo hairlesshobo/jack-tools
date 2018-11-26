@@ -1,5 +1,6 @@
 #include <math.h> /* C99 */
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -28,12 +29,12 @@ int dsp_run(jack_nframes_t nf, void *ptr)
 {
   struct world *w = (struct world *)ptr;
   if(w->ga) {
-    for(int i = 0; i < w->nc; i++) {
+    for(int32_t i = 0; i < w->nc; i++) {
       w->in[i] = (float *)jack_port_get_buffer(w->ip[i], nf);
       w->out[i] = (float *)jack_port_get_buffer(w->op[i], nf);
       memset(w->out[i],0,nf * sizeof(float));
     }
-    w->dsp_step(w, nf);
+    w->dsp_step(w, (int32_t)nf);
   }
   return 0;
 }
@@ -82,7 +83,7 @@ int osc_g_unload(const char *p, const char *t, lo_arg **a, int n, void *d, void 
 int osc_c_set(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
 {
   struct world *w = (struct world *)u;
-  int i = a[0]->i;
+  int32_t i = a[0]->i;
   break_on(i >= w->nk, "control index");
   w_c_set1(w, i, a[1]->f);
   fprintf(stderr,"c_set: %d, %f\n", i, a[1]->f);
@@ -92,11 +93,11 @@ int osc_c_set(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
 int osc_b_alloc(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
 {
   struct world *w = (struct world *)u;
-  int i = a[0]->i;
+  int32_t i = a[0]->i;
   break_on(i >= w->nb, "buffer index");
   /*if(w->bd[i]) free(w->bd[i]);*/
-  int l = a[1]->i;
-  int c = a[2]->i;
+  int32_t l = a[1]->i;
+  int32_t c = a[2]->i;
   break_on(c != 1, "buffer not single channel...");
   w->bl[i] = 0;
   if(w->bd[i]) {
@@ -158,13 +159,13 @@ int main(int argc, char **argv)
   struct world w;
   lo_server_thread osc;
   int c;
-  int nb = 8, nc = 8, nk = 64;
+  int32_t nb = 8, nc = 8, nk = 64;
   while((c = getopt(argc, argv, "b:c:hk:")) != -1) {
     switch(c) {
-    case 'b': nb = (int)strtol(optarg, NULL, 0); break;
-    case 'c': nc = (int)strtol(optarg, NULL, 0); break;
+    case 'b': nb = (int32_t)strtol(optarg, NULL, 0); break;
+    case 'c': nc = (int32_t)strtol(optarg, NULL, 0); break;
     case 'h': usage(); break;
-    case 'k': nk = (int)strtol(optarg, NULL, 0); break;
+    case 'k': nk = (int32_t)strtol(optarg, NULL, 0); break;
     }
   }
   world_init(&w, nc, nk, nb);

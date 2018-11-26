@@ -1,10 +1,11 @@
 #include <stdbool.h>
+#include <stdint.h>
 #include <jack/jack.h>
 
 struct world {
   size_t (*dsp_memreq)();
   void (*dsp_init)(void *);
-  void (*dsp_step)(struct world *, int);
+  void (*dsp_step)(struct world *, int32_t);
   void *st;                    /* graph state */
   bool ga;                     /* graph active */
   void *gh;                    /* graph shared library handle */
@@ -12,15 +13,15 @@ struct world {
   char cn[64];                 /* client name */
   jack_port_t **ip;            /* input ports */
   jack_port_t **op;            /* output ports */
-  int nc;                      /* number of channels */
-  int nk;                      /* number of controls */
-  int nb;                      /* number of buffers */
+  int32_t nc;                  /* number of channels */
+  int32_t nk;                  /* number of controls */
+  int32_t nb;                  /* number of buffers */
   float sr;                    /* sample rate */
   float **in;                  /* input data */
   float **out;                 /* output data */
   float *ctl;                  /* (shared) control data */
   float **bd;                  /* buffer data */
-  int *bl;                     /* buffer sizes (0 == not-ready) */
+  int32_t *bl;                 /* buffer sizes (0 == not-ready) */
   bool ef;                     /* exit flag */
 };
 
