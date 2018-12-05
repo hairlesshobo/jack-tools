@@ -45,7 +45,7 @@ To build type:
 [plumb_]: http://plan9.bell-labs.com/sys/doc/plumb.html
 [curses]: http://gnu.org/software/ncurses/
 
-tested-with: [gcc](http://gcc.gnu.org/) 7.3.0
+tested-with: [gcc](http://gcc.gnu.org/) 8.2.0
 
 © [rohan drape][rd], 2003-2018, [gpl]. with contributions by:
 
@@ -62,7 +62,7 @@ plumbing
 [scope](http://article.gmane.org/gmane.comp.audio.jackit/5727),
 [udp](http://article.gmane.org/gmane.comp.audio.jackit/5548)
 
-[rd]: http://rd.slavepianos.org/
+[rd]: http://rohandrape.net/
 [gpl]: http://gnu.org/copyleft/
 [darcs]: http://darcs.net/
-[history]:  http://rd.slavepianos.org/r/d/darcsweb.cgi?r=rju
+[history]:  http://rohandrape.net/r/d/darcsweb.cgi?r=rju

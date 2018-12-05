@@ -44,24 +44,23 @@ void dsp_init(void *p)
 }
 
 /* process nf frames of data */
-void dsp_step(struct world *w, int g, int nf)
+void dsp_step(struct world *w, int32_t nf)
 {
-  int i;
-  struct sinosc *s = w_state(w,g);
+  struct sinosc *s = w_state(w);
   /* load state */
   float f = s->f;
   float a = s->a;
   float p = s->p;
   float phase = s->phase;
   /* read control values */
-  float fe = w_c_get1(w, (g * 3) + 0);
-  float ae = w_c_get1(w, (g * 3) + 1);
-  float pe = w_c_get1(w, (g * 3) + 2);
+  float fe = w_c_get1(w, 0);
+  float ae = w_c_get1(w, 1);
+  float pe = w_c_get1(w, 2);
   /* calculate control increments */
   float fi = (fe - f) / (float)nf;
   float ai = (ae - a) / (float)nf;
   float pi = (pe - p) / (float)nf;
-  for(i = 0; i < nf; i++) {
+  for(int32_t i = 0; i < nf; i++) {
     /* algorithm */
     float n = sinf(phase) * a;
     w_out2(w, i, n * p, n * (1 - p));

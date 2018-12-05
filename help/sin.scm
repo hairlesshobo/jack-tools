@@ -9,34 +9,26 @@
       r)))
 
 (define g-load
-  (lambda (i s)
-    (message "/g_load" (list i s))))
+  (lambda (s)
+    (message "/g_load" (list s))))
 
 (define c-set1
   (lambda (i n)
     (message "/c_set" (list i n))))
 
-(define g-ctl
-  (lambda (g i)
-    (+ (* g 3) i)))
-
 (define set-sin
-  (lambda (g f a p)
+  (lambda (f a p)
     (with-jackdl
      (lambda (fd)
-       (send fd (c-set1 (g-ctl g 0) f))
-       (send fd (c-set1 (g-ctl g 1) a))
-       (send fd (c-set1 (g-ctl g 2) p))))))
+       (send fd (c-set1 0 f))
+       (send fd (c-set1 1 a))
+       (send fd (c-set1 2 p))))))
 
 (with-jackdl
   (lambda (fd)
-    (for-each
-     (lambda (g)
-       (send fd (g-load g "/home/rohan/sw/rju/help/sin.so")))
-     (list 0 1 2))))
+    (send fd (g-load "/home/rohan/sw/rju/help/sin.so"))))
 
-(set-sin (i-random 0 3)
-         (random 220 880)
+(set-sin (random 220 880)
          (random 0.1 0.25)
          (random 0 1))
 

@@ -24,6 +24,8 @@
 #include "c-common/print.h"
 #include "c-common/sf-sndfile.h"
 
+#define NAME_MAX 64
+
 struct player_opt
 {
   int buffer_frames;
@@ -35,7 +37,7 @@ struct player_opt
   double src_ratio;
   int rb_request_frames;
   int converter;
-  char client_name[64];
+  char client_name[NAME_MAX];
   char *dst_pattern;
   float ampl;
   bool loop;
@@ -404,7 +406,7 @@ int main(int argc, char *argv[])
   o.ampl = 1.0;
   o.dst_pattern = NULL;
   o.loop = false;
-  strncpy(o.client_name, "jack-play", 64);
+  strncpy(o.client_name, "jack-play", NAME_MAX - 1);
 
   while((c = getopt(argc, argv, "b:c:d:g:hi:I:lm:n:q:r:tu")) != -1) {
     switch(c) {
@@ -416,7 +418,7 @@ int main(int argc, char *argv[])
       break;
     case 'd':
       o.dst_pattern = malloc(jack_port_name_size());
-      strncpy(o.dst_pattern, optarg, jack_port_name_size());
+      strncpy(o.dst_pattern, optarg, jack_port_name_size() - 1);
       eprintf("jack destination port pattern: %s\n", o.dst_pattern);
       break;
     case 'g':
@@ -438,7 +440,7 @@ int main(int argc, char *argv[])
       o.minimal_frames = (int)strtoll(optarg, NULL, 0);
       break;
     case 'n':
-      strncpy(o.client_name, optarg, 64);
+      strncpy(o.client_name, optarg, NAME_MAX - 1);
       eprintf("jack client name: %s\n", o.client_name);
       break;
     case 'q':

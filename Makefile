@@ -7,11 +7,11 @@ install:
 clean:
 	(cd cmd ; make clean)
 
-push-sp:
-	darcs push -a rd@slavepianos.org:sw/rju
+push-rd:
+	darcs push -a rd@rohandrape.net:sw/rju
 
-pull-sp:
-	darcs pull -a http://rd.slavepianos.org/sw/rju
+pull-rd:
+	darcs pull -a http://rohandrape.net/sw/rju
 
 debian:
 	sudo apt-get install liblo-dev libsamplerate0-dev
