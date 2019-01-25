@@ -269,6 +269,7 @@ int main(int argc, char *argv[])
     printf("HOST> PROCESS ARGUMENTS\n");
     if (argc < 2) {
         printf("HOST> USAGE = JACK-LXVST VST-FILE\n");
+        usage();
         return -1;
     }
     if (optind > argc - 1) {
