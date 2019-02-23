@@ -99,7 +99,8 @@ struct lxvst lxvst_default()
 	return 0;							       \
     }
 
-int pack_midi_event(u8 *b, size_t n, VstMidiEvent * e)
+/* channel-voice-message events */
+int pack_midi_event_cvm(u8 *b, size_t n, VstMidiEvent * e)
 {
 #if 0
     u8 st = b[0] & 0xF0;
@@ -127,16 +128,58 @@ int pack_midi_event(u8 *b, size_t n, VstMidiEvent * e)
     return 0;
 }
 
+/* sysex events */
+int pack_midi_event_sysex(u8 *b, size_t n, VstMidiSysexEvent * e)
+{
+    e->type = kVstSysExType;
+    e->byteSize = sizeof(VstMidiSysexEvent);
+    e->deltaFrames = 0;
+    e->flags = 0;
+    e->dumpBytes = n;
+    e->resvd1 = 0;
+    e->sysexDump = (char *)b; /* the jack event data will remain valid? */
+    e->resvd2 = 0;
+    return 0;
+}
+
 #define MAX_MIDI_MESSAGES 64
 
 struct VstEventSet
 {
     VstInt32 numEvents;
     VstIntPtr reserved;
-    VstMidiEvent *events[MAX_MIDI_MESSAGES];
+    VstEvent *events[MAX_MIDI_MESSAGES];
 };
 
-void midi_proc(lxvst * d, jack_nframes_t nframes)
+void midi_proc_cvm(const lxvst *d,const jack_midi_event_t e,VstEventSet *vst_e)
+{
+    u8 st = e.buffer[0];
+    u8 st_ty = status_ty(st);
+    u8 st_ch = status_ch(st);
+    bool is_n = is_note_data(st);
+    vprintf(d->opt.verbose,"st=0x%2X,ty=0x%02X,ch=0x%02X\n",st,st_ty,st_ch);
+    if ((is_n && st_ch == d->opt.note_data_ch) || st_ch == d->opt.param_data_ch) {
+        VstMidiEvent *e_ptr = (VstMidiEvent *)xmalloc(sizeof(VstMidiEvent));
+        if (is_n) {
+            e.buffer[2] = (u8)((float)e.buffer[2] * d->opt.vel_mul);
+        }
+        pack_midi_event_cvm(e.buffer, e.size, e_ptr);
+        vst_e->events[vst_e->numEvents] = (VstEvent *)e_ptr;
+        vst_e->numEvents += 1;
+    } else {
+        vprintf(d->opt.verbose,"HOST> MIDI EVENT> NON-CHANNEL DATA: ST=0x%2X\n",st);
+    }
+}
+
+void midi_proc_sysex(const lxvst *d,const jack_midi_event_t e,VstEventSet *vst_e)
+{
+    VstMidiSysexEvent *e_ptr = (VstMidiSysexEvent *)xmalloc(sizeof(VstMidiSysexEvent));
+    pack_midi_event_sysex(e.buffer, e.size, e_ptr);
+    vst_e->events[vst_e->numEvents] = (VstEvent *)e_ptr;
+    vst_e->numEvents += 1;
+}
+
+void midi_proc(lxvst *d, jack_nframes_t nframes)
 {
     void *b = jack_port_get_buffer(d->midi_in, nframes);
     jack_nframes_t jack_e_n = jack_midi_get_event_count(b);
@@ -151,26 +194,12 @@ void midi_proc(lxvst * d, jack_nframes_t nframes)
         for (jack_nframes_t i = 0; i < jack_e_n; i++) {
             jack_midi_event_t e;
             jack_midi_event_get(&e, b, i);
-            if (e.size <= 4) {
-                u8 st = e.buffer[0];
-                u8 st_ty = status_ty(st);
-                u8 st_ch = status_ch(st);
-                bool is_n = is_note_data(st_ty);
-                if (d->opt.verbose) {
-                    printf("st=0x%2X,ty=0x%02X,ch=0x%02X\n",st,st_ty,st_ch);
-                }
-                if ((is_n && st_ch == d->opt.note_data_ch) || st_ch == d->opt.param_data_ch) {
-                    if (is_n) {
-                        e.buffer[2] = (u8)((float)e.buffer[2] * d->opt.vel_mul);
-                    }
-                    vst_e.events[vst_e.numEvents] = (VstMidiEvent *) xmalloc(sizeof(VstMidiEvent));
-                    pack_midi_event(e.buffer, e.size, vst_e.events[vst_e.numEvents]);
-                    vst_e.numEvents += 1;
-                }
+            if (e.size <= 4 && is_channel_voice_message(e.buffer[0])) {
+                midi_proc_cvm(d,e,&vst_e);
+            } else if (is_sysex_message(e.buffer[0])) {
+                midi_proc_sysex(d,e,&vst_e);
             } else {
-               if (d->opt.verbose) {
-                    printf("HOST> MIDI EVENT> NON IMMEDIATE EVENT: ST=0x%2X\n",e.buffer[0]);
-                }
+                vprintf(d->opt.verbose,"HOST> MIDI EVENT> NON IMMEDIATE EVENT: ST=0x%2X\n",e.buffer[0]);
             }
         }
         d->effect->dispatcher(d->effect, effProcessEvents, 0, 0, &vst_e, 0);
