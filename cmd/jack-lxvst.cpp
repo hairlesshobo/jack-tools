@@ -194,6 +194,7 @@ void midi_proc(lxvst *d, jack_nframes_t nframes)
         for (jack_nframes_t i = 0; i < jack_e_n; i++) {
             jack_midi_event_t e;
             jack_midi_event_get(&e, b, i);
+            vprintf(d->opt.verbose,"#=%ld,st=0x%02X\n",e.size,e.buffer[0]);
             if (e.size <= 4 && is_channel_voice_message(e.buffer[0])) {
                 midi_proc_cvm(d,e,&vst_e);
             } else if (is_sysex_message(e.buffer[0])) {
