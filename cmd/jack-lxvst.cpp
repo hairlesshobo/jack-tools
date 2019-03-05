@@ -94,18 +94,15 @@ struct lxvst lxvst_default()
 
 #define break_on(x,s)                                                          \
     if(x){								       \
-	fprintf(stderr,"HOST> BREAK ON> %s: %s, %d\n", s, __FILE__, __LINE__); \
+	eprintf("HOST> BREAK ON> %s: %s, %d\n", s, __FILE__, __LINE__); \
 	return 0;							       \
     }
 
 /* channel-voice-message events */
 int pack_midi_event_cvm(const u8 *b, size_t n, VstMidiEvent *e)
 {
-#if 0
-    u8 st = b[0] & 0xF0;
-    printf("HOST> STATUS = %2X\n", st);
-#endif
-    break_on(n > 4,"PACK_MIDI_EVENT");
+    dprintf("HOST> MIDI CVM> STATUS=%2X\n", b[0]);
+    break_on(n > 4,__func__);
     e->type = kVstMidiType;
     e->byteSize = sizeof(VstMidiEvent);
     e->deltaFrames = 0;
@@ -115,12 +112,7 @@ int pack_midi_event_cvm(const u8 *b, size_t n, VstMidiEvent *e)
     memset(e->midiData, 0, 4);  /* clear all four bytes */
     memcpy(e->midiData, b, n);  /* write as many bytes as jack has provided */
     e->detune = 0;              /* char: -64 - +63 */
-#if 0
-    if (st == 0x90 && b[1] == 60) {
-        e->detune = 50;
-    }
-    printf("HOST> DETUNE = %d\n", e->detune);
-#endif
+    /*dprintf("HOST> DETUNE = %d\n", e->detune);*/
     e->noteOffVelocity = 0;
     e->reserved1 = 0;
     e->reserved2 = 0;
@@ -153,10 +145,9 @@ struct VstEventSet
 void midi_proc_cvm(const lxvst *d,const u8 *b, size_t n,VstEventSet *vst_e)
 {
     u8 st = b[0];
-    u8 st_ty = status_ty(st);
     u8 st_ch = status_ch(st);
     bool is_n = is_note_data(st);
-    vprintf(d->opt.verbose,"st=0x%2X,ty=0x%02X,ch=0x%02X\n",st,st_ty,st_ch);
+    vprintf(d->opt.verbose,"HOST> MIDI EVENT> STATUS=0x%2X\n",st);
     if ((is_n && st_ch == d->opt.note_data_ch) || st_ch == d->opt.param_data_ch) {
         VstMidiEvent *e_ptr = (VstMidiEvent *)xmalloc(sizeof(VstMidiEvent));
         pack_midi_event_cvm(b, n, e_ptr);
@@ -180,7 +171,7 @@ void midi_proc(lxvst *d, jack_nframes_t nframes)
     void *b = jack_port_get_buffer(d->midi_in, nframes);
     jack_nframes_t jack_e_n = jack_midi_get_event_count(b);
     if (jack_e_n > MAX_MIDI_MESSAGES) {
-        printf("HOST> TOO MANY INCOMING MIDI EVENTS\n");
+        printf("HOST> MIDI> TOO MANY INCOMING MIDI EVENTS\n");
         return;
     }
     if (jack_e_n > 0) {
@@ -190,13 +181,13 @@ void midi_proc(lxvst *d, jack_nframes_t nframes)
         for (jack_nframes_t i = 0; i < jack_e_n; i++) {
             jack_midi_event_t e;
             jack_midi_event_get(&e, b, i);
-            vprintf(d->opt.verbose,"#=%ld,st=0x%02X\n",e.size,e.buffer[0]);
+            vprintf(d->opt.verbose,"HOST> MIDI> #=%ld ST=0x%02X\n",e.size,e.buffer[0]);
             if (e.size <= 4 && is_channel_voice_message(e.buffer[0])) {
                 midi_proc_cvm(d,e.buffer,e.size,&vst_e);
             } else if (is_sysex_message(e.buffer[0])) {
                 midi_proc_sysex(d,e.buffer,e.size,&vst_e);
             } else {
-                vprintf(d->opt.verbose,"HOST> MIDI EVENT> NON IMMEDIATE EVENT: ST=0x%2X\n",e.buffer[0]);
+                vprintf(d->opt.verbose,"HOST> MIDI> UNKNOWN EVENT: ST=0x%2X\n",e.buffer[0]);
             }
         }
         d->effect->dispatcher(d->effect, effProcessEvents, 0, 0, &vst_e, 0);
@@ -220,7 +211,7 @@ int audio_proc(jack_nframes_t nframes, void *ptr)
 
 void osc_error(int n, const char *m, const char *p)
 {
-    fprintf(stderr, "HOST> OSC> error %d in path %s: %s\n", n, p, m);
+    eprintf("HOST> OSC> ERROR=%d PATH=%s: %s\n", n, p, m);
 }
 
 /* param ix:int value:float ; set-parameter */
@@ -230,7 +221,7 @@ int osc_param(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
     VstInt32 ix = (VstInt32) a[0]->i;
     float val = a[1]->f;
     break_on(ix >= lxvst->effect->numParams, "PARAMETER INDEX");
-    fprintf(stderr, "PARAM: %d = %f\n", ix, val);
+    vprintf(lxvst->opt.verbose, "HOST> OSC> PARAM %d=%f\n", ix, val);
     lxvst->effect->setParameter(lxvst->effect, ix, val);
     return 0;
 }
@@ -242,12 +233,15 @@ int osc_midi(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
     VstEventSet vst_e;
     u8* m_data = (u8*)&(a[0]->blob.data);
     size_t m_size = (size_t)a[0]->blob.size;
+    u8 st = m_data[0];
     vst_e.numEvents = 0;
     vst_e.reserved = 0;
-    if(m_data[0] == 0xF0) {
+    if(is_sysex_message(st)) {
         midi_proc_sysex(lxvst,m_data,m_size,&vst_e);
-    } else{
+    } else if(is_channel_voice_message(st)) {
         midi_proc_cvm(lxvst,m_data,m_size,&vst_e);
+    } else {
+        eprintf("HOST> OSC> MIDI> UNKNOWN MESSAGE> STATUS=%02X\n",st);
     }
     lxvst->effect->dispatcher(lxvst->effect, effProcessEvents, 0, 0, &vst_e, 0);
     for (int i = 0; i < vst_e.numEvents; i++) {
