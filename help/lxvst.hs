@@ -1,4 +1,8 @@
+import Data.Word {- base -}
+
 import Sound.OSC {- hosc -}
+
+import Sound.SC3.Data.Yamaha.DX7 {- hsc3-data -}
 
 lxvst_default_udp :: IO UDP
 lxvst_default_udp = openUDP "127.0.0.1" 57210
@@ -6,13 +10,18 @@ lxvst_default_udp = openUDP "127.0.0.1" 57210
 with_lxvst :: Connection UDP a -> IO a
 with_lxvst = withTransport lxvst_default_udp
 
--- | Zero-indexed.
-lxvst_pgm_set :: Int -> Message
-lxvst_pgm_set k = message "/pgm_set" [int32 k]
+lxvst_param :: Int -> Double -> Message
+lxvst_param k n = message "/param" [int32 k,float n]
 
-lxvst_p_set :: Int -> Double -> Message
-lxvst_p_set k n = message "/p_set" [int32 k,float n]
+-- > to_lxvst (lxvst_midi [0xC0,19,0])
+lxvst_midi :: [Word8] -> Message
+lxvst_midi b = message "/midi" [Blob (blob_pack b)]
 
-{-
-with_lxvst (sendMessage (lxvst_pgm_set 11))
--}
+to_lxvst :: Message -> IO ()
+to_lxvst = with_lxvst . sendMessage
+
+-- > lxvst_load_sysex "/home/rohan/sw/hsc3-data/data/yamaha/dx7/rom/ROM1A.syx"
+lxvst_load_sysex :: FilePath -> IO ()
+lxvst_load_sysex fn = do
+  syx <- dx7_read_fmt9_sysex fn
+  to_lxvst (lxvst_midi syx)

@@ -67,7 +67,6 @@ struct lxvst_opt
     float sample_rate;
     u8 note_data_ch;
     u8 param_data_ch;
-    float vel_mul;
 };
 
 struct lxvst
@@ -85,7 +84,7 @@ struct lxvst
 
 struct lxvst_opt lxvst_opt_default()
 {
-    return {false, false, 0, 0, 0, 1};
+    return {false, false, 0, 0, 0};
 }
 
 struct lxvst lxvst_default()
@@ -100,7 +99,7 @@ struct lxvst lxvst_default()
     }
 
 /* channel-voice-message events */
-int pack_midi_event_cvm(u8 *b, size_t n, VstMidiEvent * e)
+int pack_midi_event_cvm(const u8 *b, size_t n, VstMidiEvent *e)
 {
 #if 0
     u8 st = b[0] & 0xF0;
@@ -129,7 +128,7 @@ int pack_midi_event_cvm(u8 *b, size_t n, VstMidiEvent * e)
 }
 
 /* sysex events */
-int pack_midi_event_sysex(u8 *b, size_t n, VstMidiSysexEvent * e)
+int pack_midi_event_sysex(const u8 *b, size_t n, VstMidiSysexEvent *e)
 {
     e->type = kVstSysExType;
     e->byteSize = sizeof(VstMidiSysexEvent);
@@ -151,19 +150,16 @@ struct VstEventSet
     VstEvent *events[MAX_MIDI_MESSAGES];
 };
 
-void midi_proc_cvm(const lxvst *d,const jack_midi_event_t e,VstEventSet *vst_e)
+void midi_proc_cvm(const lxvst *d,const u8 *b, size_t n,VstEventSet *vst_e)
 {
-    u8 st = e.buffer[0];
+    u8 st = b[0];
     u8 st_ty = status_ty(st);
     u8 st_ch = status_ch(st);
     bool is_n = is_note_data(st);
     vprintf(d->opt.verbose,"st=0x%2X,ty=0x%02X,ch=0x%02X\n",st,st_ty,st_ch);
     if ((is_n && st_ch == d->opt.note_data_ch) || st_ch == d->opt.param_data_ch) {
         VstMidiEvent *e_ptr = (VstMidiEvent *)xmalloc(sizeof(VstMidiEvent));
-        if (is_n) {
-            e.buffer[2] = (u8)((float)e.buffer[2] * d->opt.vel_mul);
-        }
-        pack_midi_event_cvm(e.buffer, e.size, e_ptr);
+        pack_midi_event_cvm(b, n, e_ptr);
         vst_e->events[vst_e->numEvents] = (VstEvent *)e_ptr;
         vst_e->numEvents += 1;
     } else {
@@ -171,10 +167,10 @@ void midi_proc_cvm(const lxvst *d,const jack_midi_event_t e,VstEventSet *vst_e)
     }
 }
 
-void midi_proc_sysex(const lxvst *d,const jack_midi_event_t e,VstEventSet *vst_e)
+void midi_proc_sysex(const lxvst *d,const u8 *b, size_t n,VstEventSet *vst_e)
 {
     VstMidiSysexEvent *e_ptr = (VstMidiSysexEvent *)xmalloc(sizeof(VstMidiSysexEvent));
-    pack_midi_event_sysex(e.buffer, e.size, e_ptr);
+    pack_midi_event_sysex(b, n, e_ptr);
     vst_e->events[vst_e->numEvents] = (VstEvent *)e_ptr;
     vst_e->numEvents += 1;
 }
@@ -196,9 +192,9 @@ void midi_proc(lxvst *d, jack_nframes_t nframes)
             jack_midi_event_get(&e, b, i);
             vprintf(d->opt.verbose,"#=%ld,st=0x%02X\n",e.size,e.buffer[0]);
             if (e.size <= 4 && is_channel_voice_message(e.buffer[0])) {
-                midi_proc_cvm(d,e,&vst_e);
+                midi_proc_cvm(d,e.buffer,e.size,&vst_e);
             } else if (is_sysex_message(e.buffer[0])) {
-                midi_proc_sysex(d,e,&vst_e);
+                midi_proc_sysex(d,e.buffer,e.size,&vst_e);
             } else {
                 vprintf(d->opt.verbose,"HOST> MIDI EVENT> NON IMMEDIATE EVENT: ST=0x%2X\n",e.buffer[0]);
             }
@@ -227,24 +223,36 @@ void osc_error(int n, const char *m, const char *p)
     fprintf(stderr, "HOST> OSC> error %d in path %s: %s\n", n, p, m);
 }
 
-int osc_pgm_set(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
-{
-  struct lxvst *lxvst = (struct lxvst *)u;
-  VstIntPtr pgm = (VstIntPtr)a[0]->i;
-  break_on(pgm >= lxvst->effect->numPrograms, "PROGRAM INDEX");
-  fprintf(stderr,"PGM_SET: %ld\n", pgm);
-  lxvst->effect->dispatcher(lxvst->effect, effSetProgram, 0, pgm, NULL, 0.0);
-  return 0;
-}
-
-int osc_p_set(const char *p, const char *t, lo_arg ** a, int n, void *d, void *u)
+/* param ix:int value:float ; set-parameter */
+int osc_param(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
 {
     struct lxvst *lxvst = (struct lxvst *) u;
     VstInt32 ix = (VstInt32) a[0]->i;
     float val = a[1]->f;
     break_on(ix >= lxvst->effect->numParams, "PARAMETER INDEX");
-    fprintf(stderr, "P_SET: %d = %f\n", ix, val);
+    fprintf(stderr, "PARAM: %d = %f\n", ix, val);
     lxvst->effect->setParameter(lxvst->effect, ix, val);
+    return 0;
+}
+
+/* midi msg:blob ; send-midi-message */
+int osc_midi(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
+{
+    struct lxvst *lxvst = (struct lxvst *) u;
+    VstEventSet vst_e;
+    u8* m_data = (u8*)&(a[0]->blob.data);
+    size_t m_size = (size_t)a[0]->blob.size;
+    vst_e.numEvents = 0;
+    vst_e.reserved = 0;
+    if(m_data[0] == 0xF0) {
+        midi_proc_sysex(lxvst,m_data,m_size,&vst_e);
+    } else{
+        midi_proc_cvm(lxvst,m_data,m_size,&vst_e);
+    }
+    lxvst->effect->dispatcher(lxvst->effect, effProcessEvents, 0, 0, &vst_e, 0);
+    for (int i = 0; i < vst_e.numEvents; i++) {
+        free(vst_e.events[i]);
+    }
     return 0;
 }
 
@@ -256,7 +264,6 @@ void usage(void)
     eprintf("    -p N : Parameter data channel (default=0)\n");
     eprintf("    -r N : Sample rate (default=JACK SR)\n");
     eprintf("    -u   : Generate unique jack client name (ie. append PID)\n");
-    eprintf("    -v N : Key velocity multiplier (default=1)\n");
     FAILURE;
 }
 
@@ -284,9 +291,6 @@ int main(int argc, char *argv[])
             break;
         case 'u':
             d.opt.unique_name = true;
-            break;
-        case 'v':
-            d.opt.vel_mul = strtof(optarg, NULL);
             break;
         }
     }
@@ -317,8 +321,8 @@ int main(int argc, char *argv[])
     XInitThreads();
     printf("HOST> START OSC THREAD\n");
     lo_server_thread osc = lo_server_thread_new("57210", osc_error);
-    lo_server_thread_add_method(osc, "/pgm_set", "i", osc_pgm_set, &d);
-    lo_server_thread_add_method(osc, "/p_set", "if", osc_p_set, &d);
+    lo_server_thread_add_method(osc, "/midi", "b", osc_midi, &d);
+    lo_server_thread_add_method(osc, "/param", "if", osc_param, &d);
     lo_server_thread_start(osc);
     printf("HOST> DLYSM VSTPLUGINMAIN\n");
     PluginEntryProc vst_main = (PluginEntryProc) dlsym(module, "VSTPluginMain");
