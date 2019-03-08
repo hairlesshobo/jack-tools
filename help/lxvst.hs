@@ -24,7 +24,12 @@ to_lxvst :: Message -> IO ()
 to_lxvst = with_lxvst . sendMessage
 
 -- > lxvst_load_sysex "/home/rohan/sw/hsc3-data/data/yamaha/dx7/rom/ROM1A.syx"
--- > lxvst_load_sysex "/home/rohan/sw/hsc3-data/data/yamaha/dx7/vrc/VRC-101-A.syx"
+-- > lxvst_load_sysex "/home/rohan/sw/hsc3-data/data/yamaha/dx7/vrc/VRC-112-B.syx"
+-- > lxvst_load_sysex "/home/rohan/sw/hsc3-data/data/yamaha/dx1/DX1-A1.syx"
+-- > lxvst_load_sysex "/home/rohan/sw/hsc3-data/data/yamaha/tx816/TFR2.syx"
+-- > lxvst_load_sysex "/home/rohan/sw/hsc3-data/data/yamaha/tx7/B.syx"
+-- > lxvst_load_sysex "/home/rohan/sw/hsc3-data/data/yamaha/dx7s/INTB.syx"
+-- > lxvst_load_sysex "/home/rohan/sw/hsc3-data/data/yamaha/dx7ii/rom/64B.syx"
 lxvst_load_sysex :: FilePath -> IO ()
 lxvst_load_sysex fn = do
   syx <- dx7_read_fmt9_sysex fn

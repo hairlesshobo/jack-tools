@@ -13,7 +13,7 @@ jack-data nc read write type udp
 OPTIONS
 -------
 *-h*
-help
+:   help?
 
 DESCRIPTION
 -----------

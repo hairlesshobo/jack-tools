@@ -151,6 +151,7 @@ void usage(void)
   eprintf("    -b N : Number of buffers (default=8).\n");
   eprintf("    -c N : Number of channels (default=8).\n");
   eprintf("    -k N : Number of controls (default=64).\n");
+  eprintf("    -u N : UDP port number (default=57190).\n");
   exit(EXIT_SUCCESS);
 }
 
@@ -160,16 +161,18 @@ int main(int argc, char **argv)
   lo_server_thread osc;
   int c;
   int32_t nb = 8, nc = 8, nk = 64;
-  while((c = getopt(argc, argv, "b:c:hk:")) != -1) {
+  char udp_port[6] = "57190";
+  while((c = getopt(argc, argv, "b:c:hk:u:")) != -1) {
     switch(c) {
     case 'b': nb = (int32_t)strtol(optarg, NULL, 0); break;
     case 'c': nc = (int32_t)strtol(optarg, NULL, 0); break;
     case 'h': usage(); break;
     case 'k': nk = (int32_t)strtol(optarg, NULL, 0); break;
+    case 'u': strncpy(udp_port,optarg,5); break;
     }
   }
   world_init(&w, nc, nk, nb);
-  osc = lo_server_thread_new("57190", osc_error);
+  osc = lo_server_thread_new(udp_port, osc_error);
   lo_server_thread_add_method(osc, "/c_set", "if", osc_c_set, &w);
   lo_server_thread_add_method(osc, "/g_load", "s", osc_g_load, &w);
   lo_server_thread_add_method(osc, "/g_unload", "", osc_g_unload, &w);

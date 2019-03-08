@@ -19,10 +19,9 @@ DESCRIPTION
 -----------
 jack-lxvst is a JACK CLI host for Linux/VST plugins.
 
-It consults the environment variables JACK_LXVST_MIDI_CONNECT_FROM and
-JACK_LXVST_CONNECT_TO.
+It consults the environment variables JACK_LXVST_MIDI_CONNECT_FROM and JACK_LXVST_CONNECT_TO.
 
-It listens for OSC messages (/midi and /param) at port 57210.
+It listens for OSC messages (/midi and /param) at port 57210 (by default).
 
 AUTHOR
 ------

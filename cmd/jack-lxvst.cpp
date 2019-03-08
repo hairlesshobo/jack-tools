@@ -67,6 +67,7 @@ struct lxvst_opt
     float sample_rate;
     u8 note_data_ch;
     u8 param_data_ch;
+    char udp_port[6];
 };
 
 struct lxvst
@@ -82,9 +83,9 @@ struct lxvst
     struct lxvst_opt opt;
 };
 
-struct lxvst_opt lxvst_opt_default()
+struct lxvst_opt lxvst_opt_default(void)
 {
-    return {false, false, 0, 0, 0};
+    return {false, false, -1.0, 0, 0, {'5','7','2','1','0',0}};
 }
 
 struct lxvst lxvst_default()
@@ -253,11 +254,12 @@ int osc_midi(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
 void usage(void)
 {
     eprintf("Usage: jack-lxvst [ options ] lxvst-file\n");
+    eprintf("    -i   : Generate unique jack client name (ie. append PID)\n");
     eprintf("    -l   : Log (verbose) midi data etc.\n");
     eprintf("    -n N : Note data channel (default=0)\n");
     eprintf("    -p N : Parameter data channel (default=0)\n");
     eprintf("    -r N : Sample rate (default=JACK SR)\n");
-    eprintf("    -u   : Generate unique jack client name (ie. append PID)\n");
+    eprintf("    -u   : UDP port number (default=57210)\n");
     FAILURE;
 }
 
@@ -266,10 +268,13 @@ int main(int argc, char *argv[])
     struct lxvst d = lxvst_default();
 
     int c;
-    while ((c = getopt(argc, argv, "hln:p:r:uv:")) != -1) {
+    while ((c = getopt(argc, argv, "hiln:p:r:u:v:")) != -1) {
         switch (c) {
         case 'h':
             usage();
+            break;
+        case 'i':
+            d.opt.unique_name = true;
             break;
         case 'l':
             d.opt.verbose = true;
@@ -284,7 +289,7 @@ int main(int argc, char *argv[])
             d.opt.sample_rate = strtof(optarg, NULL);
             break;
         case 'u':
-            d.opt.unique_name = true;
+            strncpy(d.opt.udp_port,optarg,5);
             break;
         }
     }
@@ -314,7 +319,7 @@ int main(int argc, char *argv[])
     printf("HOST> XINITTHREADS\n");
     XInitThreads();
     printf("HOST> START OSC THREAD\n");
-    lo_server_thread osc = lo_server_thread_new("57210", osc_error);
+    lo_server_thread osc = lo_server_thread_new(d.opt.udp_port, osc_error);
     lo_server_thread_add_method(osc, "/midi", "b", osc_midi, &d);
     lo_server_thread_add_method(osc, "/param", "if", osc_param, &d);
     lo_server_thread_start(osc);
@@ -348,7 +353,7 @@ int main(int argc, char *argv[])
     pthread_t x11_thread;
     pthread_create(&x11_thread, NULL, x11_thread_proc, &d);
     printf("HOST> CONNECT TO JACK\n");
-    char client_name[64] = "jack-lxvst";
+    char client_name[64] = "jack-lxvst"; /* LIMIT */
     jack_client_t *client;
     if (d.opt.unique_name) {
         client = jack_client_unique_store(client_name);
