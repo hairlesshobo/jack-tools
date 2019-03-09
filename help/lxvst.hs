@@ -1,35 +1,18 @@
-import Data.Word {- base -}
-
-import Sound.OSC {- hosc -}
-
 import Sound.SC3.Data.Yamaha.DX7 {- hsc3-data -}
 
-lxvst_default_port :: Int
-lxvst_default_port = 57210
+import Sound.RJU.LXVST {- rju -}
 
-lxvst_default_udp :: IO UDP
-lxvst_default_udp = openUDP "127.0.0.1" lxvst_default_port
-
-with_lxvst :: Connection UDP a -> IO a
-with_lxvst = withTransport lxvst_default_udp
-
-lxvst_param :: Int -> Double -> Message
-lxvst_param k n = message "/param" [int32 k,float n]
-
--- > to_lxvst (lxvst_midi [0xC0,19,0])
-lxvst_midi :: [Word8] -> Message
-lxvst_midi b = message "/midi" [Blob (blob_pack b)]
-
-to_lxvst :: Message -> IO ()
-to_lxvst = with_lxvst . sendMessage
-
--- > lxvst_load_sysex "/home/rohan/sw/hsc3-data/data/yamaha/dx7/rom/ROM1A.syx"
--- > lxvst_load_sysex "/home/rohan/sw/hsc3-data/data/yamaha/dx7/vrc/VRC-112-B.syx"
--- > lxvst_load_sysex "/home/rohan/sw/hsc3-data/data/yamaha/dx1/DX1-A1.syx"
--- > lxvst_load_sysex "/home/rohan/sw/hsc3-data/data/yamaha/tx816/TFR2.syx"
--- > lxvst_load_sysex "/home/rohan/sw/hsc3-data/data/yamaha/tx7/B.syx"
--- > lxvst_load_sysex "/home/rohan/sw/hsc3-data/data/yamaha/dx7s/INTB.syx"
--- > lxvst_load_sysex "/home/rohan/sw/hsc3-data/data/yamaha/dx7ii/rom/64B.syx"
+-- > lxvst_load_sysex "/home/rohan/sw/hsc3-data/data/yamaha/dx7/rom/DX7-ROM1A.syx"
+-- > lxvst_load_sysex "/home/rohan/sw/hsc3-data/data/yamaha/dx7/vrc/VRC-102-B.syx"
+-- > lxvst_load_sysex "/home/rohan/sw/hsc3-data/data/yamaha/dx1/DX1-B2.syx"
+-- > lxvst_load_sysex "/home/rohan/sw/hsc3-data/data/yamaha/tx816/TX816-TFR2.syx"
+-- > lxvst_load_sysex "/home/rohan/sw/hsc3-data/data/yamaha/tx7/TX7-B.syx"
+-- > lxvst_load_sysex "/home/rohan/sw/hsc3-data/data/yamaha/dx7s/DX7S-INTB.syx"
+-- > lxvst_load_sysex "/home/rohan/sw/hsc3-data/data/yamaha/dx7ii/rom/DX7II-64B.syx"
+-- > lxvst_load_sysex "/home/rohan/sw/hsc3-data/data/yamaha/dx7ii/vrc/VRC-1002-A-1.syx"
+-- > lxvst_load_sysex "/home/rohan/sw/hsc3-data/data/yamaha/dx7/ext/avic/KV06A.syx"
+-- > lxvst_load_sysex "/home/rohan/sw/hsc3-data/data/yamaha/dx7/ext/musicdata/ciani.syx"
+-- > lxvst_load_sysex "/home/rohan/sw/hsc3-data/data/yamaha/dx7/ext/rittor/fukuda.syx"
 lxvst_load_sysex :: FilePath -> IO ()
 lxvst_load_sysex fn = do
   syx <- dx7_read_fmt9_sysex fn

@@ -1,0 +1,25 @@
+Name:              rju
+Version:           0.0
+Synopsis:          RJU
+Description:       @rju@ utils
+License:           GPL-3
+Category:          Sound
+Copyright:         (c) Rohan Drape, 2003-2019
+Author:            Rohan Drape
+Maintainer:        rd@rohandrape.net
+Stability:         Experimental
+Homepage:          http://rohandrape.net/t/rju
+Tested-With:       GHC == 8.4.3
+Build-Type:        Simple
+Cabal-Version:     >= 1.8
+Data-Files:        README
+
+Library
+  Build-Depends:   base >= 4.8 && < 5,
+                   hosc == 0.18
+  GHC-Options:     -Wall -fwarn-tabs
+  Exposed-modules: Sound.RJU.LXVST
+
+Source-Repository  head
+  Type:            darcs
+  Location:        http://rohandrape.net/sw/rju/
