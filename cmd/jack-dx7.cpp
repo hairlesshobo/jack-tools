@@ -36,8 +36,8 @@
 #include "dx7/module.h"
 #include "dx7/freqlut.h"
 #include "dx7/sin.h"
-#include "dx7/sawtooth.h"
-#include "dx7/synth_unit.h"
+//#include "dx7/sawtooth.h"
+//#include "dx7/synth_unit.h"
 
 
 struct dx7_opt
