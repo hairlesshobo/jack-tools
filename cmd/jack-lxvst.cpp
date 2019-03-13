@@ -69,13 +69,14 @@ struct lxvst_opt
     u8 param_data_ch;
     char udp_port[6];
     int n_channels;
+    bool x11;
 };
 
 struct lxvst
 {
     AEffect *effect;
     Display *x11_dpy;
-    bool x11_closed;
+    bool usr_exit;
     float sample_rate;
     jack_port_t **audio_out;
     jack_port_t *midi_in;
@@ -85,7 +86,7 @@ struct lxvst
 
 struct lxvst_opt lxvst_opt_default(void)
 {
-    return {false, false, -1.0, 0, 0, {'5','7','2','1','0',0}, 2};
+    return {false, false, -1.0, 0, 0, {'5','7','2','1','0',0}, 2, true};
 }
 
 struct lxvst lxvst_default()
@@ -215,6 +216,13 @@ void osc_error(int n, const char *m, const char *p)
     eprintf("HOST> OSC> ERROR=%d PATH=%s: %s\n", n, p, m);
 }
 
+int osc_exit(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
+{
+    struct lxvst *lxvst = (struct lxvst *) u;
+    lxvst->usr_exit = true;
+    return 0;
+}
+
 /* param ix:int value:float ; set-parameter */
 int osc_param(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
 {
@@ -261,6 +269,7 @@ void usage(void)
     eprintf("    -p N : Parameter data channel (default=0)\n");
     eprintf("    -r N : Sample rate (default=JACK SR)\n");
     eprintf("    -u   : UDP port number (default=57210)\n");
+    eprintf("    -x   : Do no run X11 interface (default=true)\n");
     FAILURE;
 }
 
@@ -269,7 +278,7 @@ int main(int argc, char *argv[])
     struct lxvst d = lxvst_default();
 
     int c;
-    while ((c = getopt(argc, argv, "c:hiln:p:r:u:v:")) != -1) {
+    while ((c = getopt(argc, argv, "c:hiln:p:r:u:x")) != -1) {
         switch (c) {
         case 'c':
             d.opt.note_data_ch = (u8)strtol(optarg, NULL, 10);
@@ -294,6 +303,9 @@ int main(int argc, char *argv[])
             break;
         case 'u':
             strncpy(d.opt.udp_port,optarg,5);
+            break;
+        case 'x':
+            d.opt.x11 = false;
             break;
         }
     }
@@ -324,6 +336,7 @@ int main(int argc, char *argv[])
     XInitThreads();
     printf("HOST> START OSC THREAD\n");
     lo_server_thread osc = lo_server_thread_new(d.opt.udp_port, osc_error);
+    lo_server_thread_add_method(osc, "/exit", "", osc_exit, &d);
     lo_server_thread_add_method(osc, "/midi", "b", osc_midi, &d);
     lo_server_thread_add_method(osc, "/param", "if", osc_param, &d);
     lo_server_thread_start(osc);
@@ -354,9 +367,12 @@ int main(int argc, char *argv[])
         return -1;
     }
     printf("HOST> #PROGRAMS = %d, #PARAMS = %d\n", d.effect->numPrograms, d.effect->numParams);
-    printf("HOST> CREATE X11 EDITOR THREAD\n");
     pthread_t x11_thread;
-    pthread_create(&x11_thread, NULL, x11_thread_proc, &d);
+    printf("HOST> X11 EDITOR = %s\n",d.opt.x11 ? "TRUE" : "FALSE");
+    if(d.opt.x11) {
+        printf("HOST> CREATE X11 EDITOR THREAD\n");
+        pthread_create(&x11_thread, NULL, x11_thread_proc, &d);
+    }
     printf("HOST> CONNECT TO JACK\n");
     char client_name[64] = "jack-lxvst"; /* LIMIT */
     jack_client_t *client;
@@ -395,20 +411,24 @@ int main(int argc, char *argv[])
         snprintf(audio_src_pattern, 128, "%s:out_%%d", client_name);
         jack_port_connect_pattern(client, d.opt.n_channels, 0, audio_src_pattern, audio_dst_pattern);
     }
-    printf("HOST> WAIT FOR EDITOR TO CLOSE\n");
-    while (d.x11_closed == false) {
+    printf("HOST> WAIT FOR USER EXIT (OSC /EXIT OR EDITOR CLOSE)\n");
+    while (d.usr_exit == false) {
         pause_for(0.5);
     }
     printf("HOST> JACK CLIENT CLOSE\n");
     jack_client_close(client);
-    printf("HOST> CLOSE EDITOR\n");
-    d.effect->dispatcher(d.effect, effEditClose, 0, 0, 0, 0);
+    if(d.opt.x11) {
+        printf("HOST> CLOSE EDITOR\n");
+        d.effect->dispatcher(d.effect, effEditClose, 0, 0, 0, 0);
+    }
     printf("HOST> CLOSE EFFECT\n");
     d.effect->dispatcher(d.effect, effClose, 0, 0, 0, 0);
-    printf("HOST> JOIN X11 THREAD\n");
-    pthread_join(x11_thread, NULL);
-    printf("HOST> CLOSE X11\n");
-    XCloseDisplay(d.x11_dpy);
+    if(d.opt.x11) {
+        printf("HOST> JOIN X11 THREAD\n");
+        pthread_join(x11_thread, NULL);
+        printf("HOST> CLOSE X11\n");
+        XCloseDisplay(d.x11_dpy);
+    }
     printf("HOST> OSC THREAD FREE\n");
     lo_server_thread_free(osc);
     printf("HOST> CLOSE MODULE\n");
@@ -493,7 +513,7 @@ void *x11_thread_proc(void *ptr)
         // handle events as needed
         if (e.type == ClientMessage && (Atom) e.xclient.data.l[0] == wmDeleteMessage) {
             printf("HOST> XEVENT == wmDeleteMessage\n");
-            d->x11_closed = true;
+            d->usr_exit = true;
             return NULL;
         }
     }
