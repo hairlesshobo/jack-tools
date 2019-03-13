@@ -67,7 +67,7 @@ struct lxvst_opt
     float sample_rate;
     u8 note_data_ch;
     u8 param_data_ch;
-    char udp_port[6];
+    char udp_port[6]; /* UDP port number as ASCII string */
     int n_channels;
     bool x11;
 };
