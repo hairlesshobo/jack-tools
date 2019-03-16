@@ -26,6 +26,8 @@
 #include <lo/lo.h>
 
 /* sw/c-common */
+#include "c-common/dl.c"
+#include "c-common/failure.h"
 #include "c-common/int.h"
 #include "c-common/jack-client.h"
 #include "c-common/jack-client.c"
@@ -41,24 +43,9 @@
 #include "c-common/time-pause.c"
 #include "c-common/time-timespec.h"
 #include "c-common/time-timespec.c"
-
-typedef AEffect *(*PluginEntryProc) (audioMasterCallback audioMaster);
-static VstIntPtr VSTCALLBACK vst_callback(AEffect * effect, VstInt32 opcode, VstInt32 index,
-                                          VstIntPtr value, void *ptr, float opt);
+#include "c-common/vst.c"
 
 void *x11_thread_proc(void *ptr);
-
-void verify_platform(void)
-{
-    printf("HOST> SIZEOF VSTINTPTR = %lu\n", sizeof(VstIntPtr));
-    printf("HOST> SIZEOF VSTINT32 = %lu\n", sizeof(VstInt32));
-    printf("HOST> SIZEOF VOID* = %lu\n", sizeof(void *));
-    printf("HOST> SIZEOF AEFFECT = %lu\n", sizeof(AEffect));
-    if (sizeof(VstIntPtr) != sizeof(void *)) {
-        printf("HOST> PLATFORM VERIFICATION FAILED\n");
-        exit(EXIT_FAILURE);
-    }
-}
 
 struct lxvst_opt
 {
@@ -135,15 +122,6 @@ int pack_midi_event_sysex(const u8 *b, size_t n, VstMidiSysexEvent *e)
     return 0;
 }
 
-#define MAX_MIDI_MESSAGES 64
-
-struct VstEventSet
-{
-    VstInt32 numEvents;
-    VstIntPtr reserved;
-    VstEvent *events[MAX_MIDI_MESSAGES];
-};
-
 void midi_proc_cvm(const lxvst *d,const u8 *b, size_t n,VstEventSet *vst_e)
 {
     u8 st = b[0];
@@ -172,7 +150,7 @@ void midi_proc(lxvst *d, jack_nframes_t nframes)
 {
     void *b = jack_port_get_buffer(d->midi_in, nframes);
     jack_nframes_t jack_e_n = jack_midi_get_event_count(b);
-    if (jack_e_n > MAX_MIDI_MESSAGES) {
+    if (jack_e_n > VST_MAX_MIDI_MESSAGES) {
         printf("HOST> MIDI> TOO MANY INCOMING MIDI EVENTS\n");
         return;
     }
@@ -320,7 +298,7 @@ int main(int argc, char *argv[])
     d.out = (float **) xmalloc(d.opt.n_channels * sizeof(float *));
     d.audio_out = (jack_port_t **) xmalloc(d.opt.n_channels * sizeof(jack_port_t *));
     printf("HOST> VERIFY PLATFORM\n");
-    verify_platform();
+    vst_verify_platform();
     printf("HOST> PROCESS ARGUMENTS\n");
     if (argc < 2) {
         printf("HOST> USAGE = JACK-LXVST VST-FILE\n");
@@ -333,11 +311,7 @@ int main(int argc, char *argv[])
     const char *vst_file = argv[optind];
     printf("HOST> VST FILE=%s\n", vst_file);
     printf("HOST> LOAD VST LIBRARY\n");
-    void *module = dlopen(vst_file, RTLD_LAZY);
-    if (!module) {
-        printf("HOST> DLOPEN ERROR: %s\n", dlerror());
-        return -1;
-    }
+    void *module = xdlopen(vst_file,RTLD_LAZY);
     printf("HOST> XINITTHREADS\n");
     XInitThreads();
     printf("HOST> START OSC THREAD\n");
@@ -346,44 +320,14 @@ int main(int argc, char *argv[])
     lo_server_thread_add_method(osc, "/midi", "b", osc_midi, &d);
     lo_server_thread_add_method(osc, "/param", "if", osc_param, &d);
     lo_server_thread_start(osc);
-    printf("HOST> DLYSM VSTPLUGINMAIN\n");
-    PluginEntryProc vst_main = (PluginEntryProc) dlsym(module, "VSTPluginMain");
-    if (!vst_main) {
-        printf("HOST> NO VSTPLUGINMAIN\n");
-        return -1;
-    }
-    printf("HOST> RUN VSTPLUGINMAIN\n");
-    d.effect = vst_main(vst_callback);
-    if (!d.effect) {
-        printf("HOST> VSTPLUGINMAIN FAILED\n");
-        return -1;
-    }
-    printf("HOST> CALL EFFOPEN\n");
-    d.effect->dispatcher(d.effect, effOpen, 0, 0, 0, 0);
-    printf("HOST> CHECK AUDIO I/O\n");
-    printf("HOST> N-OUTPUTS = %d\n", d.opt.n_channels);
-    if ((d.effect->numInputs != 0) || (d.effect->numOutputs != (VstInt32)d.opt.n_channels)) {
-        printf("HOST> NOT 0-IN/%d-OUT\n",d.opt.n_channels);
-        return -1;
-    }
-    printf("HOST> CHECK MIDI I/O\n");
-    char can_do_midi[64] = "receiveVstMidiEvent";
-    if (d.effect->dispatcher(d.effect, effCanDo, 0, 0, can_do_midi, 0) != 1) {
-        printf("HOST> NO MIDI INPUT\n");
-        return -1;
-    }
+    printf("HOST> VST BEGIN\n");
+    d.effect = vst_begin(module);
+    vst_require_audio_io(d.effect,0,(VstInt32)d.opt.n_channels);
+    vst_require_midi(d.effect);
     printf("HOST> #PROGRAMS = %d, #PARAMS = %d\n", d.effect->numPrograms, d.effect->numParams);
     if(d.opt.verbose) {
         printf("HOST> PARAM NAMES\n");
-	for (VstInt32 i = 0; i < d.effect->numParams; i++) {
-            char nm[kVstMaxParamStrLen];
-            char lbl[kVstMaxParamStrLen];
-            char disp[kVstMaxParamStrLen];
-            d.effect->dispatcher (d.effect, effGetParamName, i, 0, nm, 0);
-            d.effect->dispatcher (d.effect, effGetParamLabel, i, 0, lbl, 0);
-            d.effect->dispatcher (d.effect, effGetParamDisplay, i, 0, disp, 0);
-            printf ("%03d, %s, %s, %s\n", i, nm, disp, lbl);
-	}
+        vst_param_pp(d.effect);
     }
     pthread_t x11_thread;
     printf("HOST> X11 EDITOR = %s\n",d.opt.x11 ? "TRUE" : "FALSE");
@@ -450,24 +394,11 @@ int main(int argc, char *argv[])
     printf("HOST> OSC THREAD FREE\n");
     lo_server_thread_free(osc);
     printf("HOST> CLOSE MODULE\n");
-    dlclose(module);
+    xdlclose(module);
     printf("HOST> FREE MEMORY\n");
     free(d.out);
     free(d.audio_out);
     return 0;
-}
-
-/* e = effect, c = opcode, i = index, v = value, p = ptr, o = opt */
-VstIntPtr VSTCALLBACK
-vst_callback(AEffect * e, VstInt32 c, VstInt32 i, VstIntPtr v, void *p, float o)
-{
-    VstIntPtr result = 0;
-    switch (c) {
-    case audioMasterVersion:
-        result = kVstVersion;
-        break;
-    }
-    return result;
 }
 
 void *x11_thread_proc(void *ptr)
