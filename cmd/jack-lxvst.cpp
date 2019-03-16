@@ -273,43 +273,49 @@ void usage(void)
     FAILURE;
 }
 
-int main(int argc, char *argv[])
+void parse_arg(struct lxvst *d,int argc, char *argv[])
 {
-    struct lxvst d = lxvst_default();
-
     int c;
     while ((c = getopt(argc, argv, "c:hiln:p:r:u:x")) != -1) {
         switch (c) {
         case 'c':
-            d.opt.note_data_ch = (u8)strtol(optarg, NULL, 10);
+            d->opt.note_data_ch = (u8)strtol(optarg, NULL, 10);
             break;
         case 'h':
             usage();
             break;
         case 'i':
-            d.opt.unique_name = true;
+            d->opt.unique_name = true;
             break;
         case 'l':
-            d.opt.verbose = true;
+            d->opt.verbose = true;
             break;
         case 'n':
-            d.opt.n_channels = (int)strtol(optarg, NULL, 10);
+            d->opt.n_channels = (int)strtol(optarg, NULL, 10);
             break;
         case 'p':
-            d.opt.param_data_ch = (u8)strtol(optarg, NULL, 10);
+            d->opt.param_data_ch = (u8)strtol(optarg, NULL, 10);
             break;
         case 'r':
-            d.opt.sample_rate = strtof(optarg, NULL);
+            d->opt.sample_rate = strtof(optarg, NULL);
             break;
         case 'u':
-            strncpy(d.opt.udp_port,optarg,5);
+            strncpy(d->opt.udp_port,optarg,5);
             break;
         case 'x':
-            d.opt.x11 = false;
+            d->opt.x11 = false;
             break;
+        default:
+            usage();
         }
     }
+}
 
+int main(int argc, char *argv[])
+{
+    struct lxvst d = lxvst_default();
+    printf("HOST> PARSE ARGUMENTS\n");
+    parse_arg(&d, argc, argv);
     printf("HOST> ALLOCATE LXVST MEMORY\n");
     d.out = (float **) xmalloc(d.opt.n_channels * sizeof(float *));
     d.audio_out = (jack_port_t **) xmalloc(d.opt.n_channels * sizeof(jack_port_t *));
@@ -367,6 +373,18 @@ int main(int argc, char *argv[])
         return -1;
     }
     printf("HOST> #PROGRAMS = %d, #PARAMS = %d\n", d.effect->numPrograms, d.effect->numParams);
+    if(d.opt.verbose) {
+        printf("HOST> PARAM NAMES\n");
+	for (VstInt32 i = 0; i < d.effect->numParams; i++) {
+            char nm[kVstMaxParamStrLen];
+            char lbl[kVstMaxParamStrLen];
+            char disp[kVstMaxParamStrLen];
+            d.effect->dispatcher (d.effect, effGetParamName, i, 0, nm, 0);
+            d.effect->dispatcher (d.effect, effGetParamLabel, i, 0, lbl, 0);
+            d.effect->dispatcher (d.effect, effGetParamDisplay, i, 0, disp, 0);
+            printf ("%03d, %s, %s, %s\n", i, nm, disp, lbl);
+	}
+    }
     pthread_t x11_thread;
     printf("HOST> X11 EDITOR = %s\n",d.opt.x11 ? "TRUE" : "FALSE");
     if(d.opt.x11) {
