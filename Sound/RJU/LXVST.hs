@@ -25,6 +25,10 @@ lxvst_exit = message "/exit" []
 lxvst_param :: Int -> Double -> Message
 lxvst_param k n = message "/param" [int32 k,float n]
 
+-- | Set VST program to /k/.
+lxvst_program :: Int -> Message
+lxvst_program k = message "/program" [int32 k]
+
 -- | Sent VST midi message /b/.
 lxvst_midi :: [Word8] -> Message
 lxvst_midi b = message "/midi" [Blob (blob_pack b)]

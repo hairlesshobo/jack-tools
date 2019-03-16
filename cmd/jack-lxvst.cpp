@@ -201,6 +201,17 @@ int osc_exit(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
     return 0;
 }
 
+/* program ix:int ; set-program */
+int osc_program(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
+{
+    struct lxvst *lxvst = (struct lxvst *) u;
+    VstInt32 ix = (VstInt32) a[0]->i;
+    break_on(ix >= lxvst->effect->numPrograms, "PROGRAM INDEX");
+    vprintf(lxvst->opt.verbose, "HOST> OSC> PROGRAM %d\n", ix);
+    vst_set_program(lxvst->effect, ix);
+    return 0;
+}
+
 /* param ix:int value:float ; set-parameter */
 int osc_param(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
 {
@@ -319,6 +330,7 @@ int main(int argc, char *argv[])
     lo_server_thread_add_method(osc, "/exit", "", osc_exit, &d);
     lo_server_thread_add_method(osc, "/midi", "b", osc_midi, &d);
     lo_server_thread_add_method(osc, "/param", "if", osc_param, &d);
+    lo_server_thread_add_method(osc, "/program", "i", osc_program, &d);
     lo_server_thread_start(osc);
     printf("HOST> VST BEGIN\n");
     d.effect = vst_begin(module);
