@@ -21,9 +21,13 @@ with_lxvst = withTransport lxvst_default_udp
 lxvst_exit :: Message
 lxvst_exit = message "/exit" []
 
--- | Set VST parameter /k/ to value /n/.
+-- | Set VST parameter /k/ to value /v/.
 lxvst_param :: Int -> Double -> Message
-lxvst_param k n = message "/param" [int32 k,float n]
+lxvst_param k v = message "/param" [int32 k,float v]
+
+-- | Set VST parameters from /k/ to values at /v/.
+lxvst_param_n :: Int -> [Double] -> Message
+lxvst_param_n k v = message "/param_n" (int32 k : int32 (length v) : map float v)
 
 -- | Set VST program to /k/.
 lxvst_program :: Int -> Message

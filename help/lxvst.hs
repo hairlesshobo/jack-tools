@@ -5,7 +5,7 @@ import Sound.RJU.LXVST {- rju -}
 {-
 
 
-to_lxvst (lxvst_program (9 - 1))
+to_lxvst (lxvst_program (10 - 1))
 
 lxvst_load_sysex "/home/rohan/sw/hsc3-data/data/yamaha/dx7/rom/DX7-ROM1A.syx"
 lxvst_load_sysex "/home/rohan/sw/hsc3-data/data/yamaha/dx7/vrc/VRC-102-B.syx"

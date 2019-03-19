@@ -224,6 +224,24 @@ int osc_param(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
     return 0;
 }
 
+/* param_n ix:int cnt:int value0:float... ; set-parameter-sequence */
+int osc_param_n(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
+{
+    break_on(n < 3, "ARG-CNT");
+    break_on(t[0] != 'i' || t[1] != 'i', "ARG-TYPE");
+    struct lxvst *lxvst = (struct lxvst *) u;
+    VstInt32 ix = (VstInt32) a[0]->i;
+    int cnt = (int) a[1]->i;
+    break_on(cnt != (n - 2), "PARAMETER-CNT");
+    break_on((ix + cnt) > lxvst->effect->numParams, "PARAMETER INDEX");
+    for(int i = 2, j = 0; i < n; i++, j++) {
+        float val = a[i]->f;
+        vprintf(lxvst->opt.verbose, "HOST> OSC> PARAM %d=%f\n", ix + j, val);
+        lxvst->effect->setParameter(lxvst->effect, ix + j, val);
+    }
+    return 0;
+}
+
 /* midi msg:blob ; send-midi-message */
 int osc_midi(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
 {
@@ -330,6 +348,7 @@ int main(int argc, char *argv[])
     lo_server_thread_add_method(osc, "/exit", "", osc_exit, &d);
     lo_server_thread_add_method(osc, "/midi", "b", osc_midi, &d);
     lo_server_thread_add_method(osc, "/param", "if", osc_param, &d);
+    lo_server_thread_add_method(osc, "/param_n", NULL, osc_param_n, &d);
     lo_server_thread_add_method(osc, "/program", "i", osc_program, &d);
     lo_server_thread_start(osc);
     printf("HOST> VST BEGIN\n");
