@@ -40,5 +40,5 @@ lxvst_midi b = message "/midi" [Blob (blob_pack b)]
 -- | 'with_lxvst' of 'sendMessage'.
 --
 -- > to_lxvst lxvst_exit
-to_lxvst :: Message -> IO ()
-to_lxvst = with_lxvst . sendMessage
+to_lxvst :: [Message] -> IO ()
+to_lxvst = with_lxvst . mapM_ sendMessage
