@@ -1,5 +1,5 @@
 prefix = $(HOME)/opt
-bin = jack-data jack-dl jack-lxvst jack-osc jack-play jack-play-sc3 jack-plumbing jack-record jack-scope jack-transport jack-udp # jack-dx7
+bin = jack-data jack-dl jack-lxvst jack-osc jack-play jack-play-sc3 jack-plumbing jack-record jack-scope jack-transport jack-udp lxvst-query
 
 VST_SDK = $(HOME)/opt/src/vst3_sdk
 CPPFLAGS += -Wall -pedantic -O3 -g
@@ -32,6 +32,9 @@ jack-scope: jack-scope.c
 
 jack-transport: jack-transport.c
 	gcc $(CPPFLAGS) $(CFLAGS) -o jack-transport jack-transport.c $(LDLIBS) -lncurses -ltinfo
+
+lxvst-query: lxvst-query.cpp
+	g++ $(CPPFLAGS) $(CXXFLAGS) -I$(VST_SDK) -o lxvst-query lxvst-query.cpp $(LDLIBS) -ldl
 
 clean:
 	rm -f $(bin) *.o

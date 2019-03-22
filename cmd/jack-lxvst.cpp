@@ -338,7 +338,7 @@ int main(int argc, char *argv[])
         usage();
     }
     const char *vst_file = argv[optind];
-    printf("HOST> VST FILE=%s\n", vst_file);
+    printf("HOST> VST FILE = %s\n", vst_file);
     printf("HOST> LOAD VST LIBRARY\n");
     void *module = xdlopen(vst_file,RTLD_LAZY);
     printf("HOST> XINITTHREADS\n");
@@ -353,6 +353,7 @@ int main(int argc, char *argv[])
     lo_server_thread_start(osc);
     printf("HOST> VST BEGIN\n");
     d.effect = vst_begin(module);
+    printf("HOST> VST CHECK AUDIO AND MIDI I/O\n");
     vst_require_audio_io(d.effect,0,(VstInt32)d.opt.n_channels);
     vst_require_midi(d.effect);
     printf("HOST> #PROGRAMS = %d, #PARAMS = %d\n", d.effect->numPrograms, d.effect->numParams);
