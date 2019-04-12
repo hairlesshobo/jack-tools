@@ -5,7 +5,7 @@ Rohan Drape <rd@slavepianos.org>
 
 NAME
 ----
-jack-transport - Minimalist Jack Transport Interface
+jack-transport - Text console jack transport interface
 
 SYNOPSIS
 --------
@@ -13,7 +13,7 @@ jack-transport
 
 DESCRIPTION
 -----------
-jack-transport is a minimalist Jack transport control interface using
+jack-transport is a jack transport control interface using
 ncurses.  It displays the transport state and current time, and
 provides standard operating keys.
 

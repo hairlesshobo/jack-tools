@@ -15,15 +15,10 @@
 #include <lo/lo.h>
 
 #include "c-common/jack-port.h"
+#include "c-common/failure.h"
 #include "c-common/print.h"
 
 #include "jack-dl.h"
-
-void fail(char *s)
-{
-  fprintf(stderr, "%s", s);
-  exit(EXIT_FAILURE);
-}
 
 int dsp_run(jack_nframes_t nf, void *ptr)
 {
@@ -138,7 +133,7 @@ void world_init(struct world *w, int nc, int nk, int nb)
   w->ef = false;
   strncpy(w->cn,"jack-dl",64);
   w->c = jack_client_open(w->cn,JackNullOption,NULL);
-  if(!w->c) fail("could not create jack client\n");
+  die_when(!w->c,"could not create jack client\n");
   jack_set_process_callback(w->c, dsp_run, w);
   w->sr = (float)jack_get_sample_rate(w->c);
   jack_port_make_standard(w->c, w->ip, w->nc, false, false);
@@ -179,7 +174,7 @@ int main(int argc, char **argv)
   lo_server_thread_add_method(osc, "/b_alloc", "iii", osc_b_alloc, &w);
   lo_server_thread_add_method(osc, "/quit", NULL, osc_quit, &w);
   lo_server_thread_start(osc);
-  if(jack_activate(w.c)) fail("jack-dl: jack_activate() failed\n");
+  die_when(jack_activate(w.c),"jack-dl: jack_activate() failed\n");
   jack_port_connect_to_env(w.c, w.nc, 0, "JACK_DL_CONNECT_TO");
   jack_port_connect_from_env(w.c, w.nc, 0, "JACK_DL_CONNECT_FROM");
   while(!w.ef) {

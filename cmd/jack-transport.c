@@ -115,7 +115,7 @@ int main(int argc, char **argv)
   halfdelay(1);
   noecho();
 
-  while (1) {
+  while (true) {
     int c;
     jack_transport_state_t s;
     jack_position_t p;

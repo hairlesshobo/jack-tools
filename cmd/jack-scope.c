@@ -639,20 +639,14 @@ main(int argc, char **argv)
   } else {
     c = jack_client_open(nm,JackNullOption,NULL);
   }
-  if(!c) {
-    eprintf("jack-scope: could not create jack client: %s", nm);
-    FAILURE;
-  }
+  die_when(!c,"jack-scope: could not create jack client: %s", nm);
   jack_set_error_function(jack_client_minimal_error_handler);
   jack_on_shutdown(c, jack_client_minimal_shutdown_handler, 0);
   jack_set_process_callback(c, jackscope_process, &d);
   d.fps = (float) jack_get_sample_rate(c);
   d.delay_frames = floorf((d.delay_msec / 1000.0) * d.fps);
   jack_port_make_standard(c, d.port, d.channels, false, false);
-  if (jack_client_activate(c)) {
-    eprintf("jack-scope: jack_activate() failed\n");
-    FAILURE;
-  }
+  die_when(jack_client_activate(c),"jack-scope: jack_activate() failed\n");
   if (!p) {
     p = getenv("JACK_SCOPE_CONNECT_TO");
   }

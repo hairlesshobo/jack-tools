@@ -114,19 +114,11 @@ int process(jack_nframes_t nframes, void *PTR)
 
   /* Check period size is workable. If the buffer is large, ie 4096
      frames, this should never be of practical concern. */
-  if(nbytes >= d->buffer_bytes) {
-    eprintf("jack-record: period size exceeds limit\n");
-    FAILURE;
-    return 1;
-  }
+  die_when(nbytes >= d->buffer_bytes,"jack-record: period size exceeds limit\n");
 
   /* Check that there is adequate space in the ringbuffer. */
   int space = (int) jack_ringbuffer_write_space(d->ring_buffer);
-  if(space < nbytes) {
-    eprintf("jack-record: overflow error, %d > %d\n", nbytes, space);
-    FAILURE;
-    return 1;
-  }
+  die_when(space < nbytes,"jack-record: overflow error, %d > %d\n", nbytes, space);
 
   /* Interleave input to buffer and copy into ringbuffer. */
   signal_interleave_to(d->j_buffer,
@@ -136,12 +128,7 @@ int process(jack_nframes_t nframes, void *PTR)
   int err = jack_ringbuffer_write(d->ring_buffer,
 				  (char *) d->j_buffer,
 				  (size_t) nbytes);
-  if(err != nbytes) {
-    eprintf("jack-record: error writing to ringbuffer, %d != %d\n",
-	    err, nbytes);
-    FAILURE;
-    return 1;
-  }
+  die_when(err != nbytes,"jack-record: ringbuffer write error, %d != %d\n",err,nbytes);
 
   /* Poke the disk thread to indicate data is on the ring buffer. */
   char b = 1;
@@ -224,10 +211,7 @@ int main(int argc, char *argv[])
   }
 
   /* Allocate channel based data. */
-  if(d.channels < 1) {
-    eprintf("jack-record: illegal number of channels: %d\n", d.channels);
-    FAILURE;
-  }
+  die_when(d.channels < 1,"jack-record: channels < 1: %d\n", d.channels);
   d.in = xmalloc(d.channels * sizeof(float *));
   d.sound_file = xmalloc(d.channels * sizeof(SNDFILE *));
   d.input_port = xmalloc(d.channels * sizeof(jack_port_t *));

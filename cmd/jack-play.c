@@ -151,11 +151,7 @@ int signal_proc(jack_nframes_t nframes, void *PTR)
   int nbytes = nsamples * sizeof(float);
 
   /* Ensure the period size is workable. */
-  if(nbytes >= d->buffer_bytes) {
-    eprintf("jack-play: period size exceeds limit\n");
-    FAILURE;
-    return 1;
-  }
+  die_when(nbytes >= d->buffer_bytes,"jack-play: period size exceeds limit\n");
 
   /* Get port data buffers. */
   int i,j;
@@ -168,7 +164,7 @@ int signal_proc(jack_nframes_t nframes, void *PTR)
      also. */
   if(d->o.transport_aware && !jack_transport_is_rolling(d->client)) {
     if(observe_end_of_process ()) {
-      FAILURE;
+      FAILURE; /* ? */
       return 1;
     } else {
       signal_set(d->out, nframes, d->channels, 0.0);
@@ -182,11 +178,9 @@ int signal_proc(jack_nframes_t nframes, void *PTR)
 				d->o.src_ratio,
 				(long)nframes,
 				d->j_buffer);
-  if(err==0) {
-    eprintf("jack-play: sample rate converter failed: %s\n",
-	    src_strerror(src_error(d->src)));
-    FAILURE;
-  }
+  die_when(err==0,
+           "jack-play: sample rate converter failed: %s\n",
+           src_strerror(src_error(d->src)));
 
   /* Uninterleave available data to the output buffers. */
   for(i = 0; i < err; i++) {
@@ -280,11 +274,7 @@ int jackplay(const char *file_name,
   d.channels = sfinfo.channels;
 
   /* Allocate channel based data. */
-  if(d.channels < 1) {
-    eprintf("jack-play: illegal number of channels in file: %d\n",
-	    d.channels);
-    FAILURE;
-  }
+  die_when(d.channels < 1,"jack-play: channels < 1: %d\n",d.channels);
   d.out = xmalloc(d.channels * sizeof(float *));
   d.output_port = xmalloc(d.channels * sizeof(jack_port_t *));
 
@@ -303,11 +293,7 @@ int jackplay(const char *file_name,
 			    d.channels,
 			    &err,
 			    &d);
-  if(!d.src) {
-    eprintf("jack-play: sample rate conversion setup failed: %s\n",
-	    src_strerror(err));
-    FAILURE;
-  }
+  die_when(!d.src,"jack-play: SRC setup failed: %s\n",src_strerror(err));
 
   /* Create communication pipe. */
   xpipe(d.pipe);
@@ -318,10 +304,7 @@ int jackplay(const char *file_name,
   } else {
     d.client = jack_client_open(d.o.client_name,JackNullOption,NULL);
   }
-  if(!d.client) {
-    eprintf("jack-play: could not create jack client: %s", d.o.client_name);
-    FAILURE;
-  }
+  die_when(!d.client,"jack-play: create client: %s", d.o.client_name);
 
   /* Start disk thread, the priority number is a random guess.... */
   jack_client_create_thread (d.client,
