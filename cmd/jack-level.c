@@ -23,6 +23,9 @@
 void usage(void)
 {
   eprintf("Usage: jack-level [ options ]\n");
+  eprintf("  -k INT -- port index offset\n");
+  eprintf("  -n INT -- number of channels\n");
+  eprintf("  -p STR -- port connection pattern\n");
   exit(EXIT_SUCCESS);
 }
 
@@ -65,11 +68,12 @@ int dsp_run(jack_nframes_t nf, void *ptr)
         float *s = (float *)jack_port_get_buffer(w->ip[i], nf);
         w->s_lvl[0][i] = 0.0;
         for(int j = 0; j < nf; j++) {
-            if(s[j] > w->s_max[i]) {
-                w->s_max[i] = s[j];
+            float x = fabsf(s[j]);
+            if(x > w->s_max[i]) {
+                w->s_max[i] = x;
             }
-            if(s[j] > w->s_lvl[0][i]) {
-                w->s_lvl[0][i] = s[j];
+            if(x > w->s_lvl[0][i]) {
+                w->s_lvl[0][i] = x;
             }
         }
         w->s_lvl[1][i] = (w->s_lvl[0][i] + w->s_lvl[1][i]) / 2.0;
