@@ -55,7 +55,9 @@ struct lxvst_opt
     u8 note_data_ch;
     u8 param_data_ch;
     char udp_port[6]; /* UDP port number as ASCII string */
-    int n_channels;
+    int n_in_channels;
+    int n_out_channels;
+    bool use_midi;
     bool x11;
 };
 
@@ -65,20 +67,22 @@ struct lxvst
     Display *x11_dpy;
     bool usr_exit;
     float sample_rate;
+    jack_port_t **audio_in;
     jack_port_t **audio_out;
     jack_port_t *midi_in;
+    float **in;
     float **out;
     struct lxvst_opt opt;
 };
 
 struct lxvst_opt lxvst_opt_default(void)
 {
-    return {false, false, -1.0, 0, 0, {'5','7','2','1','0',0}, 2, true};
+    return {false, false, -1.0, 0, 0, {'5','7','2','1','0',0}, 0, 2, true, true};
 }
 
 struct lxvst lxvst_default()
 {
-    return { NULL, NULL, false, -1, NULL, NULL, NULL, lxvst_opt_default()};
+    return { NULL, NULL, false, -1, NULL, NULL, NULL, NULL, NULL, lxvst_opt_default()};
 }
 
 #define break_on(x,s)                                                          \
@@ -180,12 +184,17 @@ void midi_proc(lxvst *d, jack_nframes_t nframes)
 int audio_proc(jack_nframes_t nframes, void *ptr)
 {
     struct lxvst *d = (struct lxvst *) ptr;
-    midi_proc(d, nframes);
+    if(d->opt.use_midi) {
+        midi_proc(d, nframes);
+    }
     d->effect->dispatcher(d->effect, effSetBlockSize, 0, nframes, 0, 0);
-    for (int i = 0; i < d->opt.n_channels; i++) {
+    for (int i = 0; i < d->opt.n_in_channels; i++) {
+        d->in[i] = (float *) jack_port_get_buffer(d->audio_in[i], nframes);
+    }
+    for (int i = 0; i < d->opt.n_out_channels; i++) {
         d->out[i] = (float *) jack_port_get_buffer(d->audio_out[i], nframes);
     }
-    d->effect->processReplacing(d->effect, NULL, d->out, (VstInt32) nframes);
+    d->effect->processReplacing(d->effect, d->in, d->out, (VstInt32) nframes);
     return 0;
 }
 
@@ -270,9 +279,11 @@ void usage(void)
 {
     eprintf("Usage: jack-lxvst [ options ] lxvst-file\n");
     eprintf("    -c N : Note data channel (default=0)\n");
-    eprintf("    -i   : Generate unique jack client name (ie. append PID)\n");
+    eprintf("    -i N : Number of input audio channels (default=0)\n");
     eprintf("    -l   : Log (verbose) midi data etc.\n");
-    eprintf("    -n N : Number of audio channels (default=2)\n");
+    eprintf("    -m   : No midi\n");
+    eprintf("    -n   : Generate unique jack client name (ie. append PID)\n");
+    eprintf("    -o N : Number of audio channels (default=2)\n");
     eprintf("    -p N : Parameter data channel (default=0)\n");
     eprintf("    -r N : Sample rate (default=JACK SR)\n");
     eprintf("    -u   : UDP port number (default=57210)\n");
@@ -283,7 +294,7 @@ void usage(void)
 void parse_arg(struct lxvst *d,int argc, char *argv[])
 {
     int c;
-    while ((c = getopt(argc, argv, "c:hiln:p:r:u:x")) != -1) {
+    while ((c = getopt(argc, argv, "c:hi:lmno:p:r:u:x")) != -1) {
         switch (c) {
         case 'c':
             d->opt.note_data_ch = (u8)strtol(optarg, NULL, 10);
@@ -292,13 +303,19 @@ void parse_arg(struct lxvst *d,int argc, char *argv[])
             usage();
             break;
         case 'i':
-            d->opt.unique_name = true;
+            d->opt.n_in_channels = (int)strtol(optarg, NULL, 10);
             break;
         case 'l':
             d->opt.verbose = true;
             break;
+        case 'm':
+            d->opt.use_midi = false;
+            break;
         case 'n':
-            d->opt.n_channels = (int)strtol(optarg, NULL, 10);
+            d->opt.unique_name = true;
+            break;
+        case 'o':
+            d->opt.n_out_channels = (int)strtol(optarg, NULL, 10);
             break;
         case 'p':
             d->opt.param_data_ch = (u8)strtol(optarg, NULL, 10);
@@ -324,8 +341,10 @@ int main(int argc, char *argv[])
     printf("HOST> PARSE ARGUMENTS\n");
     parse_arg(&d, argc, argv);
     printf("HOST> ALLOCATE LXVST MEMORY\n");
-    d.out = (float **) xmalloc(d.opt.n_channels * sizeof(float *));
-    d.audio_out = (jack_port_t **) xmalloc(d.opt.n_channels * sizeof(jack_port_t *));
+    d.in = (float **) xmalloc(d.opt.n_in_channels * sizeof(float *));
+    d.audio_in = (jack_port_t **) xmalloc(d.opt.n_in_channels * sizeof(jack_port_t *));
+    d.out = (float **) xmalloc(d.opt.n_out_channels * sizeof(float *));
+    d.audio_out = (jack_port_t **) xmalloc(d.opt.n_out_channels * sizeof(jack_port_t *));
     printf("HOST> VERIFY PLATFORM\n");
     vst_verify_platform();
     printf("HOST> PROCESS ARGUMENTS\n");
@@ -346,7 +365,9 @@ int main(int argc, char *argv[])
     printf("HOST> START OSC THREAD\n");
     lo_server_thread osc = lo_server_thread_new(d.opt.udp_port, osc_error);
     lo_server_thread_add_method(osc, "/exit", "", osc_exit, &d);
-    lo_server_thread_add_method(osc, "/midi", "b", osc_midi, &d);
+    if(d.opt.use_midi) {
+        lo_server_thread_add_method(osc, "/midi", "b", osc_midi, &d);
+    }
     lo_server_thread_add_method(osc, "/param", "if", osc_param, &d);
     lo_server_thread_add_method(osc, "/param_n", NULL, osc_param_n, &d);
     lo_server_thread_add_method(osc, "/program", "i", osc_program, &d);
@@ -354,8 +375,10 @@ int main(int argc, char *argv[])
     printf("HOST> VST BEGIN\n");
     d.effect = vst_begin(module);
     printf("HOST> VST CHECK AUDIO AND MIDI I/O\n");
-    vst_require_audio_io(d.effect,0,(VstInt32)d.opt.n_channels);
-    vst_require_midi(d.effect);
+    vst_require_audio_io(d.effect,(VstInt32)d.opt.n_in_channels,(VstInt32)d.opt.n_out_channels);
+    if(d.opt.use_midi) {
+        vst_require_midi(d.effect);
+    }
     printf("HOST> #PROGRAMS = %d, #PARAMS = %d\n", d.effect->numPrograms, d.effect->numParams);
     if(d.opt.verbose) {
         printf("HOST> PARAM NAMES\n");
@@ -383,27 +406,39 @@ int main(int argc, char *argv[])
     d.effect->dispatcher(d.effect, effSetSampleRate, 0, 0, 0, d.sample_rate);
     printf("HOST> START EFFECT\n");
     d.effect->dispatcher(d.effect, effMainsChanged, 0, 1, 0, 0);
-    printf("HOST> MAKE JACK MIDI INPUT PORT\n");
-    jack_port_make_standard(client, &d.midi_in, 1, false, true);
-    printf("HOST> MAKE JACK AUDIO OUTPUT PORTS\n");
-    jack_port_make_standard(client, d.audio_out, d.opt.n_channels, true, false);
+    if(d.opt.use_midi) {
+        printf("HOST> MAKE JACK MIDI INPUT PORT\n");
+        jack_port_make_standard(client, &d.midi_in, 1, false, true);
+    }
+    printf("HOST> MAKE JACK AUDIO INPUT & OUTPUT PORTS\n");
+    jack_port_make_standard(client, d.audio_in, d.opt.n_in_channels, false, false);
+    jack_port_make_standard(client, d.audio_out, d.opt.n_out_channels, true, false);
     printf("HOST> ACTIVATE JACK CLIENT\n");
     jack_client_activate(client);
-    char *midi_src_name = getenv("JACK_LXVST_MIDI_CONNECT_FROM");
-    printf("HOST> CONNECT MIDI\n");
-    if (midi_src_name) {
-        printf("HOST> MIDI INPUT = %s\n", midi_src_name);
-        char midi_dst_name[128]; /* LIMIT */
-        snprintf(midi_dst_name, 128, "%s:midi_in_1", client_name);
-        jack_port_connect_named(client, midi_src_name, midi_dst_name);
+    if(d.opt.use_midi) {
+        char *midi_src_name = getenv("JACK_LXVST_MIDI_CONNECT_FROM");
+        printf("HOST> CONNECT MIDI\n");
+        if (midi_src_name) {
+            printf("HOST> MIDI INPUT = %s\n", midi_src_name);
+            char midi_dst_name[128]; /* LIMIT */
+            snprintf(midi_dst_name, 128, "%s:midi_in_1", client_name);
+            jack_port_connect_named(client, midi_src_name, midi_dst_name);
+        }
     }
     printf("HOST> CONNECT AUDIO\n");
+    char *audio_src_pattern = getenv("JACK_LXVST_CONNECT_FROM");
+    if (audio_src_pattern) {
+        printf("HOST> AUDIO INPUT = %s\n", audio_src_pattern);
+        char cl_pattern[128]; /* LIMIT */
+        snprintf(cl_pattern, 128, "%s:in_%%d", client_name);
+        jack_port_connect_pattern(client, d.opt.n_in_channels, 0, audio_src_pattern, cl_pattern);
+    }
     char *audio_dst_pattern = getenv("JACK_LXVST_CONNECT_TO");
     if (audio_dst_pattern) {
         printf("HOST> AUDIO OUTPUT = %s\n", audio_dst_pattern);
-        char audio_src_pattern[128]; /* LIMIT */
-        snprintf(audio_src_pattern, 128, "%s:out_%%d", client_name);
-        jack_port_connect_pattern(client, d.opt.n_channels, 0, audio_src_pattern, audio_dst_pattern);
+        char cl_pattern[128]; /* LIMIT */
+        snprintf(cl_pattern, 128, "%s:out_%%d", client_name);
+        jack_port_connect_pattern(client, d.opt.n_out_channels, 0, cl_pattern, audio_dst_pattern);
     }
     printf("HOST> WAIT FOR USER EXIT (OSC /EXIT OR EDITOR CLOSE)\n");
     while (d.usr_exit == false) {
@@ -428,6 +463,8 @@ int main(int argc, char *argv[])
     printf("HOST> CLOSE MODULE\n");
     xdlclose(module);
     printf("HOST> FREE MEMORY\n");
+    free(d.in);
+    free(d.audio_in);
     free(d.out);
     free(d.audio_out);
     return 0;
