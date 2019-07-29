@@ -210,31 +210,31 @@ int osc_exit(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
     return 0;
 }
 
-/* program ix:int ; set-program */
-int osc_program(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
+/* set_program ix:int */
+int osc_set_program(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
 {
     struct lxvst *lxvst = (struct lxvst *) u;
     VstInt32 ix = (VstInt32) a[0]->i;
     break_on(ix >= lxvst->effect->numPrograms, "PROGRAM INDEX");
-    vprintf(lxvst->opt.verbose, "HOST> OSC> PROGRAM %d\n", ix);
+    vprintf(lxvst->opt.verbose, "HOST> OSC> SET-PROGRAM %d\n", ix);
     vst_set_program(lxvst->effect, ix);
     return 0;
 }
 
-/* param ix:int value:float ; set-parameter */
-int osc_param(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
+/* set_param ix:int value:float ; set-parameter */
+int osc_set_param(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
 {
     struct lxvst *lxvst = (struct lxvst *) u;
     VstInt32 ix = (VstInt32) a[0]->i;
     float val = a[1]->f;
     break_on(ix >= lxvst->effect->numParams, "PARAMETER INDEX");
-    vprintf(lxvst->opt.verbose, "HOST> OSC> PARAM %d=%f\n", ix, val);
+    vprintf(lxvst->opt.verbose, "HOST> OSC> SET-PARAM %d=%f\n", ix, val);
     lxvst->effect->setParameter(lxvst->effect, ix, val);
     return 0;
 }
 
-/* param_n ix:int cnt:int value0:float... ; set-parameter-sequence */
-int osc_param_n(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
+/* set_param_seq ix:int cnt:int value0:float... ; set-parameter-sequence */
+int osc_set_param_seq(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
 {
     break_on(n < 3, "ARG-CNT");
     break_on(t[0] != 'i' || t[1] != 'i', "ARG-TYPE");
@@ -245,8 +245,21 @@ int osc_param_n(const char *p, const char *t, lo_arg **a, int n, void *d, void *
     break_on((ix + cnt) > lxvst->effect->numParams, "PARAMETER INDEX");
     for(int i = 2, j = 0; i < n; i++, j++) {
         float val = a[i]->f;
-        vprintf(lxvst->opt.verbose, "HOST> OSC> PARAM %d=%f\n", ix + j, val);
+        vprintf(lxvst->opt.verbose, "HOST> OSC> SET-PARAM-SEQ %d=%f\n", ix + j, val);
         lxvst->effect->setParameter(lxvst->effect, ix + j, val);
+    }
+    return 0;
+}
+
+/* set_print_param ; print-parameters */
+int osc_print_param(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
+{
+    break_on(n != 0, "ARG-CNT");
+    struct lxvst *lxvst = (struct lxvst *) u;
+    int cnt = (int) lxvst->effect->numParams;
+    for(int i = 0; i < cnt; i++) {
+        float val = lxvst->effect->getParameter(lxvst->effect, i);
+        printf ("%f%c",val,i == cnt - 1 ? '\n' : ' ');
     }
     return 0;
 }
@@ -286,8 +299,8 @@ void usage(void)
     eprintf("    -o N : Number of audio channels (default=2)\n");
     eprintf("    -p N : Parameter data channel (default=0)\n");
     eprintf("    -r N : Sample rate (default=JACK SR)\n");
-    eprintf("    -u   : UDP port number (default=57210)\n");
-    eprintf("    -x   : Do no run X11 interface (default=true)\n");
+    eprintf("    -u N : UDP port number (default=57210)\n");
+    eprintf("    -x   : Do not run X11 interface\n");
     FAILURE;
 }
 
@@ -368,9 +381,10 @@ int main(int argc, char *argv[])
     if(d.opt.use_midi) {
         lo_server_thread_add_method(osc, "/midi", "b", osc_midi, &d);
     }
-    lo_server_thread_add_method(osc, "/param", "if", osc_param, &d);
-    lo_server_thread_add_method(osc, "/param_n", NULL, osc_param_n, &d);
-    lo_server_thread_add_method(osc, "/program", "i", osc_program, &d);
+    lo_server_thread_add_method(osc, "/set_param", "if", osc_set_param, &d);
+    lo_server_thread_add_method(osc, "/set_param_seq", NULL, osc_set_param_seq, &d);
+    lo_server_thread_add_method(osc, "/print_param", "", osc_print_param, &d);
+    lo_server_thread_add_method(osc, "/set_program", "i", osc_set_program, &d);
     lo_server_thread_start(osc);
     printf("HOST> VST BEGIN\n");
     d.effect = vst_begin(module);
