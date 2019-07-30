@@ -6,6 +6,7 @@ install:
 
 clean:
 	(cd cmd ; make clean)
+	rm -fR dist
 
 push-rd:
 	darcs push -a rd@rohandrape.net:sw/rju
