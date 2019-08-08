@@ -47,22 +47,22 @@ To build type:
 
 tested-with: [gcc](http://gcc.gnu.org/) 8.3.0
 
-© [rohan drape][rd], 2003-2019, [gpl]. with contributions by:
+© [rohan drape](http://rohandrape.net/),
+  2003-2019,
+  [gpl](http://gnu.org/copyleft/).
+  with contributions by:
 
 - jeremy hall
 
-see the [darcs][darcs] [history](?t=rju&q=history) for details
+see the [darcs](http://darcs.net/) [history](?t=rju&q=history) for details
 
 initial announcements:
-[clock](http://article.gmane.org/gmane.comp.audio.jackit/5726),
-[osc](http://lists.linuxaudio.org/pipermail/linux-audio-announce/2004-December/000502.html),
-plumbing
-[[gmane](http://article.gmane.org/gmane.comp.audio.jackit/3655),
- [laa](http://lists.linuxaudio.org/pipermail/linux-audio-announce/2004-March/000340.html)],
-[scope](http://article.gmane.org/gmane.comp.audio.jackit/5727),
-[udp](http://article.gmane.org/gmane.comp.audio.jackit/5548)
+[osc](http://lists.linuxaudio.org/pipermail/linux-audio-announce/2004-December/000502.html)
+[plumbing](http://lists.linuxaudio.org/pipermail/linux-audio-announce/2004-March/000340.html)
 
-[rd]: http://rohandrape.net/
-[gpl]: http://gnu.org/copyleft/
-[darcs]: http://darcs.net/
-[history]:  http://rohandrape.net/r/d/darcsweb.cgi?r=rju
+<!--
+[clock](http://article.gmane.org/gmane.comp.audio.jackit/5726),
+[plumbing](http://article.gmane.org/gmane.comp.audio.jackit/3655)
+[scope](http://article.gmane.org/gmane.comp.audio.jackit/5727)
+[udp](http://article.gmane.org/gmane.comp.audio.jackit/5548)
+-->
