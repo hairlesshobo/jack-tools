@@ -47,7 +47,7 @@ lxvst_print_param = message "/print_param" []
 lxvst_set_program :: Int -> Message
 lxvst_set_program k = message "/set_program" [int32 k]
 
--- | Sent VST midi message /b/.
+-- | Pack plain midi message.
 lxvst_midi :: [Word8] -> Message
 lxvst_midi b = message "/midi" [Blob (blob_pack b)]
 
