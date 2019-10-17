@@ -29,7 +29,7 @@ Clients request to receive timing and change notification packets by
 sending a "request notification" packet, '/receive', to the jack-osc
 server.  This packet has the form
 
-    /receive category
+    /receive category:i
 
 where category is a bit mask that indicates what categories of
 notification packets are requested.  The bit locations are:
@@ -40,6 +40,7 @@ notification packets are requested.  The bit locations are:
     REQUEST_PULSE       0x0000002
     REQUEST_CORRECTION  0x0000004
     REQUEST_TRANSPORT   0x0000008
+    REQUEST_TIME        0x0000016
     REQUEST_ALL         0xFFFFFFF
 
 Clients request notification messages to be sent to an address that is
@@ -47,7 +48,7 @@ not that of the packet that requests the notification by sending a
 "request notification at" packet, '/receive_at'.  This packet has the
 form
 
-    /receive_at category port-number host-name
+    /receive_at category:i port-number:i host-name:s
 
 where category is as for '/receive' and where port-number and
 host-name give the address that notification should be sent to.
@@ -58,11 +59,18 @@ client from the register send a request with a category value of
 negative one.
 
 After requesting notification the client will receive all relevant
-timing packets sent by the server.  All jack-osc timing packets are
+timing packets sent by the server.
+
+The simplest time data is sent as:
+
+/time loc:d
+:   Transport time (in seconds).
+
+All other jack-osc timing packets are
 sent at the start of a JACK period as OSC message and have the same
 shape:
 
-    tag ntp utc frm arg...
+    tag ntp:t utc:d frm:h arg...
 
 where tag is the command name, and ntp, utc and frm are time stamps
 that indicate the same time point, the start of the JACK period when
@@ -74,7 +82,7 @@ time stamps.  arg...  is the set of tag specific arguments.
 
 The timing packets sent by jack-osc are:
 
-/pulse ntp utc frm p-ntp p-utc p-frm pulse
+/pulse ntp:t utc:d frm:h p-ntp:t p-utc:d p-frm:h pulse:i
 :   Pulse Location.  This packet indicates that the nearest frame to
     the integer pulse pulse occurs at the time given by the time
     stamps p-ntp, p-utc and p-frm.  The pulse number is one based.
@@ -83,7 +91,7 @@ The timing packets sent by jack-osc are:
     transport is stopped.  This packet is sent before the '/tick'
     packet for the same period.
 
-/tick ntp utc frm frame pulse
+/tick ntp:t utc:d frm:h frame:h pulse:d
 :   Period Tick.  This packet is sent once per JACK period.  The
     integer value frame is the transport location in frames, the
     double precision real value pulse is the transport location in
@@ -91,7 +99,7 @@ The timing packets sent by jack-osc are:
     approximate only, the accumulator is corrected at each integer
     pulse location.
 
-/drift ntp utc frm ntp-dif utc-dif
+/drift ntp:t utc:d frm:h ntp-dif:h utc-dif:d
 :   Drift Correction.  This packet is sent whenever the clock drift
     correction is run.  The frequency of this is set by the *-c*
     option to the jack-osc server.  The integer value ntp-dif is the

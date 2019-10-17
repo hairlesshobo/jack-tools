@@ -1,4 +1,5 @@
 #include <math.h> /* C99 */
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,6 +27,7 @@
 #define REQUEST_PULSE       0x00000002
 #define REQUEST_CORRECTION  0x00000004
 #define REQUEST_TRANSPORT   0x00000008
+#define REQUEST_TIME        0x00000010
 #define REQUEST_ALL         0xFFFFFFFF
 
 struct jackosc
@@ -42,14 +44,16 @@ struct jackosc
   i64 j_frm;			/* Frame clock (jackd) */
   u64 ntp;			/* NTP clock */
   f64 utc;			/* UTC clock */
-  i8 roll;
-  i32 correct_interval;
-  i32 correct_n;
-  i8 fps_alt;
-  jack_client_t *client;
-  int fd;
-  client_register_t *cr;
-  pthread_t osc_thread;
+  f64 tm;                       /* Transport time */
+  f64 tm_q;                     /* time-quanta */
+  i8 roll;                      /*  */
+  i32 correct_interval;         /*  */
+  i32 correct_n;                /*  */
+  bool fps_alt;                 /* true if sample-rate is altered in this block */
+  jack_client_t *client;        /*  */
+  int fd;                       /*  */
+  client_register_t *cr;        /*  */
+  pthread_t osc_thread;         /*  */
 };
 
 #define COMMON_SETUP(n)				\
@@ -64,6 +68,17 @@ struct jackosc
   packet_sz = osc_construct_message(addr, dsc, o, packet, 256);		\
   sendto_client_register(d->fd, d->cr, packet, packet_sz, incl);
 
+void send_jck_time(struct jackosc *d)
+{
+  u8 packet[256];
+  int packet_sz;							\
+  osc_data_t o[1];
+  o[0].d = d->tm;
+  packet_sz = osc_construct_message("/time", ",d", o, packet, 256);		\
+  sendto_client_register(d->fd, d->cr, packet, packet_sz, REQUEST_TIME);
+  eprintf("send_jck_time: %f\n",d->tm);
+}
+
 void send_jck_drift(struct jackosc *d,
 		    u64 ntp, f64 utc, i64 frm,
 		    i64 ntp_dif, f64 utc_dif)
@@ -72,6 +87,7 @@ void send_jck_drift(struct jackosc *d,
   o[3].h = ntp_dif;
   o[4].d = utc_dif;
   COMMON_SEND("/drift", ",tdhhd", REQUEST_CORRECTION);
+  eprintf("send_jck_drift\n");
 }
 
 void send_jck_tick(struct jackosc *d,
@@ -82,6 +98,7 @@ void send_jck_tick(struct jackosc *d,
   o[3].h = frame;
   o[4].d = pulse;
   COMMON_SEND("/tick", ",tdhhd", REQUEST_TICK);
+  eprintf("send_jck_tick\n");
 }
 
 void send_jck_current(int fd, struct sockaddr_in address,
@@ -109,6 +126,7 @@ void send_jck_pulse(struct jackosc *d,
   o[5].h = p_frm;
   o[6].i = pulse;
   COMMON_SEND("/pulse", ",tdhtdhi", REQUEST_PULSE);
+  eprintf("send_jck_pulse\n");
 }
 
 void send_jck_transport(struct jackosc *d,
@@ -123,6 +141,7 @@ void send_jck_transport(struct jackosc *d,
   o[6].d = pt;
   o[7].i = rolling;
   COMMON_SEND("/transport", ",tdhddddi", REQUEST_TRANSPORT);
+  eprintf("send_jck_transport\n");
 }
 
 void send_jck_status(int fd, struct sockaddr_in address,
@@ -142,6 +161,7 @@ void send_jck_status(int fd, struct sockaddr_in address,
   if(packet_sz) {
     sendto_exactly(fd, packet, packet_sz, address);
   }
+  eprintf("send_jck_status\n");
 }
 
 #define OSC_PARSE_MSG(command,types)				\
@@ -207,7 +227,7 @@ f64 get_pulses_per_frame(f64 pulses_per_minute,
 
 int jackosc_process(jack_nframes_t nframes, void *PTR)
 {
-  struct jackosc *d =(struct jackosc *) PTR;
+  struct jackosc *d = (struct jackosc *)PTR;
   if(d->correct_n >= d->correct_interval) {
     struct timeval t = current_time_as_utc_timeval();
     u64 c_ntp = utc_timeval_to_ntp(t);
@@ -221,7 +241,12 @@ int jackosc_process(jack_nframes_t nframes, void *PTR)
   }
   jack_position_t p;
   jack_transport_state_t s = jack_transport_query(d->client, &p);
-  if(( s & JackTransportRolling)!= d->roll) {
+  f64 tm = (f64)p.frame / (f64)p.frame_rate;
+  if(tm - d->tm >= d->tm_q) {
+    d->tm = tm;
+    send_jck_time(d);
+  }
+  if((s & JackTransportRolling) != d->roll) {
     d->roll = s & JackTransportRolling;
     send_jck_transport(d, d->ntp, d->utc, d->frm,
 		       d->fps, d->ppm, d->ppc, d->pt, d->roll);
@@ -231,9 +256,9 @@ int jackosc_process(jack_nframes_t nframes, void *PTR)
     d->tpf = get_ticks_per_frame(p.ticks_per_beat, d->ppm, d->fps);
     send_jck_transport(d, d->ntp, d->utc, d->frm,
 		       d->fps, d->ppm, d->ppc, d->pt, d->roll);
-    d->fps_alt = 0;
+    d->fps_alt = false;
   }
-  if(( p.valid & JackPositionBBT)) {
+  if((p.valid & JackPositionBBT)) {
     if(d->ppm != p.beats_per_minute) {
       d->ppm = p.beats_per_minute;
       d->ppf = get_pulses_per_frame(d->ppm, d->fps);
@@ -249,7 +274,7 @@ int jackosc_process(jack_nframes_t nframes, void *PTR)
     }
     if(d->roll &&
        (p.tick == 0 ||
-	((f64)p.tick +(floorf((f64)nframes * d->tpf)))> (f64)p.ticks_per_beat)) {
+	((f64)p.tick + (floorf((f64)nframes * d->tpf))) > (f64)p.ticks_per_beat)) {
       i32 p_tick_off =(p.tick == 0)? 0 : p.ticks_per_beat - p.tick;
       f64 p_frm_off = (f64)p_tick_off * d->tpf;
       f64 p_frm = (f64)d->frm + p_frm_off;
@@ -285,15 +310,16 @@ int jackosc_fps_handler(jack_nframes_t fps, void *PTR)
 {
   struct jackosc *d =(struct jackosc *) PTR;
   d->fps = (f64) fps;
-  d->fps_alt = 1;
+  d->fps_alt = true;
   return 0;
 }
 
 void jackosc_usage(void)
 {
   eprintf("Usage: jack-osc [ options ]\n");
-  eprintf("   -c  Drift correction interval in periods (default=64).\n");
-  eprintf("   -p  Port number (default=57130).\n");
+  eprintf("   -c  Drift correction interval in periods (default=64)\n");
+  eprintf("   -p  Port number (default=57130)\n");
+  eprintf("   -q  Time quanta (default=0.1)\n");
   FAILURE;
 }
 
@@ -310,6 +336,8 @@ int main(int argc, char *argv[])
   d.frm = 0;
   d.ntp = 0;
   d.utc = 0.0;
+  d.tm = 0.0;
+  d.tm_q = 0.1;
   d.roll = 0;
   /* Ensure that a correction occurs when the process starts. */
   d.correct_interval = 64;
@@ -317,7 +345,7 @@ int main(int argc, char *argv[])
   d.cr = alloc_client_register(16);
   int port_n = 57130;
   int c;
-  while(( c = getopt(argc, argv, "c:hp:")) != -1) {
+  while(( c = getopt(argc, argv, "c:hp:q:")) != -1) {
     switch(c) {
     case 'c':
       d.correct_interval = atoi(optarg);
@@ -328,6 +356,9 @@ int main(int argc, char *argv[])
       break;
     case 'p':
       port_n = atoi(optarg);
+      break;
+    case 'q':
+      d.tm_q = atof(optarg);
       break;
     default:
       eprintf("%s: Illegal option %c.\n", __func__, c);
@@ -343,7 +374,7 @@ int main(int argc, char *argv[])
   jack_on_shutdown(d.client, jack_client_minimal_shutdown_handler, 0);
   jack_set_process_callback(d.client, jackosc_process, &d);
   d.fps = jack_get_sample_rate(d.client);
-  d.fps_alt = 0;
+  d.fps_alt = false;
   d.spf = 1.0 / d.fps;
   jack_client_activate(d.client);
   pthread_create(&(d.osc_thread), NULL, jackosc_osc_thread_procedure, &d);
