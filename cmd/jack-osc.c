@@ -76,7 +76,7 @@ void send_jck_time(struct jackosc *d)
   o[0].d = d->tm;
   packet_sz = osc_construct_message("/time", ",d", o, packet, 256);		\
   sendto_client_register(d->fd, d->cr, packet, packet_sz, REQUEST_TIME);
-  eprintf("send_jck_time: %f\n",d->tm);
+  dprintf("send_jck_time: %f\n",d->tm);
 }
 
 void send_jck_drift(struct jackosc *d,
@@ -87,7 +87,7 @@ void send_jck_drift(struct jackosc *d,
   o[3].h = ntp_dif;
   o[4].d = utc_dif;
   COMMON_SEND("/drift", ",tdhhd", REQUEST_CORRECTION);
-  eprintf("send_jck_drift\n");
+  dprintf("send_jck_drift\n");
 }
 
 void send_jck_tick(struct jackosc *d,
@@ -98,7 +98,7 @@ void send_jck_tick(struct jackosc *d,
   o[3].h = frame;
   o[4].d = pulse;
   COMMON_SEND("/tick", ",tdhhd", REQUEST_TICK);
-  eprintf("send_jck_tick\n");
+  dprintf("send_jck_tick\n");
 }
 
 void send_jck_current(int fd, struct sockaddr_in address,
@@ -126,7 +126,7 @@ void send_jck_pulse(struct jackosc *d,
   o[5].h = p_frm;
   o[6].i = pulse;
   COMMON_SEND("/pulse", ",tdhtdhi", REQUEST_PULSE);
-  eprintf("send_jck_pulse\n");
+  dprintf("send_jck_pulse\n");
 }
 
 void send_jck_transport(struct jackosc *d,
@@ -141,7 +141,7 @@ void send_jck_transport(struct jackosc *d,
   o[6].d = pt;
   o[7].i = rolling;
   COMMON_SEND("/transport", ",tdhddddi", REQUEST_TRANSPORT);
-  eprintf("send_jck_transport\n");
+  dprintf("send_jck_transport\n");
 }
 
 void send_jck_status(int fd, struct sockaddr_in address,
@@ -161,7 +161,7 @@ void send_jck_status(int fd, struct sockaddr_in address,
   if(packet_sz) {
     sendto_exactly(fd, packet, packet_sz, address);
   }
-  eprintf("send_jck_status\n");
+  dprintf("send_jck_status\n");
 }
 
 #define OSC_PARSE_MSG(command,types)				\
@@ -242,7 +242,7 @@ int jackosc_process(jack_nframes_t nframes, void *PTR)
   jack_position_t p;
   jack_transport_state_t s = jack_transport_query(d->client, &p);
   f64 tm = (f64)p.frame / (f64)p.frame_rate;
-  if(tm - d->tm >= d->tm_q) {
+  if(fabs(tm - d->tm) >= d->tm_q) {
     d->tm = tm;
     send_jck_time(d);
   }
