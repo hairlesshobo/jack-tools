@@ -7,17 +7,19 @@
 
 
 import Control.Monad {- base -}
+import System.Environment {- base -}
 
 import qualified Network.WebSockets as W {- websockets -}
 
+import qualified Music.Theory.Opt as T {- hmt -}
 import qualified Music.Theory.Time.Notation as T {- hmt -}
 
 import Sound.OSC.FD {- hosc -}
 
 import Sound.OSC.Type.JSON {- hosc-json -}
 
-work :: UDP -> W.Connection -> IO ()
-work u c = do
+ws_work :: UDP -> W.Connection -> IO ()
+ws_work u c = do
   m <- recvMessage u
   case m of
     Just (Message "/time" [Double x]) -> do
@@ -26,20 +28,22 @@ work u c = do
       W.sendTextData c js
     _ -> return ()
 
-app :: UDP -> W.PendingConnection -> IO ()
-app u rq = do
+ws_proc :: UDP -> W.PendingConnection -> IO ()
+ws_proc u rq = do
   c <- W.acceptRequest rq
-  putStrLn "CONNECT"
-  forever (work u c)
+  putStrLn "transport-ws: connect"
+  forever (ws_work u c)
 
 main :: IO ()
 main = do
-  let h = "192.168.1.7" -- "192.168.1.7" -- "127.0.0.1"
-      w = 9160
-      p = 57130 -- jack-osc
+  a <- getArgs
+  let h = T.opt_scan_def a ("h","127.0.0.1") -- "192.168.1.7"
+      w = T.opt_scan_read a ("w",9160) -- json-ws.05.js
+      p = T.opt_scan_read a ("p",57130) -- jack-osc
+  print ("h,w,p",h,w,p)
   withTransport
     (openUDP h p)
     (\u -> do
         sendMessage u (message "/receive" [int32 0x10])
         putStrLn "WAIT"
-        W.runServer h w (app u))
+        W.runServer h w (ws_proc u))
