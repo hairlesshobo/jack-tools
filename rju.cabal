@@ -1,5 +1,5 @@
 Name:              rju
-Version:           0.0
+Version:           0.19
 Synopsis:          RJU
 Description:       @rju@ utils
 License:           GPL-3
@@ -16,7 +16,7 @@ Data-Files:        README
 
 Library
   Build-Depends:   base >= 4.8 && < 5,
-                   hosc == 0.18
+                   hosc == 0.19
   GHC-Options:     -Wall -fwarn-tabs
   Exposed-modules: Sound.RJU.LXVST
 
