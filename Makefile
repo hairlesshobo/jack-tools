@@ -1,12 +1,12 @@
 all:
-	(cd cmd ; make all)
+	echo "rju"
 
-install:
-	(cd cmd ; make install)
+mk-cmd:
+	(cd cmd ; make all install)
 
 clean:
-	(cd cmd ; make clean)
 	rm -fR dist
+	(cd cmd ; make clean)
 
 push-rd:
 	darcs push -a rd@rohandrape.net:sw/rju
