@@ -5,13 +5,13 @@ rju
 
 - [jack-dl][-dl]: load dsp algorithms from shared libraries (October 2008)
 - [jack-lxvst][-lxvst]: jack cli host for linux vst instruments (April 2016)
-- [jack-osc][-osc]: jack <-> [open sound control](http://opensoundcontrol.org/) daemon (December 2004)
-- [jack-play][-play]: [resampling](http://mega-nerd.com/libsamplerate/) [soundfile](http://mega-nerd.com/libsndfile/) playback
+- [jack-osc][-osc]: jack <-> [open sound control](http://opensoundcontrol.org/) daemon (January 2004)
+- [jack-play][-play]: [resampling](http://mega-nerd.com/libsamplerate/) [soundfile](http://mega-nerd.com/libsndfile/) playback (November 2003)
 - [jack-plumbing][-plumbing]: [plumbing](https://9fans.github.io/plan9port/man/man7/plumb.html) daemon (July 2003)
 - [jack-record][-record]: soundfile recording (April 2004)
 - [jack-scope][-scope]: plain [X](http://x.org) oscilloscope (January 2004)
-- [jack-transport][-transport]: minimalist [ncurses](http://gnu.org/software/ncurses/) jack transport
-- [jack-udp][-udp]: jack over udp client (obsolete, see [netjack](http://netjack.sf.net/))
+- [jack-transport][-transport]: minimalist [ncurses](http://gnu.org/software/ncurses/) jack transport (November 2006)
+- [jack-udp][-udp]: jack over udp client (November 2003) [c.f. [netjack](http://netjack.sf.net/)]
 
 <!-- [plumb]: http://plan9.bell-labs.com/sys/doc/plumb.html -->
 
