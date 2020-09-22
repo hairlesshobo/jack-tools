@@ -3,13 +3,13 @@ rju
 
 [jackd](http://jackaudio.org/) utilities
 
-- [jack-dl][-dl]: load dsp algorithms from shared libraries
-- [jack-lxvst][-lxvst]: jack cli host for linux vst instruments
-- [jack-osc][-osc]: jack <-> [open sound control](http://opensoundcontrol.org/) daemon
+- [jack-dl][-dl]: load dsp algorithms from shared libraries (October 2008)
+- [jack-lxvst][-lxvst]: jack cli host for linux vst instruments (April 2016)
+- [jack-osc][-osc]: jack <-> [open sound control](http://opensoundcontrol.org/) daemon (December 2004)
 - [jack-play][-play]: [resampling](http://mega-nerd.com/libsamplerate/) [soundfile](http://mega-nerd.com/libsndfile/) playback
-- [jack-plumbing][-plumbing]: [plumbing](https://9fans.github.io/plan9port/man/man7/plumb.html) daemon
-- [jack-record][-record]: soundfile recording
-- [jack-scope][-scope]: plain [X](http://x.org) oscilloscope
+- [jack-plumbing][-plumbing]: [plumbing](https://9fans.github.io/plan9port/man/man7/plumb.html) daemon (July 2003)
+- [jack-record][-record]: soundfile recording (April 2004)
+- [jack-scope][-scope]: plain [X](http://x.org) oscilloscope (January 2004)
 - [jack-transport][-transport]: minimalist [ncurses](http://gnu.org/software/ncurses/) jack transport
 - [jack-udp][-udp]: jack over udp client (obsolete, see [netjack](http://netjack.sf.net/))
 
@@ -51,7 +51,7 @@ tested-with: [gcc](http://gcc.gnu.org/) 8.3.0
 - Jeremy Hall (jhall@maoz.com) 2010-09-07
 - Tristan Matthews <le.businessman@gmail.com> 2009-10-10
 - Ignacio Sánchez <ignacio.sanchez@vocali.net> 2009-02-20
-- Karsten Gebbery <k.gebbert@gmail.com> 2008-06-27
+- Karsten Gebbert <k.gebbert@gmail.com> 2008-06-27
 
 see the [darcs](http://darcs.net/) [history](?t=rju&q=history) for details
 
