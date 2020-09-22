@@ -46,12 +46,12 @@ tested-with: [gcc](http://gcc.gnu.org/) 8.3.0
   [gpl](http://gnu.org/copyleft/).
   with contributions by:
 
-- Nikita Zlobin <cook60020tmp@mail.ru> 2016-05-14
-- Yoran Heling <projects@yorhel.nl> 2010-10-30
-- Jeremy Hall (jhall@maoz.com) 2010-09-07
-- Tristan Matthews <le.businessman@gmail.com> 2009-10-10
-- Ignacio Sánchez <ignacio.sanchez@vocali.net> 2009-02-20
-- Karsten Gebbert <k.gebbert@gmail.com> 2008-06-27
+- Nikita Zlobin, <!-- cook60020tmp@mail.ru --> 2016-05-14
+- Yoran Heling, <!-- projects@yorhel.nl --> 2010-10-30
+- Jeremy Hall, <!-- jhall@maoz.com --> 2010-09-07
+- Tristan Matthews, <!-- le.businessman@gmail.com --> 2009-10-10
+- Ignacio Sánchez, <!-- ignacio.sanchez@vocali.net --> 2009-02-20
+- Karsten Gebbert, <!-- k.gebbert@gmail.com --> 2008-06-27
 
 see the [darcs](http://darcs.net/) [history](?t=rju&q=history) for details
 
