@@ -12,6 +12,7 @@
 #include <unistd.h>
 
 #include "c-common/file.h"
+#include "c-common/int.h"
 #include "c-common/jack-client.h"
 #include "c-common/jack-port.h"
 #include "c-common/print.h"
@@ -22,7 +23,7 @@
 #define MAX_RULES     512
 #define MAX_STR       512
 #define MAX_SUBEXP    4
-#define DEFAULT_DELAY 30000     /* μs 30,000μs = 0.03s */
+#define DEFAULT_DELAY 1000     /* μs 1,000μs = 0.001s */
 #define SYS_RULESET   "/etc/jack-plumbing"
 
 enum action {
@@ -51,7 +52,7 @@ struct plumber
   pthread_cond_t cond;
   int w;                        /* Do not send wakeup unless TRUE */
   time_t m;                     /* Time that the rule set was last modified. */
-  unsigned long u;              /* Number of usecs to defer for connections. */
+  u64 u;                        /* Number of usecs to defer for connections. */
   int d;                        /* Run as daeomon. */
   int o;                        /* Include ordinary rule files. */
   int q;                        /* Quiet operation. */
@@ -230,8 +231,8 @@ make_rhs(const char *left, int a, int b, const char *right, char *rhs)
     return;
   }
   int copy_n = replace_p - right;
-  int after_n = strlen(right)- copy_n - 2;
-  int insert_n =(b - a);
+  int after_n = strlen(right) - copy_n - 2;
+  int insert_n = (b - a);
   memcpy(rhs, right, copy_n);
   memcpy(rhs + copy_n, left + a, insert_n);
   memcpy(rhs + copy_n + insert_n, right + copy_n + 2, after_n);
@@ -348,15 +349,15 @@ apply_rule_set(struct plumber *p)
 static void
 wait_on_connection_set(struct plumber *p)
 {
+  struct timespec t;
+  t = usec_to_timespec(p->u);
   eprintf("%s: wait init: w=%d\n", __func__, p->w);
   pthread_cond_wait(&p->cond, &p->lock);
   eprintf("%s: wait seq: w=%d\n", __func__, p->w);
   while(p->w > 0) {
-    struct timespec t;
-    t = usec_to_timespec(p-> u);
     p->w = 0;
     nanosleep(&t, NULL);
-    eprintf("%s: sleep: w=%d\n", __func__, p->w);
+    eprintf("%s: sleep: u=%lu, w=%d\n", __func__, p->u, p->w);
   }
   eprintf ("%s: wait end\n", __func__);
 }
@@ -444,6 +445,7 @@ as_daemon(struct plumber *p)
   jack_set_port_registration_callback(p->j, on_port_registration, p);
   jack_set_graph_order_callback(p->j, on_reorder, p);
   jack_client_activate(p->j);
+  apply_rule_set(p);
   pthread_join(p->t, NULL);
 }
 
@@ -468,7 +470,7 @@ parse_arguments(struct plumber *p, char **argv, int argc)
     case 'h': plumber_usage (); break;
     case 'o': p->o = 0; break;
     case 'q': p->q = 1; break;
-    case 'u': p->u = strtoul(optarg, NULL, 0); break;
+    case 'u': p->u = u64_max(1,strtoul(optarg, NULL, 0)); break;
     default: plumber_usage (); break;
     }
   }

@@ -43,7 +43,7 @@ interoperable with [markdown](http://daringfireball.net/projects/markdown/) and 
 > cd md ; for i in *.md ; do asciidoc $i; done
 -->
 
-tested-with: [gcc](http://gcc.gnu.org/) 8.3.0
+tested-with: [gcc](http://gcc.gnu.org/) 9.3.0
 
 © [rohan drape](http://rohandrape.net/),
   2003-2020,
