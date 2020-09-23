@@ -1,5 +1,5 @@
 JACK-PLUMBING(1)
-===============
+================
 
 NAME
 ----
@@ -23,7 +23,7 @@ OPTIONS
 *-u*
 :   Set the time, in micro-seconds, that must elapse after a
     connection notification to indicate the end of a notification set
-    (default=30000).  This is an optimization switch.
+    (default=30000, ie. 0.03 seconds).  This is an optimization switch.
 
 DESCRIPTION
 -----------
@@ -31,8 +31,7 @@ jack-plumbing maintains a set of port connection rules and manages
 these as clients register ports with JACK.  Port names are implicitly
 bounded regular expressions and support sub-expression patterns.
 
-There are four rules: connect, disconnect, also-connect and
-connect-exclusive.
+The rules are:
 
     (connect "SuperCollider:out_(.*)" "system:playback_\1")
 
@@ -45,6 +44,7 @@ exist.
 
 This disconnect rule will delete every existing JACK connection.
 
+<!--
     (also-connect "system:playback_1" "jack-udp-[0-9]*:in_1")
 
 This also-connect rule ensures that when jack-udp(1) is running in
@@ -59,6 +59,7 @@ This connect-exclusive rule ensures that if SuperCollider and an
 ardour(1) session with appropriate tracks are both running that
 SuperCollider gets connected to ardour and disconnected from
 everything else.
+-->
 
 This type of connection daemon has the following advantages over both
 environment variables and command line arguments:
@@ -81,7 +82,7 @@ rules.
 Any lines beginning with a semi-colon are ignored.
 
 The rule set is sorted, disconnect rules are applied first, then
-connect rules, then connect-exclusive rules.
+connect rules.
 
 FILES
 -----

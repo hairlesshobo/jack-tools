@@ -79,7 +79,7 @@ struct scope
   jack_port_t *port[MAX_CHANNELS];
   pthread_t draw_thread;
   pthread_t osc_thread;
-  int pipe[2];
+  int pipe[2];                  /* file-descriptors for IPC between audio and drawing threads */
   int fd;
 };
 
@@ -160,7 +160,7 @@ embed_draw_data(u8 *img,const f32 *data,const u8 *color,struct scope *s)
   i32 n = s->draw_frames;
   f32 xindex = 0.0;
   f32 yindex = (f32) s->embed_n;
-  if (s->embed_incr <= 0.0) {
+  if (s->embed_incr <= 0.0) { /* SANITY */
     s->embed_incr = 1.0;
   }
   while (yindex < n) {
@@ -469,7 +469,7 @@ jackscope_draw_thread_procedure(void *ptr)
   u8 *img = img_alloc(s->img_w, s->img_h, 3);
   while (!observe_end_of_process()) {
     char b;
-    xread(s->pipe[0], &b, 1);
+    xread(s->pipe[0], &b, 1); /* WAIT */
     signal_clip(s->share_il, s->data_frames * s->channels, -1.0, 1.0);
     signal_uninterleave(s->share_ul, s->share_il, s->data_frames, s->channels);
     img_memset(img, s->img_w, s->img_h, 3, 255);
@@ -515,7 +515,7 @@ jackscope_process(jack_nframes_t nframes, void *ptr)
       signal_copy_circular(d->share_il, d->data, d->data_samples, d->data_location);
       d->delay_location = 0;
       char b = 1;
-      xwrite(d->pipe[1], &b, 1);
+      xwrite(d->pipe[1], &b, 1); /* QUEUE DRAW */
     }
   }
   return 0;

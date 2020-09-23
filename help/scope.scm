@@ -7,9 +7,12 @@
   (lambda (cmd arg)
     (send fd (list cmd arg))))
 
+(set-scope "/frames" (/ 512 2))
 (set-scope "/frames" (* 512 2))
-(set-scope "/delay" (/ 1000.0 25.0))
-(set-scope "/delay" 100)
+(set-scope "/frames" (* 512 4))
+(set-scope "/frames" (* 44100 1))
+(set-scope "/delay" (/ 1000 25))
+(set-scope "/delay" (/ 1000 10))
 
 (set-scope "/mode" "signal")
 (set-scope "/style" "fill")
@@ -18,6 +21,7 @@
 
 (set-scope "/mode" "embed")
 (set-scope "/incr" 0.1)
+(set-scope "/embed" 12)
 (set-scope "/embed" 64)
 
 (set-scope "/mode" "hline")
