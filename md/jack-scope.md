@@ -122,15 +122,15 @@ last column gives the option that sets the same parameter.
 
     Command      Description        Argument    Option
     -------      -----------        --------    ------
-    /colour-mode colour mode        string
+    /colour-mode colour mode        string      -c
     /delay       refresh-interval   float       -d
-    /embed       embedding          int
+    /embed       embedding          int         -e
     /frames      frame-size         int         -b
     /incr        increment          float
     /input-gain  input gain         float       -g
     /mode        drawing-mode       string      -m
     /print       print state        int
-    /style       style              string
+    /style       style              string      -s
 
 REFERENCES
 ----------
