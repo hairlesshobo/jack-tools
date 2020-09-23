@@ -1,7 +1,5 @@
 JACK-TRANSPORT(1)
 =================
-Rohan Drape <rd@slavepianos.org>
-
 
 NAME
 ----

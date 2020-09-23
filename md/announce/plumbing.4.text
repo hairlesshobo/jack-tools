@@ -1,0 +1,32 @@
+To: jackit-devel@lists.sourceforge.net
+Subject: [ANN] - Announce jack.plumbing
+From: Rohan Drape <rd@alphalink.com.au>
+Date: 04 Apr 2004 13:25:43 +1000
+
+The JACK plumbing daemon has a new `disconnect' rule to dramatically
+reduce existing JACK connections and a new argument parser.
+
+The rule:
+
+  (disconnect ".*" ".*")
+
+will disconnect every existing JACK connection.
+
+The invocation:
+
+  $ jack.plumbing -d -o session.plumbing
+
+will read the rule set in the file `session.plumbing', ignore the
+ordinary rule set files, apply the rule set to the JACK graph and
+exit.
+
+The rule set `session.plumbing' could make structural changes to very
+large Ardour sessions where the session tracks have coherent names.
+
+The rule set is now properly sorted and there have been some
+efficiency gains.
+
+A source archive is available at: <http://www.alphalink.com.au/~rd>
+
+Regards,
+Rohan

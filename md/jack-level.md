@@ -1,6 +1,5 @@
 JACK-LEVEL(1)
 =============
-Rohan Drape <rd@slavepianos.org>
 
 NAME
 ----
@@ -32,9 +31,7 @@ While running type 'z' to zero peak levels and 'q' to quit.
 EXAMPLE
 -------
 
-~~~~
-jack-level -n 2 -p SuperCollider:out_%d
-~~~~
+    jack-level -n 2 -p SuperCollider:out_%d
 
 AUTHOR
 ------

@@ -14,10 +14,13 @@ OPTIONS
 -------
 *-b*
 :   Set the number of buffers (default=8).
+
 *-c*
 :   Set the number of input and output channels (default=8).
+
 *-k*
 :   Set the number of control buses (default=64).
+
 *-u*
 :   Set the udp port number (default=57190).
 

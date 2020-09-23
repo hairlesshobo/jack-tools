@@ -32,6 +32,7 @@
 (set-scope "/input-gain" 1.0)
 (set-scope "/input-gain" 2.0)
 (set-scope "/input-gain" 4.0)
+(set-scope "/input-gain" 8.0)
 
 (set-scope "/print" 1)
 

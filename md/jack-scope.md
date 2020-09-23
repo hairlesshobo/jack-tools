@@ -1,7 +1,5 @@
 JACK-SCOPE(1)
 =============
-Rohan Drape <rd@slavepianos.org>
-
 
 NAME
 ----
@@ -14,34 +12,39 @@ jack-scope [options]
 OPTIONS
 -------
 *-b*
-:   Set the frame size of the data displayed by the scope
-    (default=512).
+:   Set the frame size of the data displayed by the scope (default=512).
+
+*-c*
+:   Set colour mode grey|ega64 (default=grey)
 
 *-d*
-:   Set the delay interval in milli-seconds between scope updates
-    (default=100.0).
+:   Set the delay interval in milli-seconds between scope updates (default=100).
+
+*-e*
+:   Set embedding delay in frames (default=6)
 
 *-f*
-:   Request that a still image file of each frame be stored to the
-    indicated directory.
+:   Request that a still image file of each frame be stored to the indicated directory (default=nil)
+
+*-g*
+:   Set input gain (default=1)
 
 *-h*
 :   Set the scope height in pixels (default=512).
 
 *-m*
-:   Set the scope operating mode (default=signal).  The operating
-    modes are: signal, embed, hline.
+:   Set the scope operating mode (default=signal).
+    The operating modes are: signal, embed, hline.
 
 *-n*
-:   Set the number of channels, and therefore the number of JACK input
-    ports (default=1).  Multiple channels are superimposed, each
-    channel is drawn in a distinct color.  There is a compile time
-    channel limit.
+:   Set the number of channels (default=1).
+    This sets the number of JACK input ports.
+    Multiple channels are superimposed, each channel is drawn in a distinct colour.
+    There is a compile time channel limit.
 
 *-p*
-:   A pattern describing the JACK ports to connect to,
-    ie. `SuperCollider:out_%d` (default=nil).  If this is not set
-    consults the environment variable `JACK_SCOPE_CONNECT_TO`.
+:   A pattern describing the JACK ports to connect to, ie. `SuperCollider:out_%d` (default=nil).
+    If this is not set consults the environment variable `JACK_SCOPE_CONNECT_TO`.
 
 *-s*
 :   Set the drawing style for signal mode (default=dot).
@@ -49,15 +52,21 @@ OPTIONS
 *-u*
 :   Set the UDP port number to listen for OSC packets on (default=57140).
 
+*-U*
+:   Do not generate unique jack client name (ie. do not append PID)
+
 *-w*
 :   Set the scope width in pixels (default=512).
+
+*-z*
+:   Do not align to zero-crossing
 
 DESCRIPTION
 -----------
 jack-scope is an oscilloscope for JACK under X11.  jack-scope draws
 either a time domain signal trace or a self correlation trace.
 Multiple input channels are superimposed, each channel is drawn in a
-different color.  jack-scope accepts OSC packets for interactive
+different colour.  jack-scope accepts OSC packets for interactive
 control of drawing parameters.
 
 The operating mode of jack-scope is set using *-m*.  In signal mode
@@ -75,7 +84,7 @@ screen is indeterminate.
 
 The number of JACK input ports that jack-scope creates and monitors is
 set using *-n*.  Multiple channels are drawn in superimposition, each
-channel is drawn in a distinct color.
+channel is drawn in a distinct colour.
 
 In signal mode the trace is drawn in a style set using `/style`.  In
 `dot` mode only the sample pixel in each column is drawn.  In `fill` mode
@@ -111,22 +120,22 @@ The OSC messages understood by jack-scope are given in the table
 below.  Each command requires one argument of the indicated type.  The
 last column gives the option that sets the same parameter.
 
-Command   Description        Argument    Option
--------   -----------        --------    ------
-/mode     drawing-mode       string      -m
-/style    style              string      N/A
-/frames   frame-size         integer     -b
-/delay    refresh-interval   float       -d
-/embed    embedding          integer     N/A
-/incr     increment          float       N/A
-
-jack-scope implements no connection logic, use jack-plumbing(1)
-instead.
+    Command      Description        Argument    Option
+    -------      -----------        --------    ------
+    /colour-mode colour mode        string
+    /delay       refresh-interval   float       -d
+    /embed       embedding          int
+    /frames      frame-size         int         -b
+    /incr        increment          float
+    /input-gain  input gain         float       -g
+    /mode        drawing-mode       string      -m
+    /print       print state        int
+    /style       style              string
 
 REFERENCES
 ----------
-Monro, G. and Pressing, J.  ‘‘Sound Visualization Using Embedding: The
-Art and Science of Auditory Autocorrelation’’ CMJ, 22/2, 1998.
+Monro, G. and Pressing, J.  "Sound Visualization Using Embedding: The
+Art and Science of Auditory Autocorrelation" _CMJ_, 22/2, 1998.
 
 AUTHOR
 ------

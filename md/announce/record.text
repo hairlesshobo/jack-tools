@@ -1,0 +1,23 @@
+Subject: Announce jack.record
+Date: 2004-04-04 03:26:59 UTC
+From: Rohan Drape
+To: jack-devel
+
+jack.record is a lightweight JACK capture client to write an arbitrary
+number of channels to disk.
+
+Minor novelties in relation to the example capture client are: writing
+either a single multiple channel file or multiple single channel
+files, writing files in any libsndfile supported format, and an
+encouraging absence of connection logic.
+
+The jack.plumbing rule:
+
+(also-connect "alsa_pcm:playback_\1" "jack.record-[0-9]*:in_\1")
+
+will ensure that jack.record captures whatever you are hearing.
+
+A source archive is available at <http://www.alphalink.com.au/~rd>.
+
+Regards,
+Rohan

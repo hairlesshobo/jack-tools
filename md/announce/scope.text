@@ -1,0 +1,16 @@
+Date: 2004-01-20 00:26:01 UTC
+Subject: Announce - jack.scope
+From: Rohan Drape
+To: jack-devel
+
+jack.scope is an oscilloscope for JACK under X11. jack.scope draws
+either a time domain signal trace or a self correlation trace.
+Multiple input channels are superimposed, each channel is drawn in a
+different color. jack.scope accepts OSC packets for interactive
+control of drawing parameters.
+
+For details of self correlation traces see: Monro, G. and Pressing, J.
+"Sound Visualization Using Embedding: The Art and Science of Auditory
+Autocorrelation" CMJ, 22/2, 1998.
+
+jack.scope is available from <http://www.alphalink.com.au/~rd>.

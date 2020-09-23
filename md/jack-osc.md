@@ -1,6 +1,5 @@
 JACK-OSC(1)
 ===========
-Rohan Drape <rd@slavepianos.org>
 
 NAME
 ----
@@ -14,6 +13,7 @@ OPTIONS
 -------
 *-c*
 :   Set the drift correction interval in periods (default=64).
+
 *-p*
 :   Set the port number (default=57130).
 

@@ -413,23 +413,23 @@ jackscope_osc_thread_procedure(void *ptr)
     osc_data_t o[1];
     if (OSC_PARSE_MSG("/colour-mode", ",s")) {
         s->img_colour_mode = img_colour_mode_parse(o[0].s);
-    } else if (OSC_PARSE_MSG("/style", ",s")) {
-        s->signal_style = signal_style_parse(o[0].s);
-    } else if (OSC_PARSE_MSG("/embed", ",i")) {
-        s->embed_n = o[0].i;
-    } else if (OSC_PARSE_MSG("/incr", ",f")) {
-        s->embed_incr = o[0].f;
-    } else if (OSC_PARSE_MSG("/frames", ",i")) {
-        s->draw_frames = o[0].i > s->data_frames ? s->data_frames : o[0].i;
-    } else if (OSC_PARSE_MSG("/mode", ",s")) {
-        set_mode(s, o[0].s);
-    } else if (OSC_PARSE_MSG("/input-gain", ",f")) {
-        s->input_gain = o[0].f;
     } else if (OSC_PARSE_MSG("/delay", ",f")) {
         s->delay_msec = o[0].f;
         s->delay_frames = floorf((s->delay_msec / 1000.0) * s->fps);
+    } else if (OSC_PARSE_MSG("/embed", ",i")) {
+        s->embed_n = o[0].i;
+    } else if (OSC_PARSE_MSG("/frames", ",i")) {
+        s->draw_frames = o[0].i > s->data_frames ? s->data_frames : o[0].i;
+    } else if (OSC_PARSE_MSG("/incr", ",f")) {
+        s->embed_incr = o[0].f;
+    } else if (OSC_PARSE_MSG("/input-gain", ",f")) {
+        s->input_gain = o[0].f;
+    } else if (OSC_PARSE_MSG("/mode", ",s")) {
+        set_mode(s, o[0].s);
     } else if (OSC_PARSE_MSG("/print", ",i")) {
         if(o[0].i > 0) jackscope_print(s);
+    } else if (OSC_PARSE_MSG("/style", ",s")) {
+        s->signal_style = signal_style_parse(o[0].s);
     } else {
         eprintf("jack-scope: dropped packet: %8s\n", packet);
     }
@@ -531,7 +531,10 @@ jackscope_usage(void)
   eprintf(" -e INT  : Embedding delay in frames (default=6)\n");
   eprintf(" -f STR  : Request images be stored at location (default=NULL)\n");
   eprintf(" -g REAL : Set input gain (default=1.0)\n");
+  eprintf(" -h      : Print usage information\n");
+  eprintf(" -h INT  : Scope height in pixels (default=512)\n");
   eprintf(" -i STR  : PNG file name for hline mask (default=NULL)\n");
+  eprintf(" -k INT  : Port index offset (default=0)\n");
   eprintf(" -m STR  : Scope operating mode (default=signal)\n");
   eprintf(" -n INT  : Number of channels (default=1)\n");
   eprintf(" -p STR  : Jack port pattern to connect to (default=nil)\n");
@@ -558,8 +561,9 @@ main(int argc, char **argv)
   int port_n = 57140;
   int o;
   char *p = NULL;
+  int k = 0;
   bool unique = true;
-  while ((o = getopt(argc, argv, "b:c:d:e:f:g:h:i:m:n:p:s:u:Uw:z")) != -1) {
+  while ((o = getopt(argc, argv, "b:c:d:e:f:g:h:i:k:m:n:p:s:u:Uw:z")) != -1) {
     switch (o) {
     case 'b':
       d.data_frames = strtol(optarg, NULL, 0);
@@ -585,6 +589,9 @@ main(int argc, char **argv)
       break;
     case 'i':
       d.img_bg_fn = strdup(optarg);
+      break;
+    case 'k':
+      k = (int)strtol(optarg, NULL, 0);
       break;
     case 'm':
       set_mode(&d, optarg);
@@ -653,7 +660,7 @@ main(int argc, char **argv)
   if (p) {
     char q[128];
     snprintf(q, 128, "%s:in_%%d", nm);
-    jack_port_connect_pattern(c, d.channels, 0, p, q);
+    jack_port_connect_pattern(c, d.channels, k, p, q);
   }
   pthread_join(d.draw_thread, NULL);
   jack_client_close(c);

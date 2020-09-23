@@ -1,6 +1,5 @@
 JACK-PLAY(1)
 ============
-Rohan Drape <rd@slavepianos.org>
 
 NAME
 ----

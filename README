@@ -3,7 +3,9 @@ rju
 
 [jackd](http://jackaudio.org/) utilities
 
+- [jack-data][-data]: jack audio data onto osc (May 2016)
 - [jack-dl][-dl]: load dsp algorithms from shared libraries (October 2008)
+- [jack-level][-level]: jack cli level meter (April 2019)
 - [jack-lxvst][-lxvst]: jack cli host for linux vst instruments (April 2016)
 - [jack-osc][-osc]: jack <-> [open sound control](http://opensoundcontrol.org/) daemon (January 2004)
 - [jack-play][-play]: [resampling](http://mega-nerd.com/libsamplerate/) [soundfile](http://mega-nerd.com/libsndfile/) playback (November 2003)
@@ -15,7 +17,9 @@ rju
 
 <!-- [plumb]: http://plan9.bell-labs.com/sys/doc/plumb.html -->
 
+[-data]: ?t=rju&e=md/jack-data.md
 [-dl]: ?t=rju&e=md/jack-dl.md
+[-level]: ?t=rju&e=md/jack-level.md
 [-lxvst]: ?t=rju&e=md/jack-lxvst.md
 [-osc]: ?t=rju&e=md/jack-osc.md
 [-play]: ?t=rju&e=md/jack-play.md
@@ -55,13 +59,4 @@ tested-with: [gcc](http://gcc.gnu.org/) 8.3.0
 
 see the [darcs](http://darcs.net/) [history](?t=rju&q=history) for details
 
-initial announcements:
-[osc](http://lists.linuxaudio.org/pipermail/linux-audio-announce/2004-December/000502.html)
-[plumbing](http://lists.linuxaudio.org/pipermail/linux-audio-announce/2004-March/000340.html)
-
-<!--
-[clock](http://article.gmane.org/gmane.comp.audio.jackit/5726),
-[plumbing](http://article.gmane.org/gmane.comp.audio.jackit/3655)
-[scope](http://article.gmane.org/gmane.comp.audio.jackit/5727)
-[udp](http://article.gmane.org/gmane.comp.audio.jackit/5548)
--->
+initial [announce](?t=rju&e=md/announce.md)ments

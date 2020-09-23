@@ -148,6 +148,8 @@ int main(int argc, char **argv)
         mvaddlvl(3,i * 10,amp_to_db(w.s_lvl[1][i]));
     }
   }
+  fprintf(stderr,"START CLOSE\n");
   jack_client_close(w.c);
+  fprintf(stderr,"END CLOSE\n");
   return EXIT_SUCCESS;
 }

@@ -1,7 +1,5 @@
 JACK-PLUMBING(1)
 ===============
-Rohan Drape <rd@slavepianos.org>
-
 
 NAME
 ----
@@ -30,12 +28,11 @@ OPTIONS
 DESCRIPTION
 -----------
 jack-plumbing maintains a set of port connection rules and manages
-these as clients register ports with JACK-  Port names are implicitly
+these as clients register ports with JACK.  Port names are implicitly
 bounded regular expressions and support sub-expression patterns.
 
 There are four rules: connect, disconnect, also-connect and
 connect-exclusive.
-
 
     (connect "SuperCollider:out_(.*)" "system:playback_\1")
 
@@ -43,6 +40,10 @@ This connect rule ensures that whenever scsynth(1) is running any
 output ports it registers are connected to appropriate ALSA playback
 ports.  The connect rule only makes a connection if none already
 exist.
+
+    (disconnect ".*" ".*")
+
+This disconnect rule will delete every existing JACK connection.
 
     (also-connect "system:playback_1" "jack-udp-[0-9]*:in_1")
 

@@ -1,0 +1,23 @@
+To: jackit-devel@lists.sourceforge.net
+Subject: [Announce] jack.udp
+From: Rohan Drape <rd@alphalink.com.au>
+Date: 06 Jan 2004 11:15:36 +1100
+
+jack.udp - Announce
+
+jack.udp is a UDP audio transport mechansim for JACK.  The send mode
+reads signals from a set of JACK input ports and sends UDP packets to
+the indicated port at the indicated host at a rate determined by the
+local JACK daemon.  The recv mode reads incoming packets at the indi-
+cated port and writes the incoming data to a set of JACK output ports
+at a rate that is determined by the local JACK daemon.
+
+This transport mechanism is unreliable.  Both send and recv clients
+will report buffer overflow and underflow occurences, and recv clients
+will report dropped and out-of-order packets, and shutdown on channel
+mismatch packets.  In practice this mechanism can be made highly reli-
+able over local networks.
+
+jack.udp implements no connection logic, use jack.plumbing(1) instead.
+
+A pre-release archive is available at <http://www.alphalink.com.au/~rd>

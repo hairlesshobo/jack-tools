@@ -1,0 +1,2 @@
+(disconnect ".*" "jack-scope.*")
+(connect "jack-play[-0-9]*:out_(.*)" "jack-scope[-0-9]*:in_\1")
