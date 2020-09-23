@@ -34,7 +34,7 @@ the ports given by the environment variable `JACK_DATA_CONNECT_TO`.
 AUTHOR
 ------
 
-Rohan Drape <rd@slavepianos.org>
+Rohan Drape <rd@slavepianos.org>, May 2016
 
 SEE ALSO
 --------

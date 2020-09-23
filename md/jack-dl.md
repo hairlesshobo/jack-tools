@@ -1,6 +1,5 @@
 JACK-DL(1)
 ==========
-<rd@slavepianos.org>
 
 NAME
 ----
@@ -52,6 +51,11 @@ it does not implement the patten matching rules and does not implement
 a scheduler for incoming messages.
 
 jack-dl drops all unrecognized incoming packets.
+
+AUTHOR
+------
+
+Rohan Drape <rd@slavepianos.org>, October 2008
 
 SEE ALSO
 --------

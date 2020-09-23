@@ -35,7 +35,7 @@ EXAMPLE
 
 AUTHOR
 ------
-Rohan Drape <http://rd.slavepianos.org/>
+Rohan Drape <http://rd.slavepianos.org/>, April 2019
 
 SEE ALSO
 --------

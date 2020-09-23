@@ -162,7 +162,7 @@ jack-osc drops all unrecognized incoming packets.
 
 AUTHOR
 ------
-Rohan Drape <http://rd.slavepianos.org/>
+Rohan Drape <http://rd.slavepianos.org/>, January 2004
 
 SEE ALSO
 --------

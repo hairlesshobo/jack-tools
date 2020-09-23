@@ -70,7 +70,7 @@ values see the file 'sndfile.h'.
 
 AUTHOR
 ------
-Rohan Drape <http://rd.slavepianos.org/>
+Rohan Drape <http://rd.slavepianos.org/>, April 2004
 
 SEE ALSO
 --------

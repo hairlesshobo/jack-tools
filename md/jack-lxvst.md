@@ -24,7 +24,7 @@ It listens for OSC messages (/midi and /param) at port 57210 (by default).
 
 AUTHOR
 ------
-Rohan Drape <http://rd.slavepianos.org/>
+Rohan Drape <http://rd.slavepianos.org/>, April 2016
 
 SEE ALSO
 --------

@@ -139,7 +139,7 @@ Art and Science of Auditory Autocorrelation" _CMJ_, 22/2, 1998.
 
 AUTHOR
 ------
-Rohan Drape <http://rd.slavepianos.org/>
+Rohan Drape <http://rd.slavepianos.org/>, January 2004
 
 SEE ALSO
 --------

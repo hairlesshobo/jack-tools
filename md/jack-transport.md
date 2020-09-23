@@ -47,7 +47,7 @@ COMMANDS
 
 AUTHOR
 ------
-Rohan Drape <http://rd.slavepianos.org/>
+Rohan Drape <http://rd.slavepianos.org/>, November 2006
 
 SEE ALSO
 --------

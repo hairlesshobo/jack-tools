@@ -64,7 +64,7 @@ will resample to match the server sample rate using libsamplerate.
 
 AUTHOR
 ------
-Written by Rohan Drape <http://rd.slavepianos.org/>
+Rohan Drape <http://rd.slavepianos.org/>, November 2003
 
 SEE ALSO
 --------
