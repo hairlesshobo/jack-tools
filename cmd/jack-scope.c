@@ -524,7 +524,7 @@ jackscope_process(jack_nframes_t nframes, void *ptr)
 void
 jackscope_usage(void)
 {
-  eprintf("Usage: jack-scope [options] sound-file\n");
+  eprintf("Usage: jack-scope [options]\n");
   eprintf(" -b INT  : Scope size in frames (default=512)\n");
   eprintf(" -c STR  : Colour mode, grey|ega64 (default=grey)\n");
   eprintf(" -d REAL : Delay time in ms between scope updates (default=100)\n");
