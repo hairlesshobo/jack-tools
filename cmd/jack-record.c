@@ -189,7 +189,7 @@ int main(int argc, char *argv[])
       break;
     case 'p':
       p_pattern = malloc(256);
-      strncpy(p_pattern,optarg,256);
+      strncpy(p_pattern,optarg,255);
       break;
     case 's':
       d.multiple_sound_files = 1;
