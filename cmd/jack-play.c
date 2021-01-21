@@ -420,14 +420,14 @@ int main(int argc, char *argv[])
       o.loop = true;
       break;
     case 'm':
-      o.minimal_frames = (int)strtoll(optarg, NULL, 0);
+      o.minimal_frames = (int)strtol(optarg, NULL, 0);
       break;
     case 'n':
       strncpy(o.client_name, optarg, NAME_MAX - 1);
       eprintf("jack client name: %s\n", o.client_name);
       break;
     case 'q':
-      o.rb_request_frames = strtol(optarg, NULL, 0);
+      o.rb_request_frames = (int)strtol(optarg, NULL, 0);
       break;
     case 'r':
       o.src_ratio = strtod(optarg, NULL);
