@@ -1,7 +1,13 @@
 prefix = $(HOME)/opt
+
 bin = jack-data jack-dl jack-level jack-lxvst jack-osc jack-play jack-play-sc3 jack-plumbing jack-record jack-scope jack-transport jack-udp lxvst-query
 
 VST_SDK = $(HOME)/opt/src/vst3_sdk
+
+CC = gcc # gcc clang
+AR = ar # ar llvm-ar
+CXX = g++ # g++ clang++
+
 CPPFLAGS += -Wall -pedantic -O3 -g
 CFLAGS += -D_POSIX_C_SOURCE=200809 -std=c99
 CXXFLAGS +=
@@ -10,34 +16,34 @@ LDLIBS = c-common/lib-c-common.a -ljack -lpthread -lm
 all: $(bin)
 
 jack-data: jack-data.c
-	gcc $(CPPFLAGS) $(CFLAGS) -o jack-data jack-data.c $(LDLIBS) -lsamplerate
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o jack-data jack-data.c $(LDLIBS) -lsamplerate
 
 jack-dl: jack-dl.c
-	gcc $(CPPFLAGS) -Wno-pedantic $(CFLAGS) -o jack-dl jack-dl.c $(LDLIBS) -ldl -llo
+	$(CC) $(CPPFLAGS) -Wno-pedantic $(CFLAGS) -o jack-dl jack-dl.c $(LDLIBS) -ldl -llo
 
 jack-dx7: jack-dx7.cpp
-	g++ $(CPPFLAGS) $(CXXFLAGS) -o jack-dx7 jack-dx7.cpp $(LDLIBS) dx7/lib-dx7.a
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o jack-dx7 jack-dx7.cpp $(LDLIBS) dx7/lib-dx7.a
 
 jack-level: jack-level.c
-	gcc $(CPPFLAGS) $(CFLAGS) -o jack-level jack-level.c $(LDLIBS) -lncurses -ltinfo
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o jack-level jack-level.c $(LDLIBS) -lncurses -ltinfo
 
 jack-lxvst: jack-lxvst.cpp
-	g++ $(CPPFLAGS) $(CXXFLAGS) -I$(VST_SDK) -o jack-lxvst jack-lxvst.cpp $(LDLIBS) -ldl -lX11 -llo
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -I$(VST_SDK) -o jack-lxvst jack-lxvst.cpp $(LDLIBS) -ldl -lX11 -llo
 
 jack-play: jack-play.c
-	gcc $(CPPFLAGS) $(CFLAGS) -o jack-play jack-play.c $(LDLIBS) -lsndfile -lsamplerate
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o jack-play jack-play.c $(LDLIBS) -lsndfile -lsamplerate
 
 jack-record: jack-record.c
-	gcc $(CPPFLAGS) $(CFLAGS) -o jack-record jack-record.c $(LDLIBS) -lsndfile
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o jack-record jack-record.c $(LDLIBS) -lsndfile
 
 jack-scope: jack-scope.c
-	gcc $(CPPFLAGS) $(CFLAGS) -o jack-scope jack-scope.c $(LDLIBS) -lsamplerate -lX11 -lXext -lpng
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o jack-scope jack-scope.c $(LDLIBS) -lsamplerate -lX11 -lXext -lpng
 
 jack-transport: jack-transport.c
-	gcc $(CPPFLAGS) $(CFLAGS) -o jack-transport jack-transport.c $(LDLIBS) -lncurses -ltinfo
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o jack-transport jack-transport.c $(LDLIBS) -lncurses -ltinfo
 
 lxvst-query: lxvst-query.cpp
-	g++ $(CPPFLAGS) $(CXXFLAGS) -I$(VST_SDK) -o lxvst-query lxvst-query.cpp $(LDLIBS) -ldl
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -I$(VST_SDK) -o lxvst-query lxvst-query.cpp $(LDLIBS) -ldl
 
 clean:
 	rm -f $(bin) *.o
