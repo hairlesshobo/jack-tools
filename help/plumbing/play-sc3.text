@@ -1,0 +1,1 @@
+(connect "jack.play-[0-9]*:out_(.*)" "SuperCollider:in_\1")
