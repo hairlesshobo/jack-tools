@@ -158,9 +158,9 @@ void world_init(struct world *w, int nc, int nk, int nb)
 void usage(void)
 {
   eprintf("Usage: jack-dl [ options ]\n");
-  eprintf("    -b N : Number of buffers (default=8).\n");
+  eprintf("    -b N : Number of buffers (default=1024).\n");
   eprintf("    -c N : Number of channels (default=8).\n");
-  eprintf("    -k N : Number of controls (default=64).\n");
+  eprintf("    -k N : Number of controls (default=16384).\n");
   eprintf("    -u N : UDP port number (default=57190).\n");
   exit(EXIT_SUCCESS);
 }
@@ -170,7 +170,7 @@ int main(int argc, char **argv)
   struct world w;
   lo_server_thread osc;
   int c;
-  int32_t nb = 8, nc = 8, nk = 64;
+  int32_t nb = 1024, nc = 8, nk = 16384;
   char udp_port[6] = "57190";
   while((c = getopt(argc, argv, "b:c:hk:u:")) != -1) {
     switch(c) {
