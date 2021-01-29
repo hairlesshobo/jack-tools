@@ -41,7 +41,10 @@ jack-dl accepts the OSC commands:
     -------   ---------                             -----------
     /b_alloc  id::int frames::int channels::int     buffer allocate
     /c_set    index::int value::float               control set
+    /c_setn   index::int count:int value::float     control sequence set
     /g_load   object-file::file-path                graph load
+    /g_unload                                       graph unload
+    /quit                                           quit
 
 jack-dl consults the `JACK_DL_CONNECT_TO` and `JACK_DL_CONNECT_FROM`
 environment variables.
@@ -55,7 +58,7 @@ jack-dl drops all unrecognized incoming packets.
 AUTHOR
 ------
 
-Rohan Drape <rd@slavepianos.org>, October 2008
+Rohan Drape <rd@rohandrape.net>, October 2008-2021
 
 SEE ALSO
 --------

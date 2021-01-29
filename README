@@ -44,9 +44,8 @@ interoperable with [markdown](http://daringfireball.net/projects/markdown/) and 
 -->
 
 tested-with:
-
-- [gcc](http://gcc.gnu.org/) 10.2.1
-- [clang](https://clang.llvm.org/) 11.0.1
+[gcc](http://gcc.gnu.org/)-10.2.1
+[clang](https://clang.llvm.org/)-11.0.1
 
 © [rohan drape](http://rohandrape.net/),
   2003-2021,

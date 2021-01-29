@@ -79,9 +79,24 @@ int osc_c_set(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
 {
   struct world *w = (struct world *)u;
   int32_t i = a[0]->i;
-  break_on(i >= w->nk, "control index");
+  break_on(i >= w->nk, "c_set: control index");
   w_c_set1(w, i, a[1]->f);
   fprintf(stderr,"c_set: %d, %f\n", i, a[1]->f);
+  return 0;
+}
+
+int osc_c_setn(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
+{
+  struct world *w = (struct world *)u;
+  if(strlen(t) >= 3 && strncmp(t,"iif",3)) {
+      int32_t c_0 = a[0]->i;
+      int32_t c_n = a[1]->i;
+      break_on(c_0 + c_n >= w->nk, "c_setn: control index");
+      for(int32_t i = 0; i < c_n; i++) {
+          w_c_set1(w, c_0 + i, a[i + 2]->f);
+      }
+      fprintf(stderr,"c_setn: %d, %d, %f...\n", c_0, c_n, a[2]->f);
+  }
   return 0;
 }
 
@@ -168,11 +183,12 @@ int main(int argc, char **argv)
   }
   world_init(&w, nc, nk, nb);
   osc = lo_server_thread_new(udp_port, osc_error);
+  lo_server_thread_add_method(osc, "/b_alloc", "iii", osc_b_alloc, &w);
   lo_server_thread_add_method(osc, "/c_set", "if", osc_c_set, &w);
+  lo_server_thread_add_method(osc, "/c_setn", NULL, osc_c_setn, &w); /* NULL matches variable arg */
   lo_server_thread_add_method(osc, "/g_load", "s", osc_g_load, &w);
   lo_server_thread_add_method(osc, "/g_unload", "", osc_g_unload, &w);
-  lo_server_thread_add_method(osc, "/b_alloc", "iii", osc_b_alloc, &w);
-  lo_server_thread_add_method(osc, "/quit", NULL, osc_quit, &w);
+  lo_server_thread_add_method(osc, "/quit", "", osc_quit, &w);
   lo_server_thread_start(osc);
   die_when(jack_activate(w.c),"jack-dl: jack_activate() failed\n");
   jack_port_connect_to_env(w.c, w.nc, 0, "JACK_DL_CONNECT_TO");
