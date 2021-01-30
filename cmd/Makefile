@@ -8,7 +8,7 @@ CC = gcc # gcc clang
 AR = ar # ar llvm-ar
 CXX = g++ # g++ clang++
 
-CPPFLAGS += -Wall -pedantic -O3 -g
+CPPFLAGS += -Wall -pedantic -O3 -g -ffast-math
 CFLAGS += -D_POSIX_C_SOURCE=200809 -std=c99
 CXXFLAGS +=
 LDLIBS = c-common/lib-c-common.a -ljack -lpthread -lm

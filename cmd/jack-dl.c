@@ -60,7 +60,7 @@ int osc_g_load(const char *p, const char *t, lo_arg **a, int n, void *d, void *u
   w->st = malloc(k);
   w->dsp_init(w->st);
   w->ga = true;
-  fprintf(stderr,"g_load: %s\n", s);
+  vprintf(w->vb, "g_load: %s\n", s);
   return 0;
 }
 
@@ -71,7 +71,7 @@ int osc_g_unload(const char *p, const char *t, lo_arg **a, int n, void *d, void 
   if(w->gh) break_on(dlclose(w->gh), dlerror());
   w->gh = NULL;
   if(w->st) free(w->st);
-  fprintf(stderr,"g_unload\n");
+  vprintf(w->vb, "g_unload\n");
   return 0;
 }
 
@@ -81,21 +81,23 @@ int osc_c_set(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
   int32_t i = a[0]->i;
   break_on(i >= w->nk, "c_set: control index");
   w_c_set1(w, i, a[1]->f);
-  fprintf(stderr,"c_set: %d, %f\n", i, a[1]->f);
+  vprintf(w->vb, "c_set: %d, %f\n", i, a[1]->f);
   return 0;
 }
 
 int osc_c_setn(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
 {
   struct world *w = (struct world *)u;
-  if(strlen(t) >= 3 && strncmp(t,"iif",3)) {
+  if(strlen(t) >= 3 && strncmp(t,"iif",3) == 0) {
       int32_t c_0 = a[0]->i;
       int32_t c_n = a[1]->i;
       break_on(c_0 + c_n >= w->nk, "c_setn: control index");
       for(int32_t i = 0; i < c_n; i++) {
           w_c_set1(w, c_0 + i, a[i + 2]->f);
       }
-      fprintf(stderr,"c_setn: %d, %d, %f...\n", c_0, c_n, a[2]->f);
+      vprintf(w->vb, "c_setn: %d, %d, %f...\n", c_0, c_n, a[2]->f);
+  } else {
+      fprintf(stderr,"c_setn: error: %s, %s, %d\n", p, t, n);
   }
   return 0;
 }
@@ -116,7 +118,7 @@ int osc_b_alloc(const char *p, const char *t, lo_arg **a, int n, void *d, void *
     w->bd[i] = calloc(l, sizeof(float));
   }
   w->bl[i] = l;
-  fprintf(stderr,"b_alloc: %d, %d, %d\n", i, l, c);
+  vprintf(w->vb, "b_alloc: %d, %d, %d\n", i, l, c);
   return 0;
 }
 
@@ -127,7 +129,18 @@ int osc_quit(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
   return 0;
 }
 
-void world_init(struct world *w, int nc, int nk, int nb)
+int osc_print(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
+{
+    int i;
+    printf("p=%s, t=%s, n=%d a=", p, t, n);
+    for(i = 0; i < n; i++) {
+        lo_arg_pp((lo_type)t[i], a[i]);
+        printf(i < n - 1 ? "," : "\n");
+    }
+    return 1;
+}
+
+void world_init(struct world *w, int nc, int nk, int nb, bool vb)
 {
   w->nc = nc;
   w->nk = nk;
@@ -146,6 +159,7 @@ void world_init(struct world *w, int nc, int nk, int nb)
   w->bl = calloc(w->nb, sizeof(int));
   w->bd = calloc(w->nb, sizeof(float*));
   w->ef = false;
+  w->vb = vb;
   strncpy(w->cn,"jack-dl",64);
   w->c = jack_client_open(w->cn,JackNullOption,NULL);
   die_when(!w->c,"could not create jack client\n");
@@ -170,19 +184,24 @@ int main(int argc, char **argv)
   struct world w;
   lo_server_thread osc;
   int c;
+  bool vb = false;
   int32_t nb = 1024, nc = 8, nk = 16384;
   char udp_port[6] = "57190";
-  while((c = getopt(argc, argv, "b:c:hk:u:")) != -1) {
+  while((c = getopt(argc, argv, "b:c:hk:u:v")) != -1) {
     switch(c) {
     case 'b': nb = (int32_t)strtol(optarg, NULL, 0); break;
     case 'c': nc = (int32_t)strtol(optarg, NULL, 0); break;
     case 'h': usage(); break;
     case 'k': nk = (int32_t)strtol(optarg, NULL, 0); break;
     case 'u': strncpy(udp_port,optarg,5); break;
+    case 'v': vb = true;
     }
   }
-  world_init(&w, nc, nk, nb);
+  world_init(&w, nc, nk, nb, vb);
   osc = lo_server_thread_new(udp_port, osc_error);
+  if(vb) {
+      lo_server_thread_add_method(osc, NULL, NULL, osc_print, NULL);
+  }
   lo_server_thread_add_method(osc, "/b_alloc", "iii", osc_b_alloc, &w);
   lo_server_thread_add_method(osc, "/c_set", "if", osc_c_set, &w);
   lo_server_thread_add_method(osc, "/c_setn", NULL, osc_c_setn, &w); /* NULL matches variable arg */

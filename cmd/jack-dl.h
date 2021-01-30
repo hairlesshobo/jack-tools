@@ -23,6 +23,7 @@ struct world {
   float **bd;                  /* buffer data */
   int32_t *bl;                 /* buffer sizes (0 == not-ready) */
   bool ef;                     /* exit flag */
+  bool vb;                     /* verbose */
 };
 
 #define df_world struct world
