@@ -5,8 +5,8 @@ bin = jack-data jack-dl jack-level jack-lxvst jack-osc jack-play jack-play-sc3 j
 VST_SDK = $(HOME)/opt/src/vst3_sdk
 
 CC = gcc # gcc clang
-AR = ar # ar llvm-ar
 CXX = g++ # g++ clang++
+AR = ar # ar llvm-ar
 
 CPPFLAGS += -Wall -pedantic -O3 -g -ffast-math
 CFLAGS += -D_POSIX_C_SOURCE=200809 -std=c99
