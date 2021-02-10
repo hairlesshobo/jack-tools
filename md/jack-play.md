@@ -54,7 +54,7 @@ DESCRIPTION
 -----------
 jack-play is a light-weight JACK sound file player. It creates as many
 output ports as there are channels in the input file.  It will connect
-to ports mentioned at *-p* or in the environment variable
+to ports mentioned at *-d* or in the environment variable
 JACK_PLAY_CONNECT_TO which must include a %d pattern to indicate port
 number, otherwise it implements no connection logic, use
 jack-plumbing(1) instead.
