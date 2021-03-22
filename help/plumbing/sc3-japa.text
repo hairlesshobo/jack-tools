@@ -1,0 +1,1 @@
+(connect "SuperCollider:out_(.*)" "japa:in_\1")
