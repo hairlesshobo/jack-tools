@@ -17,17 +17,17 @@ rju
 
 <!-- [plumb]: http://plan9.bell-labs.com/sys/doc/plumb.html -->
 
-[-data]: ?t=rju&e=md/rju-data.md
-[-dl]: ?t=rju&e=md/rju-dl.md
-[-level]: ?t=rju&e=md/rju-level.md
-[-lxvst]: ?t=rju&e=md/rju-lxvst.md
-[-osc]: ?t=rju&e=md/rju-osc.md
-[-play]: ?t=rju&e=md/rju-play.md
-[-plumbing]: ?t=rju&e=md/rju-plumbing.md
-[-record]: ?t=rju&e=md/rju-record.md
-[-scope]: ?t=rju&e=md/rju-scope.md
-[-transport]: ?t=rju&e=md/rju-transport.md
-[-udp]: ?t=rju&e=md/rju-udp.md
+[-data]: https://rohandrape.net/?t=rju&e=md/rju-data.md
+[-dl]: https://rohandrape.net/?t=rju&e=md/rju-dl.md
+[-level]: https://rohandrape.net/?t=rju&e=md/rju-level.md
+[-lxvst]: https://rohandrape.net/?t=rju&e=md/rju-lxvst.md
+[-osc]: https://rohandrape.net/?t=rju&e=md/rju-osc.md
+[-play]: https://rohandrape.net/?t=rju&e=md/rju-play.md
+[-plumbing]: https://rohandrape.net/?t=rju&e=md/rju-plumbing.md
+[-record]: https://rohandrape.net/?t=rju&e=md/rju-record.md
+[-scope]: https://rohandrape.net/?t=rju&e=md/rju-scope.md
+[-transport]: https://rohandrape.net/?t=rju&e=md/rju-transport.md
+[-udp]: https://rohandrape.net/?t=rju&e=md/rju-udp.md
 
 Requires [c-common](?t=c-common).
 
@@ -63,6 +63,6 @@ These were all initially named with a `jack-` prefix, and were renamed April 202
 - Ignacio Sánchez, <!-- ignacio.sanchez@vocali.net --> 2009-02-20
 - Karsten Gebbert, <!-- k.gebbert@gmail.com --> 2008-06-27
 
-see the [history](?t=rju&q=history) for details
+see the [history](https://rohandrape.net/?t=rju&q=history) for details
 
-initial [announce](?t=rju&e=md/announce.md)ments
+initial [announce](https://rohandrape.net/?t=rju&e=md/announce.md)ments
