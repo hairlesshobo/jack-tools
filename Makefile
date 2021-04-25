@@ -1,3 +1,6 @@
+GL_GIT=git@gitlab.com:rd--/rju.git
+GL_HTTP=https://gitlab.com/rd--/rju.git
+
 all:
 	echo "rju"
 
@@ -8,11 +11,20 @@ clean:
 	rm -fR dist
 	(cd cmd ; make clean)
 
-push-rd:
-	darcs push -a rd@rohandrape.net:sw/rju
+push-gl:
+	git push $(GL_GIT)
 
-pull-rd:
-	darcs pull -a http://rohandrape.net/sw/rju
+push-gl-tags:
+	git push $(GH_GIT) --tag
+
+pull-gl:
+	git pull $(GL_HTTP)
+
+update-rd:
+	ssh rd@rohandrape.net "(cd sw/rju ; git pull $(GL_HTTP))"
+
+push-all:
+	make push-gl update-rd
 
 debian:
 	sudo apt-get install liblo-dev libsamplerate0-dev
