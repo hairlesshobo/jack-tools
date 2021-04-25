@@ -1,13 +1,13 @@
-JACK-UDP(1)
-===========
+RJU-UDP(1)
+==========
 
 NAME
 ----
-jack-udp - JACK UDP Transport Client
+rju-udp - JACK UDP Transport Client
 
 SYNOPSIS
 --------
-jack-udp [options] send|recv
+rju-udp [options] send|recv
 
 OPTIONS
 -------
@@ -15,7 +15,7 @@ OPTIONS
 :   Set the ring buffer size in frames (default=4096).
 
 *-c*
-:   Set the client name (default=jack-udp-PID).
+:   Set the client name (default=rju-udp-PID).
 
 *-n*
 :   Set the number of channels, and therefore the number of JACK ports
@@ -29,7 +29,7 @@ OPTIONS
 
 DESCRIPTION
 -----------
-jack-udp is a UDP audio transport mechansim for JACK.  The send mode
+rju-udp is a UDP audio transport mechansim for JACK.  The send mode
 reads signals from a set of JACK input ports and sends UDP packets to
 the indicated port at the indicated host at a rate determined by the
 local JACK daemon.  The recv mode reads incoming packets at the indi-
@@ -42,13 +42,13 @@ will report dropped and out-of-order packets, and shutdown on channel
 mismatch packets.  In practice this mechanism can be made highly reli-
 able over local networks.
 
-jack-udp implements no connection logic, use jack-plumbing(1) instead.
+rju-udp implements no connection logic, use rju-plumbing(1) instead.
 
 EXAMPLE
 -------
 
-    192.0.0.1:~$ jack-udp -r 192.0.0.2 send
-    192.0.0.2:~$ jack-udp recv
+    192.0.0.1:~$ rju-udp -r 192.0.0.2 send
+    192.0.0.2:~$ rju-udp recv
 
 AUTHOR
 ------

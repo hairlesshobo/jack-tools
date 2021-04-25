@@ -1,13 +1,13 @@
-JACK-RECORD(1)
-==============
+RJU-RECORD(1)
+=============
 
 NAME
 ----
-jack-record - JACK Capture Client
+rju-record - JACK Capture Client
 
 SYNOPSIS
 --------
-jack-record [options] sound-file
+rju-record [options] sound-file
 
 OPTIONS
 -------
@@ -46,7 +46,7 @@ OPTIONS
 
 DESCRIPTION
 -----------
-jack-record is a light-weight JACK capture client to write an
+rju-record is a light-weight JACK capture client to write an
 arbitrary number of channels to disk.
 
 If the default mode a single multiple channel sound file is written.
@@ -55,7 +55,7 @@ written.  In this case the sound file name must be a valid template,
 the substring %d is replaced with the channel number counting from
 zero.
 
-jack-record will write files in any format supported by libsndfile.
+rju-record will write files in any format supported by libsndfile.
 The table below shows the most common file format masks.  For other
 values see the file 'sndfile.h'.
 

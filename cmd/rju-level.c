@@ -22,7 +22,7 @@
 
 void usage(void)
 {
-  eprintf("Usage: jack-level [ options ]\n");
+  eprintf("Usage: rju-level [ options ]\n");
   eprintf("  -k INT -- port index offset\n");
   eprintf("  -n INT -- number of channels\n");
   eprintf("  -p STR -- port connection pattern\n");
@@ -49,7 +49,7 @@ struct world {
 
 void finish(int sig)
 {
-  fprintf(stderr, "jack-level: finish\n");
+  fprintf(stderr, "rju-level: finish\n");
   endwin();
   exit(0);
 }
@@ -109,15 +109,15 @@ int main(int argc, char **argv)
   }
   w.ip = malloc(w.nc * sizeof(jack_port_t *));
   w.in = malloc(w.nc * sizeof(float *));
-  w.c = jack_client_open("jack-level",JackNullOption,NULL);
+  w.c = jack_client_open("rju-level",JackNullOption,NULL);
   die_when(!w.c,"could not create jack client\n");
   jack_set_process_callback(w.c, dsp_run, &w);
   w.sr = (float)jack_get_sample_rate(w.c);
   jack_port_make_standard(w.c, w.ip, w.nc, false, false);
-  if(jack_activate(w.c)) die("jack-dl: jack_activate() failed\n");
-  jack_port_connect_pattern(w.c, w.nc, w.pk, w.pp, "jack-level:in_%d");
+  if(jack_activate(w.c)) die("rju-dl: jack_activate() failed\n");
+  jack_port_connect_pattern(w.c, w.nc, w.pk, w.pp, "rju-level:in_%d");
 
-  if(w.vb) fprintf(stderr, "jack-level: init curses\n");
+  if(w.vb) fprintf(stderr, "rju-level: init curses\n");
   signal(SIGINT, finish);
   initscr();
   keypad(stdscr, TRUE);
@@ -142,7 +142,7 @@ int main(int argc, char **argv)
       break;
     }
 
-    mvaddstr(0, 0, "jack-level");
+    mvaddstr(0, 0, "rju-level");
     for(int i = 0; i < w.nc; i++) {
         mvaddlvl(2,i * 10,amp_to_db(w.s_max[i]));
         mvaddlvl(3,i * 10,amp_to_db(w.s_lvl[1][i]));

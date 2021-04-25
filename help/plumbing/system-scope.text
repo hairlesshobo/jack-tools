@@ -1,1 +1,1 @@
-(connect "system:capture_(.*)" "jack-scope[-0-9]*:in_\1")
+(connect "system:capture_(.*)" "rju-scope[-0-9]*:in_\1")

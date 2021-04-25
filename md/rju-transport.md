@@ -1,17 +1,17 @@
-JACK-TRANSPORT(1)
-=================
+RJU-TRANSPORT(1)
+================
 
 NAME
 ----
-jack-transport - Text console jack transport interface
+rju-transport - Text console jack transport interface
 
 SYNOPSIS
 --------
-jack-transport
+rju-transport
 
 DESCRIPTION
 -----------
-jack-transport is a jack transport control interface using
+rju-transport is a jack transport control interface using
 ncurses.  It displays the transport state and current time, and
 provides standard operating keys.
 
@@ -51,4 +51,4 @@ Rohan Drape <http://rd.slavepianos.org/>, November 2006
 
 SEE ALSO
 --------
-jackd(1), jack-play(1)
+jackd(1), rju-play(1)

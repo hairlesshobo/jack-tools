@@ -24,7 +24,7 @@ struct transport {
 
 void finish(int sig)
 {
-  fprintf(stderr, "jack-transport: finish\n");
+  fprintf(stderr, "rju-transport: finish\n");
   endwin();
   exit(0);
 }
@@ -74,7 +74,7 @@ void offset(struct transport *t, double o)
 
 void usage(void)
 {
-  printf("Usage: jack-transport [options]\n");
+  printf("Usage: rju-transport [options]\n");
   printf("   -h: print usage\n");
   exit(0);
 }
@@ -97,17 +97,17 @@ int main(int argc, char **argv)
     }
   }
 
-  t.jk = jack_client_open("jack-transport", JackNullOption, NULL);
+  t.jk = jack_client_open("rju-transport", JackNullOption, NULL);
   if(t.jk) {
     jack_set_error_function(jack_client_minimal_error_handler);
     jack_on_shutdown(t.jk, jack_client_minimal_shutdown_handler, 0);
     jack_activate(t.jk);
   } else {
-    fprintf(stderr, "jack-transport: could not connect to jack\n");
+    fprintf(stderr, "rju-transport: could not connect to jack\n");
     exit(1);
   }
 
-  if(t.verbose) fprintf(stderr, "jack-transport: init curses\n");
+  if(t.verbose) fprintf(stderr, "rju-transport: init curses\n");
   signal(SIGINT, finish);
   initscr();
   keypad(stdscr, TRUE);
@@ -189,7 +189,7 @@ int main(int argc, char **argv)
       break;
     }
 
-    mvaddstr(0, 0, "jack-transport");
+    mvaddstr(0, 0, "rju-transport");
     mvaddstr(2, 0, "[s]tart,[s]top,[f]orward,[b]ack,[l]ocate,[i]ncrement,[z]ero,[q]uit");
     mvaddch(1, 0, t.rolling ? ACS_RARROW : ACS_BLOCK);
     mvaddtime(1, 6, t.time);

@@ -1,1 +1,1 @@
-(connect "jack-play[-0-9]*:out_(.*)" "jack-scope[-0-9]*:in_\1")
+(connect "rju-play[-0-9]*:out_(.*)" "rju-scope[-0-9]*:in_\1")

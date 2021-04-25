@@ -1,13 +1,13 @@
-JACK-PLUMBING(1)
-================
+RJU-PLUMBING(1)
+===============
 
 NAME
 ----
-jack-plumbing - JACK Plumbing Daemon
+rju-plumbing - JACK Plumbing Daemon
 
 SYNOPSIS
 --------
-jack-plumbing [options] [rule-files]
+rju-plumbing [options] [rule-files]
 
 OPTIONS
 -------
@@ -27,7 +27,7 @@ OPTIONS
 
 DESCRIPTION
 -----------
-jack-plumbing maintains a set of port connection rules and manages
+rju-plumbing maintains a set of port connection rules and manages
 these as clients register ports with JACK.  Port names are implicitly
 bounded regular expressions and support sub-expression patterns.
 
@@ -45,9 +45,9 @@ exist.
 This disconnect rule will delete every existing JACK connection.
 
 <!--
-    (also-connect "system:playback_1" "jack-udp-[0-9]*:in_1")
+    (also-connect "system:playback_1" "rju-udp-[0-9]*:in_1")
 
-This also-connect rule ensures that when jack-udp(1) is running in
+This also-connect rule ensures that when rju-udp(1) is running in
 send mode all signals that are ordinarily sent to the local audio
 interface will also be sent to the network destination.  The
 also-connect aliasing applies to both the left and right hand side of
@@ -74,8 +74,8 @@ empty it is a no-op, it does not write any files, it does not require
 any modification to clients or to how clients are started.
 
 When a set of port registrations is made it checks the modification
-time of the rule set files, '/etc/jack-plumbing' and
-'~/.jack-plumbing', and any files specified by the user, rereads the
+time of the rule set files, '/etc/rju-plumbing' and
+'~/.rju-plumbing', and any files specified by the user, rereads the
 rule set if it has been updated, then makes the JACK graph obey the
 rules.
 
@@ -86,8 +86,8 @@ connect rules.
 
 FILES
 -----
-* /etc/jack-plumbing
-* ~/.jack-plumbing
+* /etc/rju-plumbing
+* ~/.rju-plumbing
 
 AUTHOR
 ------

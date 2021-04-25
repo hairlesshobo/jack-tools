@@ -1,2 +1,2 @@
-(connect "mpv[-0-9]*:out_0" "jack-scope[-0-9]*:in_1")
-(connect "mpv[-0-9]*:out_1" "jack-scope[-0-9]*:in_2")
+(connect "mpv[-0-9]*:out_0" "rju-scope[-0-9]*:in_1")
+(connect "mpv[-0-9]*:out_1" "rju-scope[-0-9]*:in_2")

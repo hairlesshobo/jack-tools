@@ -1,13 +1,13 @@
-JACK-DL(1)
-==========
+RJU-DL(1)
+=========
 
 NAME
 ----
-jack-dl - JACK shared library dsp loader
+rju-dl - JACK shared library dsp loader
 
 SYNOPSIS
 --------
-jack-dl [options]
+rju-dl [options]
 
 OPTIONS
 -------
@@ -25,7 +25,7 @@ OPTIONS
 
 DESCRIPTION
 -----------
-jack-dl loads dsp algorithms from shared libraries and allows user
+rju-dl loads dsp algorithms from shared libraries and allows user
 interaction with the executing graph.  Commands are sent as OSC
 packets over a UDP connection.
 
@@ -35,7 +35,7 @@ The dsp graph code must provide three functions:
     void (*dsp_init)(void *);
     void (*dsp_step)(void *,int);
 
-jack-dl accepts the OSC commands:
+rju-dl accepts the OSC commands:
 
     Command   Arguments                             Description
     -------   ---------                             -----------
@@ -46,14 +46,14 @@ jack-dl accepts the OSC commands:
     /g_unload                                       graph unload
     /quit                                           quit
 
-jack-dl consults the `JACK_DL_CONNECT_TO` and `JACK_DL_CONNECT_FROM`
+rju-dl consults the `RJU_DL_CONNECT_TO` and `RJU_DL_CONNECT_FROM`
 environment variables.
 
-jack-dl implements only a subset of the OSC protocol.  In particular
+rju-dl implements only a subset of the OSC protocol.  In particular
 it does not implement the patten matching rules and does not implement
 a scheduler for incoming messages.
 
-jack-dl drops all unrecognized incoming packets.
+rju-dl drops all unrecognized incoming packets.
 
 AUTHOR
 ------

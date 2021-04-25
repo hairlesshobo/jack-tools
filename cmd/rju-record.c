@@ -74,7 +74,7 @@ void *disk_thread_procedure(void *PTR)
 
     /* Drop excessive data to not overflow the local buffer. */
     if(nbytes > d->buffer_bytes) {
-      eprintf("jack-record: impossible condition, read space.\n");
+      eprintf("rju-record: impossible condition, read space.\n");
       nbytes = d->buffer_bytes;
     }
 
@@ -114,11 +114,11 @@ int process(jack_nframes_t nframes, void *PTR)
 
   /* Check period size is workable. If the buffer is large, ie 4096
      frames, this should never be of practical concern. */
-  die_when(nbytes >= d->buffer_bytes,"jack-record: period size exceeds limit\n");
+  die_when(nbytes >= d->buffer_bytes,"rju-record: period size exceeds limit\n");
 
   /* Check that there is adequate space in the ringbuffer. */
   int space = (int) jack_ringbuffer_write_space(d->ring_buffer);
-  die_when(space < nbytes,"jack-record: overflow error, %d > %d\n", nbytes, space);
+  die_when(space < nbytes,"rju-record: overflow error, %d > %d\n", nbytes, space);
 
   /* Interleave input to buffer and copy into ringbuffer. */
   signal_interleave_to(d->j_buffer,
@@ -128,7 +128,7 @@ int process(jack_nframes_t nframes, void *PTR)
   int err = jack_ringbuffer_write(d->ring_buffer,
 				  (char *) d->j_buffer,
 				  (size_t) nbytes);
-  die_when(err != nbytes,"jack-record: ringbuffer write error, %d != %d\n",err,nbytes);
+  die_when(err != nbytes,"rju-record: ringbuffer write error, %d != %d\n",err,nbytes);
 
   /* Poke the disk thread to indicate data is on the ring buffer. */
   char b = 1;
@@ -139,7 +139,7 @@ int process(jack_nframes_t nframes, void *PTR)
 
 void usage(void)
 {
-  eprintf("Usage: jack-record [options] sound-file\n");
+  eprintf("Usage: rju-record [options] sound-file\n");
   eprintf("  -b N : Ring buffer size in frames (default=4096).\n");
   eprintf("  -f N : File format (default=0x10006).\n");
   eprintf("  -m N : Minimal disk transfer size in frames (default=32).\n");
@@ -201,7 +201,7 @@ int main(int argc, char *argv[])
       d.unique_name = false;
       break;
     default:
-      eprintf("jack-record: illegal option, %c\n", c);
+      eprintf("rju-record: illegal option, %c\n", c);
       usage ();
       break;
     }
@@ -211,13 +211,13 @@ int main(int argc, char *argv[])
   }
 
   /* Allocate channel based data. */
-  die_when(d.channels < 1,"jack-record: channels < 1: %d\n", d.channels);
+  die_when(d.channels < 1,"rju-record: channels < 1: %d\n", d.channels);
   d.in = xmalloc(d.channels * sizeof(float *));
   d.sound_file = xmalloc(d.channels * sizeof(SNDFILE *));
   d.input_port = xmalloc(d.channels * sizeof(jack_port_t *));
 
   /* Connect to JACK. */
-  char client_name[64] = "jack-record";
+  char client_name[64] = "rju-record";
   jack_client_t *client;
   if(d.unique_name) {
     client = jack_client_unique_store(client_name);
@@ -243,7 +243,7 @@ int main(int argc, char *argv[])
   sfinfo.format = d.file_format;
   if(d.multiple_sound_files) {
     if(!strstr(argv[optind], "%d")) {
-      eprintf("jack-record: illegal template, '%s'\n", argv[optind]);
+      eprintf("rju-record: illegal template, '%s'\n", argv[optind]);
       usage ();
     }
     sfinfo.channels = 1;

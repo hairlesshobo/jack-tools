@@ -1,1 +1,1 @@
-(connect "SuperCollider:out_(.*)" "jack.scope-[0-9]*:in_\1")
+(connect "SuperCollider:out_(.*)" "rju-scope-[0-9]*:in_\1")

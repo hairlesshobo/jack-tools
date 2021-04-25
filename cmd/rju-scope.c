@@ -398,7 +398,7 @@ set_mode(struct scope *s, const char *mode)
   } else if (strncmp("hscan", mode, 5) == 0) {
     s->mode = HSCAN_MODE;
   } else {
-    eprintf("jack-scope: illegal mode, %s\n", mode);
+    eprintf("rju-scope: illegal mode, %s\n", mode);
   }
 }
 
@@ -431,7 +431,7 @@ jackscope_osc_thread_procedure(void *ptr)
     } else if (OSC_PARSE_MSG("/style", ",s")) {
         s->signal_style = signal_style_parse(o[0].s);
     } else {
-        eprintf("jack-scope: dropped packet: %8s\n", packet);
+        eprintf("rju-scope: dropped packet: %8s\n", packet);
     }
   }
   return NULL;
@@ -456,7 +456,7 @@ draw_fn_select(i32 mode)
   } else if (mode == HSCAN_MODE) {
      return hscan_draw;
   } else {
-      eprintf("jack-scope: illegal mode, %d\n", mode);
+      eprintf("rju-scope: illegal mode, %d\n", mode);
       return signal_draw;
   }
 }
@@ -465,7 +465,7 @@ void *
 jackscope_draw_thread_procedure(void *ptr)
 {
   struct scope *s = (struct scope *) ptr;
-  Ximg_t *x = ximg_open(s->img_w, s->img_h, "jack-scope");
+  Ximg_t *x = ximg_open(s->img_w, s->img_h, "rju-scope");
   u8 *img = img_alloc(s->img_w, s->img_h, 3);
   while (!observe_end_of_process()) {
     char b;
@@ -478,7 +478,7 @@ jackscope_draw_thread_procedure(void *ptr)
     ximg_blit(x, img);
     if (s->image_directory) {
       char name[256];
-      snprintf(name, 256, "%s/jack-scope.%06d.ppm", s->image_directory, s->image_cnt);
+      snprintf(name, 256, "%s/rju-scope.%06d.ppm", s->image_directory, s->image_cnt);
       img_write_ppm_file(img, s->img_w, s->img_h, name);
     }
     s->image_cnt++;
@@ -524,7 +524,7 @@ jackscope_process(jack_nframes_t nframes, void *ptr)
 void
 jackscope_usage(void)
 {
-  eprintf("Usage: jack-scope [options]\n");
+  eprintf("Usage: rju-scope [options]\n");
   eprintf(" -b INT  : Scope size in frames (default=512)\n");
   eprintf(" -c STR  : Colour mode, grey|ega64 (default=grey)\n");
   eprintf(" -d REAL : Delay time in ms between scope updates (default=100)\n");
@@ -621,7 +621,7 @@ main(int argc, char **argv)
       d.zero_crossing = false;
       break;
     default:
-      eprintf("jack-scope: illegal option, %c\n", (char) o);
+      eprintf("rju-scope: illegal option, %c\n", (char) o);
       jackscope_usage();
       break;
     }
@@ -639,23 +639,23 @@ main(int argc, char **argv)
   xpipe(d.pipe);
   pthread_create(&(d.osc_thread), NULL, jackscope_osc_thread_procedure, &d);
   pthread_create(&(d.draw_thread), NULL, jackscope_draw_thread_procedure, &d);
-  char nm[64] = "jack-scope";
+  char nm[64] = "rju-scope";
   jack_client_t *c = NULL;
   if(unique) {
     c = jack_client_unique_store(nm);
   } else {
     c = jack_client_open(nm,JackNullOption,NULL);
   }
-  die_when(!c,"jack-scope: could not create jack client: %s", nm);
+  die_when(!c,"rju-scope: could not create jack client: %s", nm);
   jack_set_error_function(jack_client_minimal_error_handler);
   jack_on_shutdown(c, jack_client_minimal_shutdown_handler, 0);
   jack_set_process_callback(c, jackscope_process, &d);
   d.fps = (float) jack_get_sample_rate(c);
   d.delay_frames = floorf((d.delay_msec / 1000.0) * d.fps);
   jack_port_make_standard(c, d.port, d.channels, false, false);
-  die_when(jack_client_activate(c),"jack-scope: jack_activate() failed\n");
+  die_when(jack_client_activate(c),"rju-scope: jack_activate() failed\n");
   if (!p) {
-    p = getenv("JACK_SCOPE_CONNECT_TO");
+    p = getenv("RJU_SCOPE_CONNECT_TO");
   }
   if (p) {
     char q[128];

@@ -1,4 +1,4 @@
--- | jack-lxvst
+-- | rju-lxvst
 module Sound.RJU.LXVST where
 
 import Data.Word {- base -}

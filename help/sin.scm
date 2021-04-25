@@ -1,7 +1,7 @@
 (import (sosc)
         (rsc3))
 
-(define with-jackdl
+(define with-rju-dl
   (lambda (f)
     (let* ((fd (udp:open "127.0.0.1" 57190))
            (r (f fd)))
@@ -18,13 +18,13 @@
 
 (define set-sin
   (lambda (f a p)
-    (with-jackdl
+    (with-rju-dl
      (lambda (fd)
        (send fd (c-set1 0 f))
        (send fd (c-set1 1 a))
        (send fd (c-set1 2 p))))))
 
-(with-jackdl
+(with-rju-dl
   (lambda (fd)
     (send fd (g-load "/home/rohan/sw/rju/help/sin.so"))))
 
@@ -32,6 +32,6 @@
          (random 0.1 0.25)
          (random 0 1))
 
-(with-jackdl
+(with-rju-dl
   (lambda (fd)
     (send fd quit)))

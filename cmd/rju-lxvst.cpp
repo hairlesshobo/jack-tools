@@ -290,7 +290,7 @@ int osc_midi(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
 
 void usage(void)
 {
-    eprintf("Usage: jack-lxvst [ options ] lxvst-file\n");
+    eprintf("Usage: rju-lxvst [ options ] lxvst-file\n");
     eprintf("    -c N : Note data channel (default=0)\n");
     eprintf("    -i N : Number of input audio channels (default=0)\n");
     eprintf("    -l   : Log (verbose) midi data etc.\n");
@@ -362,7 +362,7 @@ int main(int argc, char *argv[])
     vst_verify_platform();
     printf("HOST> PROCESS ARGUMENTS\n");
     if (argc < 2) {
-        printf("HOST> USAGE = JACK-LXVST VST-FILE\n");
+        printf("HOST> USAGE = RJU-LXVST VST-FILE\n");
         usage();
         return -1;
     }
@@ -405,7 +405,7 @@ int main(int argc, char *argv[])
         pthread_create(&x11_thread, NULL, x11_thread_proc, &d);
     }
     printf("HOST> CONNECT TO JACK\n");
-    char client_name[64] = "jack-lxvst"; /* LIMIT */
+    char client_name[64] = "rju-lxvst"; /* LIMIT */
     jack_client_t *client;
     if (d.opt.unique_name) {
         client = jack_client_unique_store(client_name);
@@ -430,7 +430,7 @@ int main(int argc, char *argv[])
     printf("HOST> ACTIVATE JACK CLIENT\n");
     jack_client_activate(client);
     if(d.opt.use_midi) {
-        char *midi_src_name = getenv("JACK_LXVST_MIDI_CONNECT_FROM");
+        char *midi_src_name = getenv("RJU_LXVST_MIDI_CONNECT_FROM");
         printf("HOST> CONNECT MIDI\n");
         if (midi_src_name) {
             printf("HOST> MIDI INPUT = %s\n", midi_src_name);
@@ -440,14 +440,14 @@ int main(int argc, char *argv[])
         }
     }
     printf("HOST> CONNECT AUDIO\n");
-    char *audio_src_pattern = getenv("JACK_LXVST_CONNECT_FROM");
+    char *audio_src_pattern = getenv("RJU_LXVST_CONNECT_FROM");
     if (audio_src_pattern) {
         printf("HOST> AUDIO INPUT = %s\n", audio_src_pattern);
         char cl_pattern[128]; /* LIMIT */
         snprintf(cl_pattern, 128, "%s:in_%%d", client_name);
         jack_port_connect_pattern(client, d.opt.n_in_channels, 0, audio_src_pattern, cl_pattern);
     }
-    char *audio_dst_pattern = getenv("JACK_LXVST_CONNECT_TO");
+    char *audio_dst_pattern = getenv("RJU_LXVST_CONNECT_TO");
     if (audio_dst_pattern) {
         printf("HOST> AUDIO OUTPUT = %s\n", audio_dst_pattern);
         char cl_pattern[128]; /* LIMIT */
@@ -515,7 +515,7 @@ void *x11_thread_proc(void *ptr)
 
     // prepare the plugin name in the title bar
     effect->dispatcher(effect, effGetEffectName, 0, 0, effect_name, 0);
-    strcat(effect_name, " [jack-lxvst]");
+    strcat(effect_name, " [rju-lxvst]");
     XStoreName(dpy, win, effect_name);
 
     // Get and prepare editor size

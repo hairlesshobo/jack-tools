@@ -98,18 +98,18 @@ void *jackudp_recv_thread(void *PTR)
   while(1) {
     packet_recv(d->fd, &p, 0);
     if(p.index != next_packet && next_packet != -1) {
-      eprintf("jack-udp recv: out of order packet arrival (%d, %d)\n",
+      eprintf("rju-udp recv: out of order packet arrival (%d, %d)\n",
 	      next_packet, (int)p.index);
       FAILURE;
     }
     if(p.channels != d->channels) {
-      eprintf("jack-udp recv: channel mismatch packet arrival (%d != %d)\n",
+      eprintf("rju-udp recv: channel mismatch packet arrival (%d != %d)\n",
 	      p.channels, d->channels);
       FAILURE;
     }
     int bytes_available = (int) jack_ringbuffer_write_space(d->rb);
     if(PAYLOAD_BYTES > bytes_available) {
-      eprintf("jack-udp recv: buffer overflow (%d > %d)\n",
+      eprintf("rju-udp recv: buffer overflow (%d > %d)\n",
 	      (int) PAYLOAD_BYTES, bytes_available);
     } else {
       jack_ringbuffer_write_exactly(d->rb,
@@ -128,7 +128,7 @@ int jackudp_recv (jack_nframes_t nframes, void *PTR)
 {
   jackudp_t *d = (jackudp_t *) PTR;
   if(nframes >= d->buffer_size) {
-    eprintf("jack-udp recv: JACK buffer size exceeds limit\n");
+    eprintf("rju-udp recv: JACK buffer size exceeds limit\n");
     return -1;
   }
 
@@ -142,7 +142,7 @@ int jackudp_recv (jack_nframes_t nframes, void *PTR)
   int nbytes = nsamples * sizeof(f32);
   int bytes_available = (int) jack_ringbuffer_read_space(d->rb);
   if(nbytes > bytes_available) {
-    eprintf("jack-udp recv: buffer underflow (%d > %d)\n",
+    eprintf("rju-udp recv: buffer underflow (%d > %d)\n",
 	    nbytes, bytes_available);
     for(i = 0; i < nframes; i++) {
       for(j = 0; j < d->channels; j++) {
@@ -199,7 +199,7 @@ int jackudp_send(jack_nframes_t n, void *PTR )
   int bytes_available = (int) jack_ringbuffer_write_space(d->rb);
   int bytes_to_write = n * sizeof(f32) * d->channels;
   if(bytes_to_write > bytes_available) {
-    eprintf ("jack-udp send: buffer overflow error (UDP thread late)\n");
+    eprintf ("rju-udp send: buffer overflow error (UDP thread late)\n");
   } else {
     jack_ringbuffer_write_exactly(d->rb,
 				    (char *) d->j_buffer, bytes_to_write );
@@ -207,7 +207,7 @@ int jackudp_send(jack_nframes_t n, void *PTR )
 
   char b = 1;
   if(write(d->pipe[1], &b, 1)== -1) {
-    eprintf ("jack-udp send: error writing communication pipe.\n");
+    eprintf ("rju-udp send: error writing communication pipe.\n");
     FAILURE;
   }
   return 0;
@@ -215,9 +215,9 @@ int jackudp_send(jack_nframes_t n, void *PTR )
 
 void jackudp_usage (void)
 {
-  eprintf("Usage: jack-udp [ options ] mode\n");
+  eprintf("Usage: rju-udp [ options ] mode\n");
   eprintf("   -b  Set the ring buffer size in frames (default=4096).\n");
-  eprintf("   -c  Set the client name (default=\"jack-udp-PID\").\n");
+  eprintf("   -c  Set the client name (default=\"rju-udp-PID\").\n");
   eprintf("   -p  Set the port number (default=57160).\n");
   eprintf("   -n  Set the number of channels (default=2).\n");
   eprintf("   -r  Set the remote addrress to send to (default=\"127.0.0.1\").\n");
@@ -252,7 +252,7 @@ int main (int argc, char **argv)
       hostname = optarg;
       break;
     default:
-      eprintf ("jack-udp: Illegal option %c.\n", c);
+      eprintf ("rju-udp: Illegal option %c.\n", c);
       jackudp_usage ();
       break;
     }
@@ -261,7 +261,7 @@ int main (int argc, char **argv)
     jackudp_usage ();
   }
   if(d.channels < 1 || d.channels > MAX_CHANNELS) {
-    eprintf("jack-udp: illegal number of channels: %d\n", d.channels);
+    eprintf("rju-udp: illegal number of channels: %d\n", d.channels);
     FAILURE;
   }
   int recv_mode = (strcmp(argv[optind], "recv") == 0);
@@ -281,7 +281,7 @@ int main (int argc, char **argv)
   if(d.name) {
     client = jack_client_open(d.name,JackNullOption,NULL);
   } else {
-    client = jack_client_unique("jack-udp");
+    client = jack_client_unique("rju-udp");
   }
   jack_set_error_function(jack_client_minimal_error_handler);
   jack_on_shutdown(client, jack_client_minimal_shutdown_handler, 0);

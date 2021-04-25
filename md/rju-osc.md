@@ -1,13 +1,13 @@
-JACK-OSC(1)
-===========
+RJU-OSC(1)
+==========
 
 NAME
 ----
-jack-osc - JACK Transport Publication Daemon
+rju-osc - JACK Transport Publication Daemon
 
 SYNOPSIS
 --------
-jack-osc [options]
+rju-osc [options]
 
 OPTIONS
 -------
@@ -19,14 +19,14 @@ OPTIONS
 
 DESCRIPTION
 -----------
-jack-osc publishes the transport state of the local JACK server as OSC
-packets over a UDP connection.  jack-osc allows any OSC enabled
+rju-osc publishes the transport state of the local JACK server as OSC
+packets over a UDP connection.  rju-osc allows any OSC enabled
 application to act as a JACK transport client, receiving sample
 accurate pulse stream timing data, and monitoring and initiating
 transport state change.
 
 Clients request to receive timing and change notification packets by
-sending a "request notification" packet, '/receive', to the jack-osc
+sending a "request notification" packet, '/receive', to the rju-osc
 server.  This packet has the form
 
     /receive category:i
@@ -66,7 +66,7 @@ The simplest time data is sent as:
 /time loc:d
 :   Transport time (in seconds).
 
-All other jack-osc timing packets are
+All other rju-osc timing packets are
 sent at the start of a JACK period as OSC message and have the same
 shape:
 
@@ -80,7 +80,7 @@ is a signed 64bit integer frame counter the absolute value of which is
 not defined but which increments synchronously with the ntp and utc
 time stamps.  arg...  is the set of tag specific arguments.
 
-The timing packets sent by jack-osc are:
+The timing packets sent by rju-osc are:
 
 /pulse ntp:t utc:d frm:h p-ntp:t p-utc:d p-frm:h pulse:i
 :   Pulse Location.  This packet indicates that the nearest frame to
@@ -102,11 +102,11 @@ The timing packets sent by jack-osc are:
 /drift ntp:t utc:d frm:h ntp-dif:h utc-dif:d
 :   Drift Correction.  This packet is sent whenever the clock drift
     correction is run.  The frequency of this is set by the *-c*
-    option to the jack-osc server.  The integer value ntp-dif is the
+    option to the rju-osc server.  The integer value ntp-dif is the
     NTP form of the corrected drift value and utc-dif the UTC form.
     Since JACK is a sample clock there is no frame drift value.
 
-The state change packets sent by jack-osc are:
+The state change packets sent by rju-osc are:
 
 /transport ntp utc frm fps ppm ppc pt state
 :   Transport state change.  This packet is sent whenever the JACK
@@ -138,10 +138,10 @@ changes.
 
 Clients initiate a change in transport roll state by sending a
 "request transport operation" packet, '/start' or '/stop' to the
-jack-osc server.  Neither requires an argument.
+rju-osc server.  Neither requires an argument.
 
 Clients initiate a change in transport location by sending a "request
-locate operation" packet, '/locate', to the jack-osc server.  It has
+locate operation" packet, '/locate', to the rju-osc server.  It has
 the shape:
 
     /locate location
@@ -150,15 +150,15 @@ where the single precision real value location is the requested
 transport location in seconds.
 
 Clients can connect and disconnect ports by sending '/connect' and
-'/disconnect' messages to the jack-osc server.  Both have the shape:
+'/disconnect' messages to the rju-osc server.  Both have the shape:
 
    /[dis]connect left right
 
-jack-osc implements only a subset of the OSC protocol.  In particular
+rju-osc implements only a subset of the OSC protocol.  In particular
 it does not implement the patten matching rules and does not implement
 a scheduler for incoming messages.
 
-jack-osc drops all unrecognized incoming packets.
+rju-osc drops all unrecognized incoming packets.
 
 AUTHOR
 ------

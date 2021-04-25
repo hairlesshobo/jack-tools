@@ -1,15 +1,15 @@
 Name:              rju
 Version:           0.19
-Synopsis:          RJU
+Synopsis:          rju
 Description:       @rju@ utils
 License:           GPL-3
 Category:          Sound
-Copyright:         (c) Rohan Drape, 2003-2020
+Copyright:         (c) Rohan Drape, 2003-2021
 Author:            Rohan Drape
 Maintainer:        rd@rohandrape.net
 Stability:         Experimental
 Homepage:          http://rohandrape.net/t/rju
-Tested-With:       GHC == 8.6.5
+Tested-With:       GHC == 8.8.4
 Build-Type:        Simple
 Cabal-Version:     >= 1.8
 Data-Files:        README

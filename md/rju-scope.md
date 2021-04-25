@@ -1,13 +1,13 @@
-JACK-SCOPE(1)
+RJU-SCOPE(1)
 =============
 
 NAME
 ----
-jack-scope - JACK Oscilloscope
+rju-scope - JACK Oscilloscope
 
 SYNOPSIS
 --------
-jack-scope [options]
+rju-scope [options]
 
 OPTIONS
 -------
@@ -44,7 +44,7 @@ OPTIONS
 
 *-p*
 :   A pattern describing the JACK ports to connect to, ie. `SuperCollider:out_%d` (default=nil).
-    If this is not set consults the environment variable `JACK_SCOPE_CONNECT_TO`.
+    If this is not set consults the environment variable `RJU_SCOPE_CONNECT_TO`.
 
 *-s*
 :   Set the drawing style for signal mode (default=dot).
@@ -63,18 +63,18 @@ OPTIONS
 
 DESCRIPTION
 -----------
-jack-scope is an oscilloscope for JACK under X11.  jack-scope draws
+rju-scope is an oscilloscope for JACK under X11.  rju-scope draws
 either a time domain signal trace or a self correlation trace.
 Multiple input channels are superimposed, each channel is drawn in a
-different colour.  jack-scope accepts OSC packets for interactive
+different colour.  rju-scope accepts OSC packets for interactive
 control of drawing parameters.
 
-The operating mode of jack-scope is set using *-m*.  In signal mode
-jack-scope draws a time domain signal trace, in embed mode jack-scope
+The operating mode of rju-scope is set using *-m*.  In signal mode
+rju-scope draws a time domain signal trace, in embed mode rju-scope
 draws a self correlation trace, in hline mode an _optical sound_ picture
 is made.
 
-The size of the jack-scope window is set using *-h* and *-w*.  The
+The size of the rju-scope window is set using *-h* and *-w*.  The
 window is of fixed size and has centered gravity.  The time interval
 that is displayed is determined by the frame size, set using *-b*.
 The image refresh rate is determined by the delay interval, set using
@@ -82,7 +82,7 @@ The image refresh rate is determined by the delay interval, set using
 boundary and that the time taken to compose the image and blit to the
 screen is indeterminate.
 
-The number of JACK input ports that jack-scope creates and monitors is
+The number of JACK input ports that rju-scope creates and monitors is
 set using *-n*.  Multiple channels are drawn in superimposition, each
 channel is drawn in a distinct colour.
 
@@ -104,19 +104,19 @@ image delay is 50 then each frame is a consecutive drawing of 1/20 of
 a second of the input signal.  A block size of 1920 and window size of
 640 and delay of 40 gives consecutive drawings at 1/25 of a second.
 
-    jack-scope -m hline -n 1 -b 2400 -h 800 -w 1280 -d 50 -p jack-play:out_%d
-    jack-scope -m hline -n 2 -b 1920 -h 640 -w 640 -d 40 -p jack-play:out_%d
+    rju-scope -m hline -n 1 -b 2400 -h 800 -w 1280 -d 50 -p rju-play:out_%d
+    rju-scope -m hline -n 2 -b 1920 -h 640 -w 640 -d 40 -p rju-play:out_%d
 
 The hscan mode is closely related, the block is resampled (if
 required) to the size of the window.
 
-    jack-scope -g 2 -m hscan -w 200 -h 200 -d 100 -b 40000 -p jack-play:out_%d
+    rju-scope -g 2 -m hscan -w 200 -h 200 -d 100 -b 40000 -p rju-play:out_%d
 
-jack-scope can store the animation as a sequence of uncompressed
+rju-scope can store the animation as a sequence of uncompressed
 ppm(5) image files.  To request this use the *-f* option with the
 directory files should be written to as the argument.
 
-The OSC messages understood by jack-scope are given in the table
+The OSC messages understood by rju-scope are given in the table
 below.  Each command requires one argument of the indicated type.  The
 last column gives the option that sets the same parameter.
 

@@ -1,6 +1,6 @@
 prefix = $(HOME)/opt
 
-bin = jack-data jack-dl jack-level jack-lxvst jack-osc jack-play jack-play-sc3 jack-plumbing jack-record jack-scope jack-transport jack-udp lxvst-query
+bin = rju-data rju-dl rju-level rju-lxvst rju-osc rju-play rju-plumbing rju-record rju-scope rju-transport rju-udp lxvst-query
 
 VST_SDK = $(HOME)/opt/src/vst3_sdk
 
@@ -15,32 +15,32 @@ LDLIBS = c-common/lib-c-common.a -ljack -lpthread -lm
 
 all: $(bin)
 
-jack-data: jack-data.c
-	$(CC) $(CPPFLAGS) $(CFLAGS) -o jack-data jack-data.c $(LDLIBS) -lsamplerate
+rju-data: rju-data.c
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o rju-data rju-data.c $(LDLIBS) -lsamplerate
 
-jack-dl: jack-dl.c
-	$(CC) $(CPPFLAGS) -Wno-pedantic $(CFLAGS) -o jack-dl jack-dl.c $(LDLIBS) -ldl -llo
+rju-dl: rju-dl.c
+	$(CC) $(CPPFLAGS) -Wno-pedantic $(CFLAGS) -o rju-dl rju-dl.c $(LDLIBS) -ldl -llo
 
-jack-dx7: jack-dx7.cpp
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o jack-dx7 jack-dx7.cpp $(LDLIBS) dx7/lib-dx7.a
+rju-dx7: rju-dx7.cpp
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o rju-dx7 rju-dx7.cpp $(LDLIBS) dx7/lib-dx7.a
 
-jack-level: jack-level.c
-	$(CC) $(CPPFLAGS) $(CFLAGS) -o jack-level jack-level.c $(LDLIBS) -lncurses -ltinfo
+rju-level: rju-level.c
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o rju-level rju-level.c $(LDLIBS) -lncurses -ltinfo
 
-jack-lxvst: jack-lxvst.cpp
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -I$(VST_SDK) -o jack-lxvst jack-lxvst.cpp $(LDLIBS) -ldl -lX11 -llo
+rju-lxvst: rju-lxvst.cpp
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -I$(VST_SDK) -o rju-lxvst rju-lxvst.cpp $(LDLIBS) -ldl -lX11 -llo
 
-jack-play: jack-play.c
-	$(CC) $(CPPFLAGS) $(CFLAGS) -o jack-play jack-play.c $(LDLIBS) -lsndfile -lsamplerate
+rju-play: rju-play.c
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o rju-play rju-play.c $(LDLIBS) -lsndfile -lsamplerate
 
-jack-record: jack-record.c
-	$(CC) $(CPPFLAGS) $(CFLAGS) -o jack-record jack-record.c $(LDLIBS) -lsndfile
+rju-record: rju-record.c
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o rju-record rju-record.c $(LDLIBS) -lsndfile
 
-jack-scope: jack-scope.c
-	$(CC) $(CPPFLAGS) $(CFLAGS) -o jack-scope jack-scope.c $(LDLIBS) -lsamplerate -lX11 -lXext -lpng
+rju-scope: rju-scope.c
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o rju-scope rju-scope.c $(LDLIBS) -lsamplerate -lX11 -lXext -lpng
 
-jack-transport: jack-transport.c
-	$(CC) $(CPPFLAGS) $(CFLAGS) -o jack-transport jack-transport.c $(LDLIBS) -lncurses -ltinfo
+rju-transport: rju-transport.c
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o rju-transport rju-transport.c $(LDLIBS) -lncurses -ltinfo
 
 lxvst-query: lxvst-query.cpp
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -I$(VST_SDK) -o lxvst-query lxvst-query.cpp $(LDLIBS) -ldl
@@ -50,7 +50,7 @@ clean:
 
 install:
 	cp $(bin) $(prefix)/bin
-	cp jack-dl.h $(prefix)/include
+	cp rju-dl.h $(prefix)/include
 
 uninstall:
 	(cd $(prefix)/bin ; rm -f $(bin))
@@ -63,7 +63,7 @@ mk-local-c-common:
 	(cd c-common ; make)
 
 indent:
-	indent -kr -nut -l96 -i2 -brf jack-scope.c
-	indent -kr -nut -l96 -i4 -blf -bls jack-lxvst.cpp
+	indent -kr -nut -l96 -i2 -brf rju-scope.c
+	indent -kr -nut -l96 -i4 -blf -bls rju-lxvst.cpp
 
 # `pkg-config --libs jack liblo ncurses sndfile samplerate x11 xext`

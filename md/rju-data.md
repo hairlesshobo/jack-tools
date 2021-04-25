@@ -1,13 +1,13 @@
-JACK-DATA(1)
-============
+RJU-DATA(1)
+===========
 
 NAME
 ----
-jack-data - JACK audio data onto OSC
+rju-data - JACK audio data onto OSC
 
 SYNOPSIS
 --------
-jack-data nc read write type udp
+rju-data nc read write type udp
 
 OPTIONS
 -------
@@ -23,9 +23,9 @@ is output data type (either `u8` or `f32`), `udp` is the port number
 to send OSC packets to.  The packets are sent as `/data` messages with
 the first four arguments (ie. nc, read, write and type) followed by
 the resampled (if required) interleaved audio data.  Data is read from
-the ports given by the environment variable `JACK_DATA_CONNECT_TO`.
+the ports given by the environment variable `RJU_DATA_CONNECT_TO`.
 
-    $ JACK_DATA_CONNECT_TO="SuperCollider:out_%d" jack-data 1 512 32 u8 57190 &
+    $ RJU_DATA_CONNECT_TO="SuperCollider:out_%d" rju-data 1 512 32 u8 57190 &
     $ hosc-print json -p 57190
     ["/data",1,512,32,"u8",{"blob":[0,3,7,9,10,7,1,6,14,16,12,3, [...]
     ^C

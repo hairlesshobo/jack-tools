@@ -1,13 +1,13 @@
-JACK-LEVEL(1)
-=============
+RJU-LEVEL(1)
+============
 
 NAME
 ----
-jack-level - JACK CLI level meter
+rju-level - JACK CLI level meter
 
 SYNOPSIS
 --------
-jack-level [options]
+rju-level [options]
 
 OPTIONS
 -------
@@ -22,7 +22,7 @@ OPTIONS
 
 DESCRIPTION
 -----------
-jack-level is a JACK CLI level meter.
+rju-level is a JACK CLI level meter.
 
 It writes peak and average levels as text fields using curses.
 
@@ -31,7 +31,7 @@ While running type 'z' to zero peak levels and 'q' to quit.
 EXAMPLE
 -------
 
-    jack-level -n 2 -p SuperCollider:out_%d
+    rju-level -n 2 -p SuperCollider:out_%d
 
 AUTHOR
 ------

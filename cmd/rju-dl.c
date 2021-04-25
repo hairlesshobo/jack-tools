@@ -18,7 +18,7 @@
 #include "c-common/failure.h"
 #include "c-common/print.h"
 
-#include "jack-dl.h"
+#include "rju-dl.h"
 
 int dsp_run(jack_nframes_t nf, void *ptr)
 {
@@ -36,12 +36,12 @@ int dsp_run(jack_nframes_t nf, void *ptr)
 
 void osc_error(int n, const char *m, const char *p)
 {
-  fprintf(stderr,"jack-dl: error %d in path %s: %s\n", n, p, m);
+  fprintf(stderr,"rju-dl: error %d in path %s: %s\n", n, p, m);
 }
 
 #define break_on(x,s)                                                   \
   if(x){                                                                \
-    fprintf(stderr,"jack-dl: %s: %s, %d\n", s, __FILE__, __LINE__);     \
+    fprintf(stderr,"rju-dl: %s: %s, %d\n", s, __FILE__, __LINE__);     \
     return 0;                                                           \
   }
 
@@ -160,7 +160,7 @@ void world_init(struct world *w, int nc, int nk, int nb, bool vb)
   w->bd = calloc(w->nb, sizeof(float*));
   w->ef = false;
   w->vb = vb;
-  strncpy(w->cn,"jack-dl",64);
+  strncpy(w->cn,"rju-dl",64);
   w->c = jack_client_open(w->cn,JackNullOption,NULL);
   die_when(!w->c,"could not create jack client\n");
   jack_set_process_callback(w->c, dsp_run, w);
@@ -171,7 +171,7 @@ void world_init(struct world *w, int nc, int nk, int nb, bool vb)
 
 void usage(void)
 {
-  eprintf("Usage: jack-dl [ options ]\n");
+  eprintf("Usage: rju-dl [ options ]\n");
   eprintf("    -b N : Number of buffers (default=1024).\n");
   eprintf("    -c N : Number of channels (default=8).\n");
   eprintf("    -k N : Number of controls (default=16384).\n");
@@ -209,9 +209,9 @@ int main(int argc, char **argv)
   lo_server_thread_add_method(osc, "/g_unload", "", osc_g_unload, &w);
   lo_server_thread_add_method(osc, "/quit", "", osc_quit, &w);
   lo_server_thread_start(osc);
-  die_when(jack_activate(w.c),"jack-dl: jack_activate() failed\n");
-  jack_port_connect_to_env(w.c, w.nc, 0, "JACK_DL_CONNECT_TO");
-  jack_port_connect_from_env(w.c, w.nc, 0, "JACK_DL_CONNECT_FROM");
+  die_when(jack_activate(w.c),"rju-dl: jack_activate() failed\n");
+  jack_port_connect_to_env(w.c, w.nc, 0, "RJU_DL_CONNECT_TO");
+  jack_port_connect_from_env(w.c, w.nc, 0, "RJU_DL_CONNECT_FROM");
   while(!w.ef) {
     struct timespec t = {0, 100000000};
     nanosleep(&t, NULL);

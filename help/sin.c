@@ -2,7 +2,7 @@
 
 #include <stdlib.h>
 #include <math.h>
-#include <jack-dl.h>
+#include <rju-dl.h>
 
 struct sinosc {
   float f;                      /* frequency */

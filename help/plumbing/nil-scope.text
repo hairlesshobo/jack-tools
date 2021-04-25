@@ -1,1 +1,1 @@
-(disconnect ".*" "jack-scope.*")
+(disconnect ".*" "rju-scope.*")

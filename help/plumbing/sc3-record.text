@@ -1,1 +1,1 @@
-(connect "SuperCollider:out_(.*)" "jack.record-[0-9]*:in_\1")
+(connect "SuperCollider:out_(.*)" "rju-record-[0-9]*:in_\1")

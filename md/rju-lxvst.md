@@ -1,13 +1,13 @@
-JACK-LXVST(1)
-=============
+RJU-LXVST(1)
+============
 
 NAME
 ----
-jack-lxvst - JACK CLI Linux/VST Host
+rju-lxvst - JACK CLI Linux/VST Host
 
 SYNOPSIS
 --------
-jack-lxvst vst-file
+rju-lxvst vst-file
 
 OPTIONS
 -------
@@ -16,9 +16,9 @@ OPTIONS
 
 DESCRIPTION
 -----------
-jack-lxvst is a JACK CLI host for Linux/VST plugins.
+rju-lxvst is a JACK CLI host for Linux/VST plugins.
 
-It consults the environment variables JACK_LXVST_MIDI_CONNECT_FROM and JACK_LXVST_CONNECT_TO.
+It consults the environment variables RJU_LXVST_MIDI_CONNECT_FROM and RJU_LXVST_CONNECT_TO.
 
 It listens for OSC messages (/midi and /param) at port 57210 (by default).
 

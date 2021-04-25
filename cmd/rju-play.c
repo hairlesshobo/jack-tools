@@ -74,7 +74,7 @@ void *disk_proc(void *PTR)
       sf_count_t err = sf_seek(d->sound_file,
 			       (sf_count_t)d->o.seek_request, SEEK_SET);
       if(err == -1) {
-	eprintf("jack-play: seek request failed, %ld\n",
+	eprintf("rju-play: seek request failed, %ld\n",
 		(long)d->o.seek_request);
       }
       d->o.seek_request = -1;
@@ -86,7 +86,7 @@ void *disk_proc(void *PTR)
 
     /* Do not overflow the local buffer. */
     if(nbytes > d->buffer_bytes) {
-      eprintf("jack-play: impossible condition, write space.\n");
+      eprintf("rju-play: impossible condition, write space.\n");
       nbytes = d->buffer_bytes;
     }
 
@@ -151,7 +151,7 @@ int signal_proc(jack_nframes_t nframes, void *PTR)
   int nbytes = nsamples * sizeof(float);
 
   /* Ensure the period size is workable. */
-  die_when(nbytes >= d->buffer_bytes,"jack-play: period size exceeds limit\n");
+  die_when(nbytes >= d->buffer_bytes,"rju-play: period size exceeds limit\n");
 
   /* Get port data buffers. */
   int i,j;
@@ -179,7 +179,7 @@ int signal_proc(jack_nframes_t nframes, void *PTR)
 				(long)nframes,
 				d->j_buffer);
   die_when(err==0,
-           "jack-play: sample rate converter failed: %s\n",
+           "rju-play: sample rate converter failed: %s\n",
            src_strerror(src_error(d->src)));
 
   /* Uninterleave available data to the output buffers. */
@@ -194,7 +194,7 @@ int signal_proc(jack_nframes_t nframes, void *PTR)
      should set a flag and have another thread take appropriate
      action. */
   if(err < nframes) {
-    eprintf("jack-play: disk thread late (%ld < %d)\n", err, nframes);
+    eprintf("rju-play: disk thread late (%ld < %d)\n", err, nframes);
     for(i = err; i < nframes; i++) {
       for(j = 0; j < d->channels; j++) {
 	d->out[j][i] = 0.0;
@@ -218,7 +218,7 @@ int signal_proc(jack_nframes_t nframes, void *PTR)
 
 void usage(void)
 {
-  eprintf("Usage: jack-play [ options ] sound-file...\n");
+  eprintf("Usage: rju-play [ options ] sound-file...\n");
   eprintf("    -b N : Ring buffer size in frames (default=4096).\n");
   eprintf("    -c N : ID of conversion algorithm (default=2, SRC_SINC_FASTEST).\n");
   eprintf("    -d N : Destination port pattern (default=NULL).\n");
@@ -253,7 +253,7 @@ long read_input_from_rb(void *PTR, float **buf)
 
   /* SRC locks up if we return zero here, return a silent frame */
   if(err==0) {
-    eprintf("jack-play: ringbuffer empty... zeroing data\n");
+    eprintf("rju-play: ringbuffer empty... zeroing data\n");
     memset(d->k_buffer, 0, (size_t)nsamples * sizeof(float));
     err = d->o.rb_request_frames;
   }
@@ -274,7 +274,7 @@ int jackplay(const char *file_name,
   d.channels = sfinfo.channels;
 
   /* Allocate channel based data. */
-  die_when(d.channels < 1,"jack-play: channels < 1: %d\n",d.channels);
+  die_when(d.channels < 1,"rju-play: channels < 1: %d\n",d.channels);
   d.out = xmalloc(d.channels * sizeof(float *));
   d.output_port = xmalloc(d.channels * sizeof(jack_port_t *));
 
@@ -293,7 +293,7 @@ int jackplay(const char *file_name,
 			    d.channels,
 			    &err,
 			    &d);
-  die_when(!d.src,"jack-play: SRC setup failed: %s\n",src_strerror(err));
+  die_when(!d.src,"rju-play: SRC setup failed: %s\n",src_strerror(err));
 
   /* Create communication pipe. */
   xpipe(d.pipe);
@@ -304,7 +304,7 @@ int jackplay(const char *file_name,
   } else {
     d.client = jack_client_open(d.o.client_name,JackNullOption,NULL);
   }
-  die_when(!d.client,"jack-play: create client: %s", d.o.client_name);
+  die_when(!d.client,"rju-play: create client: %s", d.o.client_name);
 
   /* Start disk thread, the priority number is a random guess.... */
   jack_client_create_thread (d.client,
@@ -327,7 +327,7 @@ int jackplay(const char *file_name,
   double isr = (double) sfinfo.samplerate;
   if(osr != isr) {
     d.o.src_ratio *= (osr / isr);
-    eprintf("jack-play: resampling, sample rate of file != server, %G != %G (%G)\n",
+    eprintf("rju-play: resampling, sample rate of file != server, %G != %G (%G)\n",
 	    isr,
 	    osr,
             d.o.src_ratio);
@@ -344,7 +344,7 @@ int jackplay(const char *file_name,
   jack_port_make_standard(d.client, d.output_port, d.channels, true, false);
   jack_client_activate(d.client);
   if (o.dst_pattern == NULL) {
-    o.dst_pattern = getenv("JACK_PLAY_CONNECT_TO");
+    o.dst_pattern = getenv("RJU_PLAY_CONNECT_TO");
   }
   if (o.dst_pattern) {
     char src_pattern[128];
@@ -389,7 +389,7 @@ int main(int argc, char *argv[])
   o.ampl = 1.0;
   o.dst_pattern = NULL;
   o.loop = false;
-  strncpy(o.client_name, "jack-play", NAME_MAX - 1);
+  strncpy(o.client_name, "rju-play", NAME_MAX - 1);
 
   while((c = getopt(argc, argv, "b:c:d:g:hi:I:lm:n:q:r:tu")) != -1) {
     switch(c) {
@@ -439,7 +439,7 @@ int main(int argc, char *argv[])
       o.unique_name = false;
       break;
     default:
-      eprintf("jack-play: illegal option, %c\n", c);
+      eprintf("rju-play: illegal option, %c\n", c);
       usage ();
       break;
     }
@@ -449,7 +449,7 @@ int main(int argc, char *argv[])
   }
   int i;
   for(i = optind; i < argc; i++) {
-    printf("jack-play: %s\n", argv[i]);
+    printf("rju-play: %s\n", argv[i]);
     jackplay(argv[i], o);
   }
   return EXIT_SUCCESS;

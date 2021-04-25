@@ -2,14 +2,14 @@ import Control.Monad {- base -}
 
 import Sound.OSC {- hosc -}
 
-jack_osc_p :: Int
-jack_osc_p = 57130
+rju_osc_p :: Int
+rju_osc_p = 57130
 
-jack_osc_udp :: IO UDP
-jack_osc_udp = openUDP "127.0.0.1" jack_osc_p
+rju_osc_udp :: IO UDP
+rju_osc_udp = openUDP "127.0.0.1" rju_osc_p
 
-with_jack_osc :: Connection UDP t -> IO ()
-with_jack_osc = withTransport_ jack_osc_udp
+with_rju_osc :: Connection UDP t -> IO ()
+with_rju_osc = withTransport_ rju_osc_udp
 
 printer :: Connection UDP t
 printer = do
@@ -18,7 +18,7 @@ printer = do
               liftIO (print m))
 
 main :: IO ()
-main = with_jack_osc printer
+main = with_rju_osc printer
 
 {-
 

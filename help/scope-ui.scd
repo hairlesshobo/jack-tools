@@ -12,9 +12,9 @@
  var cb = {arg s, a; var v = CheckBox().string_(s).action_({a.(v.value)}); v};
  var te = {arg s, a; TextField().string_(s).action_(a)};
  var tx = {arg s; StaticText().string_(s)};
- var mk_cmd = {["jack-scope -U -n 2 -b",b,"-m",m,"-g",g,"-c",c,"-s",s,"-h",sz,"-w",sz,"-p SuperCollider:out_%d"].join(" ")};
+ var mk_cmd = {["rju-scope -U -n 2 -b",b,"-m",m,"-g",g,"-c",c,"-s",s,"-h",sz,"-w",sz,"-p SuperCollider:out_%d"].join(" ")};
  var lc_status = false;
- var lc = {arg x; if(x,{mk_cmd.().unixCmd},{"killall jack-scope".unixCmd}); lc_status =x};
+ var lc = {arg x; if(x,{mk_cmd.().unixCmd},{"killall rju-scope".unixCmd}); lc_status =x};
  var js = cb.("local-scope",lc);
  var md = PopUpMenu().items_(["signal","embed","hline","hscan"]).action_({arg x; m = x.item; a.sendMsg('/mode',m)});
  var st = PopUpMenu().items_(["dot","line","fill"]).action_({arg x; s = x.item; a.sendMsg('/style',s)});
@@ -35,5 +35,5 @@
  var x0 = 200;
  var y0 = Window.screenBounds.height - 200;
  var w = Window("scope",bounds:Rect(x0,y0,720,160),resizable:false).layout_(GridLayout.rows(*v)).front;
- w.onClose_({if(lc_status,{"killall jack-scope".unixCmd})});
+ w.onClose_({if(lc_status,{"killall rju-scope".unixCmd})});
 )

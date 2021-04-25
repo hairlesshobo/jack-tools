@@ -1,6 +1,6 @@
 {-
 
-- read /time OSC messages sent by jack-osc
+- read /time OSC messages sent by rju-osc
 - write /text OSC-JSON messages to websocket
 
 -}
@@ -39,7 +39,7 @@ main = do
   a <- getArgs
   let h = T.opt_scan_def a ("h","127.0.0.1") -- "192.168.1.7"
       w = T.opt_scan_read a ("w",9160) -- json-ws.05.js
-      p = T.opt_scan_read a ("p",57130) -- jack-osc
+      p = T.opt_scan_read a ("p",57130) -- rju-osc
   print ("h,w,p",h,w,p)
   withTransport
     (openUDP h p)

@@ -1,13 +1,13 @@
-JACK-PLAY(1)
+RJU-PLAY(1)
 ============
 
 NAME
 ----
-jack-play - JACK Sound File Player
+rju-play - JACK Sound File Player
 
 SYNOPSIS
 --------
-jack-play [options] sound-file...
+rju-play [options] sound-file...
 
 OPTIONS
 -------
@@ -35,7 +35,7 @@ OPTIONS
     is an optimization switch.
 
 *-n*
-:   Set the client name (default=jack-play).
+:   Set the client name (default=rju-play).
 
 *-q*
 :   Set the frame size to request data from the ringbuffer
@@ -52,14 +52,14 @@ OPTIONS
 
 DESCRIPTION
 -----------
-jack-play is a light-weight JACK sound file player. It creates as many
+rju-play is a light-weight JACK sound file player. It creates as many
 output ports as there are channels in the input file.  It will connect
 to ports mentioned at *-d* or in the environment variable
-JACK_PLAY_CONNECT_TO which must include a %d pattern to indicate port
+RJU_PLAY_CONNECT_TO which must include a %d pattern to indicate port
 number, otherwise it implements no connection logic, use
-jack-plumbing(1) instead.
+rju-plumbing(1) instead.
 
-jack-play will read files in any format supported by libsndfile, and
+rju-play will read files in any format supported by libsndfile, and
 will resample to match the server sample rate using libsamplerate.
 
 AUTHOR

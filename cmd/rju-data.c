@@ -118,7 +118,7 @@ int jackdata_process(jack_nframes_t nframes, void *ptr)
 void
 jackdata_usage(void)
 {
-  eprintf("Usage: jack-data nc:int read:int write:int type:str udp:int\n");
+  eprintf("Usage: rju-data nc:int read:int write:int type:str udp:int\n");
   FAILURE;
 }
 
@@ -146,17 +146,17 @@ main(int argc, char **argv)
   d.fd = socket_udp(0);
   xpipe(d.pipe);
   pthread_create(&(d.osc_thread), NULL, jackdata_osc_thread_procedure, &d);
-  char nm[64] = "jack-data";
+  char nm[64] = "rju-data";
   jack_client_t *c = jack_client_unique_store(nm);
   jack_set_error_function(jack_client_minimal_error_handler);
   jack_on_shutdown(c, jack_client_minimal_shutdown_handler, 0);
   jack_set_process_callback(c, jackdata_process, &d);
   jack_port_make_standard(c, d.port, d.nc, false, false);
   if (jack_client_activate(c)) {
-    eprintf("jack-data: jack_activate() failed\n");
+    eprintf("rju-data: jack_activate() failed\n");
     FAILURE;
   }
-  char *p = getenv("JACK_DATA_CONNECT_TO");
+  char *p = getenv("RJU_DATA_CONNECT_TO");
   if (p) {
     char q[128];
     snprintf(q, 128, "%s:in_%%d", nm);
