@@ -12,7 +12,7 @@ Homepage:          http://rohandrape.net/t/rju
 Tested-With:       GHC == 8.8.4
 Build-Type:        Simple
 Cabal-Version:     >= 1.8
-Data-Files:        README
+Data-Files:        README.md
 
 Library
   Build-Depends:   base >= 4.8 && < 5,
