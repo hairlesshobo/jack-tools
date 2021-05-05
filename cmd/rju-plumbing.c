@@ -11,13 +11,13 @@
 #include <pthread.h>
 #include <unistd.h>
 
-#include "c-common/file.h"
-#include "c-common/int.h"
-#include "c-common/jack-client.h"
-#include "c-common/jack-port.h"
-#include "c-common/print.h"
-#include "c-common/xregcomp.h"
-#include "c-common/time-timespec.h"
+#include "c-commonr/file.h"
+#include "c-commonr/int.h"
+#include "c-commonr/jack-client.h"
+#include "c-commonr/jack-port.h"
+#include "c-commonr/print.h"
+#include "c-commonr/xregcomp.h"
+#include "c-commonr/time-timespec.h"
 
 #define MAX_SETS      8
 #define MAX_RULES     512

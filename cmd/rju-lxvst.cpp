@@ -25,25 +25,25 @@
 
 #include <lo/lo.h>
 
-/* sw/c-common */
-#include "c-common/dl.c"
-#include "c-common/failure.h"
-#include "c-common/int.h"
-#include "c-common/jack-client.h"
-#include "c-common/jack-client.c"
-#include "c-common/jack-port.h"
-#include "c-common/jack-port.c"
-#include "c-common/jack-ringbuffer.h"
-#include "c-common/jack-ringbuffer.c"
-#include "c-common/memory.h"
-#include "c-common/memory.c"
-#include "c-common/midi.h"
-#include "c-common/midi.c"
-#include "c-common/time-pause.h"
-#include "c-common/time-pause.c"
-#include "c-common/time-timespec.h"
-#include "c-common/time-timespec.c"
-#include "c-common/vst.c"
+/* sw/c-commonr */
+#include "c-commonr/dl.c"
+#include "c-commonr/failure.h"
+#include "c-commonr/int.h"
+#include "c-commonr/jack-client.h"
+#include "c-commonr/jack-client.c"
+#include "c-commonr/jack-port.h"
+#include "c-commonr/jack-port.c"
+#include "c-commonr/jack-ringbuffer.h"
+#include "c-commonr/jack-ringbuffer.c"
+#include "c-commonr/memory.h"
+#include "c-commonr/memory.c"
+#include "c-commonr/midi.h"
+#include "c-commonr/midi.c"
+#include "c-commonr/time-pause.h"
+#include "c-commonr/time-pause.c"
+#include "c-commonr/time-timespec.h"
+#include "c-commonr/time-timespec.c"
+#include "c-commonr/vst.c"
 
 void *x11_thread_proc(void *ptr);
 

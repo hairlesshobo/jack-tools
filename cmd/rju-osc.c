@@ -9,19 +9,19 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-#include "c-common/byte-order.h"
-#include "c-common/client.h"
-#include "c-common/failure.h"
-#include "c-common/jack-client.h"
-#include "c-common/jack-port.h"
-#include "c-common/memory.h"
-#include "c-common/network.h"
-#include "c-common/observe-signal.h"
-#include "c-common/osc.h"
-#include "c-common/print.h"
-#include "c-common/time-current.h"
-#include "c-common/time-ntp.h"
-#include "c-common/time-timeval.h"
+#include "c-commonr/byte-order.h"
+#include "c-commonr/client.h"
+#include "c-commonr/failure.h"
+#include "c-commonr/jack-client.h"
+#include "c-commonr/jack-port.h"
+#include "c-commonr/memory.h"
+#include "c-commonr/network.h"
+#include "c-commonr/observe-signal.h"
+#include "c-commonr/osc.h"
+#include "c-commonr/print.h"
+#include "c-commonr/time-current.h"
+#include "c-commonr/time-ntp.h"
+#include "c-commonr/time-timeval.h"
 
 #define REQUEST_TICK        0x00000001
 #define REQUEST_PULSE       0x00000002

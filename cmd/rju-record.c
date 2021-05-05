@@ -6,16 +6,16 @@
 #include <pthread.h> /* POSIX */
 #include <unistd.h>
 
-#include "c-common/failure.h"
-#include "c-common/file.h"
-#include "c-common/jack-client.h"
-#include "c-common/jack-port.h"
-#include "c-common/jack-ringbuffer.h"
-#include "c-common/memory.h"
-#include "c-common/observe-signal.h"
-#include "c-common/print.h"
-#include "c-common/signal-interleave.h"
-#include "c-common/sf-sndfile.h"
+#include "c-commonr/failure.h"
+#include "c-commonr/file.h"
+#include "c-commonr/jack-client.h"
+#include "c-commonr/jack-port.h"
+#include "c-commonr/jack-ringbuffer.h"
+#include "c-commonr/memory.h"
+#include "c-commonr/observe-signal.h"
+#include "c-commonr/print.h"
+#include "c-commonr/signal-interleave.h"
+#include "c-commonr/sf-sndfile.h"
 
 struct recorder
 {

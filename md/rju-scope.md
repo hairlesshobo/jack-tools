@@ -34,7 +34,7 @@ OPTIONS
 
 *-m*
 :   Set the scope operating mode (default=signal).
-    The operating modes are: signal, embed, hline.
+    The operating modes are: signal, embed, hline, hscan.
 
 *-n*
 :   Set the number of channels (default=1).

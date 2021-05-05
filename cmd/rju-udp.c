@@ -7,15 +7,15 @@
 #include <unistd.h> /* POSIX */
 #include <pthread.h>
 
-#include "c-common/byte-order.h"
-#include "c-common/failure.h"
-#include "c-common/file.h"
-#include "c-common/jack-client.h"
-#include "c-common/jack-port.h"
-#include "c-common/jack-ringbuffer.h"
-#include "c-common/memory.h"
-#include "c-common/network.h"
-#include "c-common/print.h"
+#include "c-commonr/byte-order.h"
+#include "c-commonr/failure.h"
+#include "c-commonr/file.h"
+#include "c-commonr/jack-client.h"
+#include "c-commonr/jack-port.h"
+#include "c-commonr/jack-ringbuffer.h"
+#include "c-commonr/memory.h"
+#include "c-commonr/network.h"
+#include "c-commonr/print.h"
 
 #define MAX_CHANNELS      32
 #define PAYLOAD_SAMPLES   256

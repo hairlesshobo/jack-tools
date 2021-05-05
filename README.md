@@ -29,7 +29,7 @@ rju
 [-transport]: https://rohandrape.net/?t=rju&e=md/rju-transport.md
 [-udp]: https://rohandrape.net/?t=rju&e=md/rju-udp.md
 
-Requires [c-common](?t=c-common).
+Requires [c-commonr](https://rohandrape.net/?t=c-commonr).
 
 To build type:
 

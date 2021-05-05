@@ -14,9 +14,9 @@
 
 #include <lo/lo.h>
 
-#include "c-common/jack-port.h"
-#include "c-common/failure.h"
-#include "c-common/print.h"
+#include "c-commonr/jack-port.h"
+#include "c-commonr/failure.h"
+#include "c-commonr/print.h"
 
 #include "rju-dl.h"
 

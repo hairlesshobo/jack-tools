@@ -15,10 +15,10 @@
 #include <jack/jack.h>
 #include <jack/thread.h>
 
-#include "c-common/jack-port.h"
-#include "c-common/failure.h"
-#include "c-common/print.h"
-#include "c-common/time-pause.h"
+#include "c-commonr/jack-port.h"
+#include "c-commonr/failure.h"
+#include "c-commonr/print.h"
+#include "c-commonr/time-pause.h"
 
 void usage(void)
 {

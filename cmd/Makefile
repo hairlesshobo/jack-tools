@@ -11,7 +11,7 @@ AR = ar # ar llvm-ar
 CPPFLAGS += -Wall -pedantic -O3 -g -ffast-math
 CFLAGS += -D_POSIX_C_SOURCE=200809 -std=c99
 CXXFLAGS +=
-LDLIBS = c-common/lib-c-common.a -ljack -lpthread -lm
+LDLIBS = c-commonr/lib-c-commonr.a -ljack -lpthread -lm
 
 all: $(bin)
 
@@ -55,15 +55,15 @@ install:
 uninstall:
 	(cd $(prefix)/bin ; rm -f $(bin))
 
-ln-local-c-common:
-	rm -f c-common
-	ln -s $(HOME)/sw/c-common c-common
+ln-local-c-commonr:
+	rm -f c-commonr
+	ln -s $(HOME)/sw/c-commonr c-commonr
 
-mk-local-c-common:
-	(cd c-common ; make)
+mk-local-c-commonr:
+	(cd c-commonr ; make)
 
 indent:
-	indent -kr -nut -l96 -i2 -brf rju-scope.c
+	indent -k r-nut -l96 -i2 -brf rju-scope.c
 	indent -kr -nut -l96 -i4 -blf -bls rju-lxvst.cpp
 
 # `pkg-config --libs jack liblo ncurses sndfile samplerate x11 xext`

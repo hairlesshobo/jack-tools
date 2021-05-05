@@ -6,9 +6,8 @@
 /* C99 */
 #include <stdio.h>
 
-/* sw/c-common */
-#include "c-common/dl.c"
-#include "c-common/vst.c"
+#include "c-commonr/dl.c"
+#include "c-commonr/vst.c"
 
 int main(int argc, char *argv[])
 {
