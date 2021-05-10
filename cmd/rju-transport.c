@@ -11,7 +11,7 @@
 #include <jack/jack.h>
 #include <jack/transport.h>
 
-#include "c-commonr/jack-client.h"
+#include "r-common/c/jack-client.h"
 
 struct transport {
   bool verbose;

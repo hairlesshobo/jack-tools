@@ -29,7 +29,7 @@ rju
 [-transport]: https://rohandrape.net/?t=rju&e=md/rju-transport.md
 [-udp]: https://rohandrape.net/?t=rju&e=md/rju-udp.md
 
-Requires [c-commonr](https://rohandrape.net/?t=c-commonr).
+Requires [r-common](https://rohandrape.net/?t=r-common).
 
 To build type:
 
@@ -47,7 +47,7 @@ tested-with:
 [gcc](http://gcc.gnu.org/)-10.2.1
 [clang](https://clang.llvm.org/)-11.0.1
 
-debian: liblo-dev libncurses-dev (c.f. c-common/README)
+debian: liblo-dev libncurses-dev (c.f. r-common/README)
 
 These were all initially named with a `jack-` prefix, and were renamed April 2021.
 

@@ -12,17 +12,17 @@
 
 #include <samplerate.h> /* libsamplerate */
 
-#include "c-commonr/failure.h"
-#include "c-commonr/file.h"
-#include "c-commonr/int.h"
-#include "c-commonr/jack-client.h"
-#include "c-commonr/jack-port.h"
-#include "c-commonr/jack-ringbuffer.h"
-#include "c-commonr/jack-transport.h"
-#include "c-commonr/memory.h"
-#include "c-commonr/observe-signal.h"
-#include "c-commonr/print.h"
-#include "c-commonr/sf-sndfile.h"
+#include "r-common/c/failure.h"
+#include "r-common/c/file.h"
+#include "r-common/c/int.h"
+#include "r-common/c/jack-client.h"
+#include "r-common/c/jack-port.h"
+#include "r-common/c/jack-ringbuffer.h"
+#include "r-common/c/jack-transport.h"
+#include "r-common/c/memory.h"
+#include "r-common/c/observe-signal.h"
+#include "r-common/c/print.h"
+#include "r-common/c/sf-sndfile.h"
 
 #define NAME_MAX 64
 

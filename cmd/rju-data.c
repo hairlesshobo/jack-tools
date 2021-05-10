@@ -6,18 +6,18 @@
 #include <pthread.h>		/* POSIX */
 #include <unistd.h>
 
-#include "c-commonr/failure.h"
-#include "c-commonr/file.h"
-#include "c-commonr/int.h"
-#include "c-commonr/jack-client.h"
-#include "c-commonr/jack-port.h"
-#include "c-commonr/memory.h"
-#include "c-commonr/network.h"
-#include "c-commonr/numeric-type.h"
-#include "c-commonr/observe-signal.h"
-#include "c-commonr/osc.h"
-#include "c-commonr/print.h"
-#include "c-commonr/resample-src.h"
+#include "r-common/c/failure.h"
+#include "r-common/c/file.h"
+#include "r-common/c/int.h"
+#include "r-common/c/jack-client.h"
+#include "r-common/c/jack-port.h"
+#include "r-common/c/memory.h"
+#include "r-common/c/network.h"
+#include "r-common/c/numeric-type.h"
+#include "r-common/c/observe-signal.h"
+#include "r-common/c/osc.h"
+#include "r-common/c/print.h"
+#include "r-common/c/resample-src.h"
 
 #define MAX_NC 8
 #define OSC_HDR_SZ 40

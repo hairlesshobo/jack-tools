@@ -11,7 +11,7 @@ AR = ar # ar llvm-ar
 CPPFLAGS += -Wall -pedantic -O3 -g -ffast-math
 CFLAGS += -D_POSIX_C_SOURCE=200809 -std=c99
 CXXFLAGS +=
-LDLIBS = c-commonr/lib-c-commonr.a -ljack -lpthread -lm
+LDLIBS = r-common/c/lib-r-common.a -ljack -lpthread -lm
 
 all: $(bin)
 
@@ -55,12 +55,12 @@ install:
 uninstall:
 	(cd $(prefix)/bin ; rm -f $(bin))
 
-ln-local-c-commonr:
-	rm -f c-commonr
-	ln -s $(HOME)/sw/c-commonr c-commonr
+ln-local-r-common:
+	rm -f r-common
+	ln -s $(HOME)/sw/r-common r-common
 
-mk-local-c-commonr:
-	(cd c-commonr ; make)
+mk-local-r-common:
+	(cd r-common ; make)
 
 indent:
 	indent -k r-nut -l96 -i2 -brf rju-scope.c
