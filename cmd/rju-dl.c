@@ -102,14 +102,15 @@ int osc_c_setn(const char *p, const char *t, lo_arg **a, int n, void *d, void *u
   return 0;
 }
 
+/* NOTE: buffer data is float */
 int osc_b_alloc(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
 {
   struct world *w = (struct world *)u;
   int32_t i = a[0]->i;
   break_on(i >= w->nb, "buffer index");
   /*if(w->bd[i]) free(w->bd[i]);*/
-  int32_t l = a[1]->i;
-  int32_t c = a[2]->i;
+  int64_t l = (int64_t)a[1]->i;
+  int32_t c = (int32_t)a[2]->i;
   break_on(c != 1, "buffer not single channel...");
   w->bl[i] = 0;
   if(w->bd[i]) {
@@ -118,7 +119,7 @@ int osc_b_alloc(const char *p, const char *t, lo_arg **a, int n, void *d, void *
     w->bd[i] = calloc(l, sizeof(float));
   }
   w->bl[i] = l;
-  vprintf(w->vb, "b_alloc: %d, %d, %d\n", i, l, c);
+  vprintf(w->vb, "b_alloc: %d, %ld, %d\n", i, (long)l, c);
   return 0;
 }
 
@@ -155,8 +156,8 @@ void world_init(struct world *w, int nc, int nk, int nb, bool vb)
   w->op = malloc(w->nc * sizeof(jack_port_t *));
   w->in = malloc(w->nc * sizeof(float *));
   w->out = malloc(w->nc * sizeof(float *));
-  w->ctl = calloc(w->nk, sizeof(float));
-  w->bl = calloc(w->nb, sizeof(int));
+  w->ctl = calloc(w->nk, sizeof(double));
+  w->bl = calloc(w->nb, sizeof(int64_t));
   w->bd = calloc(w->nb, sizeof(float*));
   w->ef = false;
   w->vb = vb;
