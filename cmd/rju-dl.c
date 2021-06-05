@@ -80,7 +80,7 @@ int osc_c_set(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
   struct world *w = (struct world *)u;
   int32_t i = a[0]->i;
   break_on(i >= w->nk, "c_set: control index");
-  w_c_set1(w, i, a[1]->f);
+  w_c_set1(w, i, (double)(a[1]->f));
   vprintf(w->vb, "c_set: %d, %f\n", i, a[1]->f);
   return 0;
 }

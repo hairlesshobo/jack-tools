@@ -17,8 +17,8 @@ struct world {
   int32_t nk;                  /* number of controls */
   int32_t nb;                  /* number of buffers */
   double sr;                   /* sample rate */
-  float **in;                  /* input data */
-  float **out;                 /* output data */
+  float **in;                  /* input data - jackd allocated */
+  float **out;                 /* output data - jackd allocated */
   double *ctl;                 /* (shared) control data */
   float **bd;                  /* buffer data */
   int64_t *bl;                 /* buffer sizes (0 == not-ready) */
