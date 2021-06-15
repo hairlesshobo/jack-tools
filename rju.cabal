@@ -1,7 +1,7 @@
 Name:              rju
-Version:           0.19
+Version:           0.20
 Synopsis:          rju
-Description:       @rju@ utils
+Description:       rju utils
 License:           GPL-3
 Category:          Sound
 Copyright:         (c) Rohan Drape, 2003-2021
@@ -16,7 +16,7 @@ Data-Files:        README.md
 
 Library
   Build-Depends:   base >= 4.8 && < 5,
-                   hosc == 0.19
+                   hosc == 0.20
   GHC-Options:     -Wall -fwarn-tabs
   Exposed-modules: Sound.RJU.LXVST
 
