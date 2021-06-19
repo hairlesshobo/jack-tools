@@ -8,7 +8,7 @@ mk-cmd:
 	(cd cmd ; make all install)
 
 clean:
-	rm -fR dist dist-newstyle
+	rm -fR dist dist-newstyle *~
 	(cd cmd ; make clean)
 
 push-gl:
