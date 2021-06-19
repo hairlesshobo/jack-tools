@@ -1,0 +1,3 @@
+[submodule "cmd/r-common"]
+	path = cmd/r-common
+	url = https://gitlab.com/rd--/r-common

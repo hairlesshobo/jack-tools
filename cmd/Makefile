@@ -13,7 +13,10 @@ CFLAGS += -D_POSIX_C_SOURCE=200809 -std=c99
 CXXFLAGS +=
 LDLIBS = r-common/c/lib-r-common.a -ljack -lpthread -lm
 
-all: $(bin)
+mk-r-common:
+	(cd r-common/c ; make)
+
+all: mk-r-common $(bin)
 
 rju-data: rju-data.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o rju-data rju-data.c $(LDLIBS) -lsamplerate
@@ -47,6 +50,7 @@ lxvst-query: lxvst-query.cpp
 
 clean:
 	rm -f $(bin) *.o
+	(cd r-common/c ; make clean)
 
 install:
 	cp $(bin) $(prefix)/bin
@@ -54,13 +58,6 @@ install:
 
 uninstall:
 	(cd $(prefix)/bin ; rm -f $(bin))
-
-ln-local-r-common:
-	rm -f r-common
-	ln -s $(HOME)/sw/r-common r-common
-
-mk-local-r-common:
-	(cd r-common ; make)
 
 indent:
 	indent -k r-nut -l96 -i2 -brf rju-scope.c

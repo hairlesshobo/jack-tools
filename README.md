@@ -29,8 +29,6 @@ rju
 [-transport]: https://rohandrape.net/?t=rju&e=md/rju-transport.md
 [-udp]: https://rohandrape.net/?t=rju&e=md/rju-udp.md
 
-Requires [r-common](https://rohandrape.net/?t=r-common).
-
 To build type:
 
 > make prefix=~/opt all install
