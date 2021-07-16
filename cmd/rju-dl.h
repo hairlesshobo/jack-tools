@@ -35,5 +35,5 @@ struct world {
 #define w_out1(w,c,i,n) (w)->out[(c)][(i)]=(float)(n)
 #define w_out2(w,c,i,n1,n2) {(w)->out[(c)][(i)]=(float)(n1);(w)->out[(c)+1][(i)]=(float)(n2);}
 /* run-time check... */
-#define w_b_read1(w,b,i) (w)->bl[(b)] > (i) ? (w)->bd[(b)][(i)] : 0.0
-#define w_b_write1(w,b,i,n) if((w)->bl[(b)] > (i)) {(w)->bd[(b)][(i)]=(n);}
+#define w_buf_read1(w,b,i) (w)->bl[(b)] > (i) ? (w)->bd[(b)][(i)] : 0.0
+#define w_buf_write1(w,b,i,n) if((w)->bl[(b)] > (i)) {(w)->bd[(b)][(i)]=(n);}
