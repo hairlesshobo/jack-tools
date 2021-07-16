@@ -9,7 +9,7 @@ clean:
 	(cd cmd ; make clean)
 
 push-all:
-	r.gilab-push.sh rju
+	r.gitlab-push.sh rju
 
 debian:
 	sudo apt-get install liblo-dev libsamplerate0-dev
