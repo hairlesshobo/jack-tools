@@ -17,6 +17,8 @@
 #include "r-common/c/jack-port.h"
 #include "r-common/c/failure.h"
 #include "r-common/c/print.h"
+#include "r-common/c/taus88.h"
+#include "r-common/c/rand.h"
 
 #include "rju-dl.h"
 
@@ -141,6 +143,11 @@ int osc_print(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
     return 1;
 }
 
+double world_rng_gen(struct world *w, double l, double r)
+{
+    return (double)(rand_f32_st(w->rng_st,(float)l,(float)r));
+}
+
 void world_init(struct world *w, int nc, int nk, int nb, bool vb)
 {
   w->nc = nc;
@@ -168,6 +175,9 @@ void world_init(struct world *w, int nc, int nk, int nb, bool vb)
   w->sr = (float)jack_get_sample_rate(w->c);
   jack_port_make_standard(w->c, w->ip, w->nc, false, false);
   jack_port_make_standard(w->c, w->op, w->nc, true, false);
+  w->rng_st = malloc(sizeof(taus88_t));
+  taus88_std_init((taus88_t *)w->rng_st);
+  w->rng_gen = world_rng_gen;
 }
 
 void usage(void)
