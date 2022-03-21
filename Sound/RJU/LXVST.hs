@@ -3,20 +3,20 @@ module Sound.RJU.LXVST where
 
 import Data.Word {- base -}
 
-import Sound.OSC {- hosc -}
+import Sound.Osc {- hosc -}
 
 -- * IO
 
--- | Default jack-lxvst UDP port number.
+-- | Default jack-lxvst Udp port number.
 lxvst_default_port :: Int
 lxvst_default_port = 57210
 
--- | UDP at local machine and default port.
-lxvst_default_udp :: IO UDP
-lxvst_default_udp = openUDP "127.0.0.1" lxvst_default_port
+-- | Udp at local machine and default port.
+lxvst_default_udp :: IO Udp
+lxvst_default_udp = openUdp "127.0.0.1" lxvst_default_port
 
 -- | 'withTransport' of 'lxvst_default_udp'
-with_lxvst :: Connection UDP a -> IO a
+with_lxvst :: Connection Udp a -> IO a
 with_lxvst = withTransport lxvst_default_udp
 
 -- | 'with_lxvst' of 'sendMessage'.
