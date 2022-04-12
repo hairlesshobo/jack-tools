@@ -602,7 +602,7 @@ main(int argc, char **argv)
       break;
     case 'p':
       p = xmalloc(128);
-      strncpy(p, optarg, 128);
+      strncpy(p, optarg, 128 - 1);
       break;
     case 's':
       d.signal_style = signal_style_parse(optarg);

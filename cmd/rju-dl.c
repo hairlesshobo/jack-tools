@@ -145,7 +145,7 @@ int osc_print(const char *p, const char *t, lo_arg **a, int n, void *d, void *u)
 
 double world_rng_gen(struct world *w, double l, double r)
 {
-    return (double)(rand_f32_st(w->rng_st,(float)l,(float)r));
+    return (double)(rand_f32(w->rng_st,(float)l,(float)r));
 }
 
 void world_init(struct world *w, int nc, int nk, int nb, bool vb)

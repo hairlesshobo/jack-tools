@@ -42,7 +42,7 @@ interoperable with [markdown](http://daringfireball.net/projects/markdown/) and 
 -->
 
 tested-with:
-[gcc](http://gcc.gnu.org/)-10.2.1
+[gcc](http://gcc.gnu.org/)-11.2.0
 [clang](https://clang.llvm.org/)-11.0.1
 
 debian: liblo-dev libncurses-dev (c.f. r-common/README)
