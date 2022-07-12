@@ -1,5 +1,5 @@
 -- | rju-lxvst
-module Sound.RJU.LXVST where
+module Sound.Rju.LxVst where
 
 import Data.Word {- base -}
 
