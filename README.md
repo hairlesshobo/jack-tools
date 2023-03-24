@@ -50,7 +50,7 @@ debian: liblo-dev libncurses-dev (c.f. r-common/README)
 These were all initially named with a `jack-` prefix, and were renamed April 2021.
 
 © [rohan drape](http://rohandrape.net/),
-  2003-2022,
+  2003-2023,
   [gpl](http://gnu.org/copyleft/).
   with contributions by:
 
