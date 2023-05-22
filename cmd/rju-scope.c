@@ -164,9 +164,9 @@ embed_draw_data(u8 *img,const f32 *data,const u8 *color,struct scope *s)
     s->embed_incr = 1.0;
   }
   while (yindex < n) {
-    f32 xi = signal_interpolate_safe(data, n, xindex);
+    f32 xi = signal_interpolate_circular_safe(data, n, xindex);
     i32 x = signal_x_to_screen_x(xi, s->img_w);
-    f32 yi = signal_interpolate_safe(data, n, yindex);
+    f32 yi = signal_interpolate_circular_safe(data, n, yindex);
     i32 y = signal_y_to_screen_y(yi, s->img_h);
     xindex += s->embed_incr;
     yindex += s->embed_incr;
@@ -209,7 +209,7 @@ signal_draw_data(u8 *img, const f32 *data, i32 n, const u8 *color, struct scope 
   f32 incr = (f32) n / (f32) w;
   f32 index = 0.0;
   for (i32 i = 0; i < w; i++) {
-    f32 x = signal_interpolate_safe(data, n, index);
+    f32 x = signal_interpolate_circular_safe(data, n, index);
     i32 y = signal_y_to_screen_y(x, h);
     index += incr;
     img_set_pixel(img, w, 3, i, y, color);
@@ -223,7 +223,7 @@ signal_draw_data(u8 *img, const f32 *data, i32 n, const u8 *color, struct scope 
         img_set_pixel(img, w, 3, i, j, color);
       }
     } else if (s->signal_style == LINE_STYLE) {
-      f32 xx = signal_interpolate_safe(data, n, index);
+      f32 xx = signal_interpolate_circular_safe(data, n, index);
       i32 yy = signal_y_to_screen_y(xx, h);
       i32 l = yy > y ? y : yy;
       i32 r = yy > y ? yy : y;

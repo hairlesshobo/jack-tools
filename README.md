@@ -13,7 +13,7 @@ rju
 - [rju-record][-record]: soundfile recording (April 2004)
 - [rju-scope][-scope]: plain [X](http://x.org) oscilloscope (January 2004)
 - [rju-transport][-transport]: minimalist [ncurses](http://gnu.org/software/ncurses/) jack transport (November 2006)
-- [rju-udp][-udp]: jack over udp client (November 2003) [c.f. [netjack](http://netjack.sf.net/)]
+- [rju-udp][-udp]: jack over udp client (November 2003) [c.f. [jacktrip](https://github.com/jacktrip/jacktrip) & [netjack](http://netjack.sf.net/)]
 
 <!-- [plumb]: http://plan9.bell-labs.com/sys/doc/plumb.html -->
 
@@ -42,7 +42,7 @@ interoperable with [markdown](http://daringfireball.net/projects/markdown/) and 
 -->
 
 tested-with:
-[gcc](http://gcc.gnu.org/)-11.3.0
+[gcc](http://gcc.gnu.org/)-12.2.0
 [clang](https://clang.llvm.org/)-11.0.1
 
 debian: liblo-dev libncurses-dev (c.f. r-common/README)

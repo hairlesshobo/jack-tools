@@ -2,7 +2,7 @@ prefix = $(HOME)/opt
 
 bin = rju-data rju-dl rju-level rju-lxvst rju-osc rju-play rju-plumbing rju-record rju-scope rju-transport rju-udp lxvst-query
 
-VST_SDK = $(HOME)/opt/src/vst3_sdk
+VST_SDK = $(HOME)/opt/build/vst3_sdk
 
 CC = gcc # gcc clang
 CXX = g++ # g++ clang++
