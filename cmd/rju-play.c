@@ -4,10 +4,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <pthread.h> /* POSIX */
+#include <pthread.h> /* Posix */
 #include <unistd.h>
 
-#include <jack/jack.h> /* libjack */
+#include <jack/jack.h> /* Jack */
 #include <jack/thread.h>
 
 #include <samplerate.h> /* libsamplerate */
@@ -17,11 +17,11 @@
 #include "r-common/c/int.h"
 #include "r-common/c/jack-client.h"
 #include "r-common/c/jack-port.h"
-#include "r-common/c/jack-ringbuffer.h"
 #include "r-common/c/jack-transport.h"
 #include "r-common/c/memory.h"
 #include "r-common/c/observe-signal.h"
-#include "r-common/c/print.h"
+#include "r-common/c/ringbuffer.h"
+#include "r-common/c/ringbuffer-fd.h"
 #include "r-common/c/sf-sndfile.h"
 
 #define NAME_MAX 64
@@ -54,7 +54,7 @@ struct player
   int channels;
   jack_port_t **output_port;
   float **out;
-  jack_ringbuffer_t *rb;
+  ringbuffer_t *rb;
   pthread_t disk_thread;
   int pipe[2];
   jack_client_t *client;
@@ -74,7 +74,7 @@ void *disk_proc(void *PTR)
       sf_count_t err = sf_seek(d->sound_file,
 			       (sf_count_t)d->o.seek_request, SEEK_SET);
       if(err == -1) {
-	eprintf("rju-play: seek request failed, %ld\n",
+	fprintf(stderr, "rju-play: seek request failed, %ld\n",
 		(long)d->o.seek_request);
       }
       d->o.seek_request = -1;
@@ -82,11 +82,11 @@ void *disk_proc(void *PTR)
 
     /* Wait for write space at the ring buffer. */
     int nbytes = d->o.minimal_frames * sizeof(float) * d->channels;
-    nbytes = jack_ringbuffer_wait_for_write(d->rb, nbytes, d->pipe[0]);
+    nbytes = ringbuffer_wait_for_write(d->rb, nbytes, d->pipe[0]);
 
     /* Do not overflow the local buffer. */
     if(nbytes > d->buffer_bytes) {
-      eprintf("rju-play: impossible condition, write space.\n");
+      fprintf(stderr, "rju-play: impossible condition, write space.\n");
       nbytes = d->buffer_bytes;
     }
 
@@ -113,7 +113,7 @@ void *disk_proc(void *PTR)
     }
 
     /* Write data to ring buffer. */
-    jack_ringbuffer_write(d->rb,
+    ringbuffer_write(d->rb,
 			  (char *)d->d_buffer,
 			  (size_t)err * sizeof(float));
   }
@@ -141,7 +141,7 @@ void signal_set(float **s, int n, int c, float z)
   }
 }
 
-/* Write data from the ring buffer to the JACK output ports.  If the
+/* Write data from the ring buffer to the Jack output ports.  If the
    disk thread is late, ie. the ring buffer is empty print a warning
    and zero the output ports.  */
 int signal_proc(jack_nframes_t nframes, void *PTR)
@@ -164,7 +164,7 @@ int signal_proc(jack_nframes_t nframes, void *PTR)
      also. */
   if(d->o.transport_aware && !jack_transport_is_rolling(d->client)) {
     if(observe_end_of_process ()) {
-      FAILURE; /* ? */
+      exit(1); /* ? */
       return 1;
     } else {
       signal_set(d->out, nframes, d->channels, 0.0);
@@ -194,7 +194,7 @@ int signal_proc(jack_nframes_t nframes, void *PTR)
      should set a flag and have another thread take appropriate
      action. */
   if(err < nframes) {
-    eprintf("rju-play: disk thread late (%ld < %d)\n", err, nframes);
+    fprintf(stderr, "rju-play: disk thread late (%ld < %d)\n", err, nframes);
     for(i = err; i < nframes; i++) {
       for(j = 0; j < d->channels; j++) {
 	d->out[j][i] = 0.0;
@@ -218,20 +218,20 @@ int signal_proc(jack_nframes_t nframes, void *PTR)
 
 void usage(void)
 {
-  eprintf("Usage: rju-play [ options ] sound-file...\n");
-  eprintf("    -b N : Ring buffer size in frames (default=4096).\n");
-  eprintf("    -c N : ID of conversion algorithm (default=2, SRC_SINC_FASTEST).\n");
-  eprintf("    -d N : Destination port pattern (default=NULL).\n");
-  eprintf("    -g N : amplitude gain (multiplier, default=1).\n");
-  eprintf("    -i N : Initial disk seek in frames (default=0).\n");
-  eprintf("    -I N : Initial disk seek in seconds (default=0).\n");
-  eprintf("    -l   : Loop input file indefinitely.\n");
-  eprintf("    -m N : Minimal disk read size in frames (default=32).\n");
-  eprintf("    -q N : Frames to request from ring buffer (default=64).\n");
-  eprintf("    -r N : Resampling ratio multiplier (default=1.0).\n");
-  eprintf("    -t   : Jack transport awareness.\n");
-  eprintf("    -u   : Do not generate unique jack client name (ie. do not append PID)\n");
-  FAILURE;
+  printf("Usage: rju-play [ options ] sound-file...\n");
+  printf("    -b N : Ring buffer size in frames (default=4096).\n");
+  printf("    -c N : ID of conversion algorithm (default=2, SRC_SINC_FASTEST).\n");
+  printf("    -d N : Destination port pattern (default=NULL).\n");
+  printf("    -g N : amplitude gain (multiplier, default=1).\n");
+  printf("    -i N : Initial disk seek in frames (default=0).\n");
+  printf("    -I N : Initial disk seek in seconds (default=0).\n");
+  printf("    -l   : Loop input file indefinitely.\n");
+  printf("    -m N : Minimal disk read size in frames (default=32).\n");
+  printf("    -q N : Frames to request from ring buffer (default=64).\n");
+  printf("    -r N : Resampling ratio multiplier (default=1.0).\n");
+  printf("    -t   : Jack transport awareness.\n");
+  printf("    -u   : Do not generate unique jack client name (ie. do not append PID)\n");
+  exit(1);
 }
 
 /* Get data from ring buffer.  Return number of frames read.  This
@@ -245,7 +245,7 @@ long read_input_from_rb(void *PTR, float **buf)
   int nsamples = d->channels * d->o.rb_request_frames;
   int nbytes = (size_t)nsamples * sizeof(float);
 
-  int err = jack_ringbuffer_read(d->rb,
+  int err = ringbuffer_read(d->rb,
 				 (char *)d->k_buffer,
 				 nbytes);
   err /= d->channels * sizeof(float);
@@ -253,7 +253,7 @@ long read_input_from_rb(void *PTR, float **buf)
 
   /* SRC locks up if we return zero here, return a silent frame */
   if(err==0) {
-    eprintf("rju-play: ringbuffer empty... zeroing data\n");
+    fprintf(stderr, "rju-play: ringbuffer empty... zeroing data\n");
     memset(d->k_buffer, 0, (size_t)nsamples * sizeof(float));
     err = d->o.rb_request_frames;
   }
@@ -284,7 +284,7 @@ int jackplay(const char *file_name,
   d.d_buffer = xmalloc(d.buffer_bytes);
   d.j_buffer = xmalloc(d.buffer_bytes);
   d.k_buffer = xmalloc(d.buffer_bytes);
-  d.rb = jack_ringbuffer_create(d.buffer_bytes);
+  d.rb = ringbuffer_create(d.buffer_bytes);
 
   /* Setup sample rate conversion. */
   int err;
@@ -298,7 +298,7 @@ int jackplay(const char *file_name,
   /* Create communication pipe. */
   xpipe(d.pipe);
 
-  /* Become a client of the JACK server.  */
+  /* Become a client of the Jack server.  */
   if(d.o.unique_name) {
     d.client = jack_client_unique_store(d.o.client_name);
   } else {
@@ -327,7 +327,7 @@ int jackplay(const char *file_name,
   double isr = (double) sfinfo.samplerate;
   if(osr != isr) {
     d.o.src_ratio *= (osr / isr);
-    eprintf("rju-play: resampling, sample rate of file != server, %G != %G (%G)\n",
+    printf("rju-play: resampling, sample rate of file != server, %G != %G (%G)\n",
 	    isr,
 	    osr,
             d.o.src_ratio);
@@ -356,11 +356,11 @@ int jackplay(const char *file_name,
      end of the file or is interrupted. */
   pthread_join(d.disk_thread, NULL);
 
-  /* Close sound file, free ring buffer, close JACK connection, close
+  /* Close sound file, free ring buffer, close Jack connection, close
      pipe, free data buffers, indicate success. */
   jack_client_close(d.client);
   sf_close(d.sound_file);
-  jack_ringbuffer_free(d.rb);
+  ringbuffer_free(d.rb);
   close(d.pipe[0]);
   close(d.pipe[1]);
   free(d.d_buffer);
@@ -402,7 +402,7 @@ int main(int argc, char *argv[])
     case 'd':
       o.dst_pattern = malloc(jack_port_name_size());
       strncpy(o.dst_pattern, optarg, jack_port_name_size() - 1);
-      eprintf("jack destination port pattern: %s\n", o.dst_pattern);
+      printf("jack destination port pattern: %s\n", o.dst_pattern);
       break;
     case 'g':
       o.ampl = strtof(optarg, NULL);
@@ -424,7 +424,7 @@ int main(int argc, char *argv[])
       break;
     case 'n':
       strncpy(o.client_name, optarg, NAME_MAX - 1);
-      eprintf("jack client name: %s\n", o.client_name);
+      printf("jack client name: %s\n", o.client_name);
       break;
     case 'q':
       o.rb_request_frames = (int)strtol(optarg, NULL, 0);
@@ -439,7 +439,7 @@ int main(int argc, char *argv[])
       o.unique_name = false;
       break;
     default:
-      eprintf("rju-play: illegal option, %c\n", c);
+      fprintf(stderr, "rju-play: illegal option, %c\n", c);
       usage ();
       break;
     }

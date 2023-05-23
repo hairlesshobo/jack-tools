@@ -12,10 +12,11 @@
 #include "r-common/c/file.h"
 #include "r-common/c/jack-client.h"
 #include "r-common/c/jack-port.h"
-#include "r-common/c/jack-ringbuffer.h"
 #include "r-common/c/memory.h"
 #include "r-common/c/network.h"
 #include "r-common/c/print.h"
+#include "r-common/c/ringbuffer.h"
+#include "r-common/c/ringbuffer-fd.h"
 
 #define MAX_CHANNELS      32
 #define PAYLOAD_SAMPLES   256
@@ -29,7 +30,7 @@ typedef struct
   struct sockaddr_in address;
   int channels;
   jack_port_t *j_port[MAX_CHANNELS];
-  jack_ringbuffer_t *rb;
+  ringbuffer_t *rb;
   pthread_t c_thread;
   int pipe[2];
   char *name;
@@ -107,12 +108,12 @@ void *jackudp_recv_thread(void *PTR)
 	      p.channels, d->channels);
       FAILURE;
     }
-    int bytes_available = (int) jack_ringbuffer_write_space(d->rb);
+    int bytes_available = (int)ringbuffer_write_space(d->rb);
     if(PAYLOAD_BYTES > bytes_available) {
       eprintf("rju-udp recv: buffer overflow (%d > %d)\n",
 	      (int) PAYLOAD_BYTES, bytes_available);
     } else {
-      jack_ringbuffer_write_exactly(d->rb,
+      ringbuffer_write_exactly(d->rb,
 				    (char *) p.data,
 				    (size_t) PAYLOAD_BYTES);
     }
@@ -140,7 +141,7 @@ int jackudp_recv (jack_nframes_t nframes, void *PTR)
 
   int nsamples = nframes * d->channels;
   int nbytes = nsamples * sizeof(f32);
-  int bytes_available = (int) jack_ringbuffer_read_space(d->rb);
+  int bytes_available = (int)ringbuffer_read_space(d->rb);
   if(nbytes > bytes_available) {
     eprintf("rju-udp recv: buffer underflow (%d > %d)\n",
 	    nbytes, bytes_available);
@@ -150,7 +151,7 @@ int jackudp_recv (jack_nframes_t nframes, void *PTR)
       }
     }
   } else {
-    jack_ringbuffer_read_exactly(d->rb, (char *)d->j_buffer, nbytes);
+    ringbuffer_read_exactly(d->rb, (char *)d->j_buffer, nbytes);
     for(i = 0; i < nframes; i++) {
       for(j = 0; j < d->channels; j++) {
 	out[j][i] = (float) d->j_buffer[(i * d->channels) + j];
@@ -169,12 +170,12 @@ void *jackudp_send_thread(void *PTR)
   packet_t p;
   p.index = 0;
   while(1) {
-    jack_ringbuffer_wait_for_read(d->rb, PAYLOAD_BYTES, d->pipe[0]);
+    ringbuffer_wait_for_read(d->rb, PAYLOAD_BYTES, d->pipe[0]);
     p.index += 1;
     p.index %= INT32_MAX;
     p.channels = d->channels;
     p.frames = PAYLOAD_SAMPLES / d->channels;
-    jack_ringbuffer_read_exactly(d->rb, (char *)&(p.data), PAYLOAD_BYTES);
+    ringbuffer_read_exactly(d->rb, (char *)&(p.data), PAYLOAD_BYTES);
     packet_sendto(d->fd,  &p, d->address);
   }
   return NULL;
@@ -196,12 +197,12 @@ int jackudp_send(jack_nframes_t n, void *PTR )
     }
   }
 
-  int bytes_available = (int) jack_ringbuffer_write_space(d->rb);
+  int bytes_available = (int) ringbuffer_write_space(d->rb);
   int bytes_to_write = n * sizeof(f32) * d->channels;
   if(bytes_to_write > bytes_available) {
     eprintf ("rju-udp send: buffer overflow error (UDP thread late)\n");
   } else {
-    jack_ringbuffer_write_exactly(d->rb,
+    ringbuffer_write_exactly(d->rb,
 				    (char *) d->j_buffer, bytes_to_write );
   }
 
@@ -275,7 +276,7 @@ int main (int argc, char **argv)
   }
   d.buffer_size *= d.channels * sizeof(f32);
   d.j_buffer = xmalloc(d.buffer_size);
-  d.rb = jack_ringbuffer_create(d.buffer_size);
+  d.rb = ringbuffer_create(d.buffer_size);
   xpipe(d.pipe);
   jack_client_t *client = NULL;
   if(d.name) {
@@ -296,7 +297,7 @@ int main (int argc, char **argv)
 		 &d);
   pthread_join(d.c_thread, NULL);
   close(d.fd);
-  jack_ringbuffer_free(d.rb);
+  ringbuffer_free(d.rb);
   jack_client_close(client);
   close(d.pipe[0]);
   close(d.pipe[1]);

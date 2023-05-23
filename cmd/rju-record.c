@@ -3,17 +3,16 @@
 #include <stdbool.h>
 #include <string.h>
 
-#include <pthread.h> /* POSIX */
+#include <pthread.h> /* Posix */
 #include <unistd.h>
 
-#include "r-common/c/failure.h"
 #include "r-common/c/file.h"
 #include "r-common/c/jack-client.h"
 #include "r-common/c/jack-port.h"
-#include "r-common/c/jack-ringbuffer.h"
 #include "r-common/c/memory.h"
 #include "r-common/c/observe-signal.h"
-#include "r-common/c/print.h"
+#include "r-common/c/ringbuffer.h"
+#include "r-common/c/ringbuffer-fd.h"
 #include "r-common/c/signal-interleave.h"
 #include "r-common/c/sf-sndfile.h"
 
@@ -37,7 +36,7 @@ struct recorder
   int channels;
   jack_port_t **input_port;
   float **in;
-  jack_ringbuffer_t *ring_buffer;
+  ringbuffer_t *rb;
   pthread_t disk_thread;
   int pipe[2];
 };
@@ -69,17 +68,17 @@ void *disk_thread_procedure(void *PTR)
 
     /* Wait for data at the ring buffer. */
     int nbytes = d->minimal_frames * sizeof(float) * d->channels;
-    nbytes = jack_ringbuffer_wait_for_read(d->ring_buffer, nbytes,
+    nbytes = ringbuffer_wait_for_read(d->rb, nbytes,
 					   d->pipe[0]);
 
     /* Drop excessive data to not overflow the local buffer. */
     if(nbytes > d->buffer_bytes) {
-      eprintf("rju-record: impossible condition, read space.\n");
+      fprintf(stderr, "rju-record: impossible condition, read space.\n");
       nbytes = d->buffer_bytes;
     }
 
     /* Read data from the ring buffer. */
-    jack_ringbuffer_read(d->ring_buffer,
+    ringbuffer_read(d->rb,
 			 (char *) d->d_buffer,
 			 nbytes);
 
@@ -97,7 +96,7 @@ void *disk_thread_procedure(void *PTR)
   return NULL;
 }
 
-/* Write data from the JACK input ports to the ring buffer.  If the
+/* Write data from the Jack input ports to the ring buffer.  If the
    disk thread is late, ie. the ring buffer is full, print an error
    and halt the client.  */
 int process(jack_nframes_t nframes, void *PTR)
@@ -117,7 +116,7 @@ int process(jack_nframes_t nframes, void *PTR)
   die_when(nbytes >= d->buffer_bytes,"rju-record: period size exceeds limit\n");
 
   /* Check that there is adequate space in the ringbuffer. */
-  int space = (int) jack_ringbuffer_write_space(d->ring_buffer);
+  int space = (int)ringbuffer_write_space(d->rb);
   die_when(space < nbytes,"rju-record: overflow error, %d > %d\n", nbytes, space);
 
   /* Interleave input to buffer and copy into ringbuffer. */
@@ -125,7 +124,7 @@ int process(jack_nframes_t nframes, void *PTR)
 		       (const float **)d->in,
 		       nframes,
 		       d->channels);
-  int err = jack_ringbuffer_write(d->ring_buffer,
+  int err = ringbuffer_write(d->rb,
 				  (char *) d->j_buffer,
 				  (size_t) nbytes);
   die_when(err != nbytes,"rju-record: ringbuffer write error, %d != %d\n",err,nbytes);
@@ -139,17 +138,17 @@ int process(jack_nframes_t nframes, void *PTR)
 
 void usage(void)
 {
-  eprintf("Usage: rju-record [options] sound-file\n");
-  eprintf("  -b N : Ring buffer size in frames (default=4096).\n");
-  eprintf("  -f N : File format (default=0x10006).\n");
-  eprintf("  -m N : Minimal disk transfer size in frames (default=32).\n");
-  eprintf("  -n N : Number of channels (default=2).\n");
-  eprintf("  -o N : Jack port source offset (default=0).\n");
-  eprintf("  -p S : Jack port pattern to connect to (default=nil).\n");
-  eprintf("  -s   : Write to multiple single channel sound files.\n");
-  eprintf("  -t N : Set a timer to record for N seconds (default=-1).\n");
-  eprintf("  -u   : Do not generate unique jack client name (ie. do not append PID)\n");
-  FAILURE;
+  printf("Usage: rju-record [options] sound-file\n");
+  printf("  -b N : Ring buffer size in frames (default=4096).\n");
+  printf("  -f N : File format (default=0x10006).\n");
+  printf("  -m N : Minimal disk transfer size in frames (default=32).\n");
+  printf("  -n N : Number of channels (default=2).\n");
+  printf("  -o N : Jack port source offset (default=0).\n");
+  printf("  -p S : Jack port pattern to connect to (default=nil).\n");
+  printf("  -s   : Write to multiple single channel sound files.\n");
+  printf("  -t N : Set a timer to record for N seconds (default=-1).\n");
+  printf("  -u   : Do not generate unique jack client name (ie. do not append PID)\n");
+  exit(1);
 }
 
 int main(int argc, char *argv[])
@@ -201,7 +200,7 @@ int main(int argc, char *argv[])
       d.unique_name = false;
       break;
     default:
-      eprintf("rju-record: illegal option, %c\n", c);
+      fprintf(stderr, "rju-record: illegal option, %c\n", c);
       usage ();
       break;
     }
@@ -216,7 +215,7 @@ int main(int argc, char *argv[])
   d.sound_file = xmalloc(d.channels * sizeof(SNDFILE *));
   d.input_port = xmalloc(d.channels * sizeof(jack_port_t *));
 
-  /* Connect to JACK. */
+  /* Connect to Jack. */
   char client_name[64] = "rju-record";
   jack_client_t *client;
   if(d.unique_name) {
@@ -243,7 +242,7 @@ int main(int argc, char *argv[])
   sfinfo.format = d.file_format;
   if(d.multiple_sound_files) {
     if(!strstr(argv[optind], "%d")) {
-      eprintf("rju-record: illegal template, '%s'\n", argv[optind]);
+      fprintf(stderr, "rju-record: illegal template, '%s'\n", argv[optind]);
       usage ();
     }
     sfinfo.channels = 1;
@@ -264,7 +263,7 @@ int main(int argc, char *argv[])
   d.d_buffer = xmalloc(d.buffer_bytes);
   d.j_buffer = xmalloc(d.buffer_bytes);
   d.u_buffer = xmalloc(d.buffer_bytes);
-  d.ring_buffer = jack_ringbuffer_create(d.buffer_bytes);
+  d.rb = ringbuffer_create(d.buffer_bytes);
 
   /* Create communication pipe. */
   xpipe(d.pipe);
@@ -288,7 +287,7 @@ int main(int argc, char *argv[])
      end of the file or is interrupted. */
   pthread_join(d.disk_thread, NULL);
 
-  /* Close sound file, free ring buffer, close JACK connection, close
+  /* Close sound file, free ring buffer, close Jack connection, close
      pipe, free data buffers, indicate success. */
   jack_client_close(client);
   if(d.multiple_sound_files) {
@@ -299,7 +298,7 @@ int main(int argc, char *argv[])
   } else {
     sf_close(d.sound_file[0]);
   }
-  jack_ringbuffer_free(d.ring_buffer);
+  ringbuffer_free(d.rb);
   close(d.pipe[0]);
   close(d.pipe[1]);
   free(d.d_buffer);

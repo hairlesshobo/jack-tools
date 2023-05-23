@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <pthread.h> /* POSIX */
+#include <pthread.h> /* Posix */
 #include <semaphore.h>
 #include <string.h> /* strdup */
 #include <sys/types.h>
@@ -23,7 +23,6 @@
 #include "r-common/c/network.h"
 #include "r-common/c/observe-signal.h"
 #include "r-common/c/osc.h"
-#include "r-common/c/print.h"
 #include "r-common/c/resample-src.h"
 #include "r-common/c/signal-copy.h"
 #include "r-common/c/signal-clip.h"
@@ -56,9 +55,9 @@ struct scope
   i32 data_samples;             /* data_frames * channels */
   i32 draw_frames;              /* VARIABLE, <= data_frames */
   i32 data_location;            /* write index to data, interleaved sample count */
-  float fps;                    /* JACK sample-rate (ie. not VIDEO frame rate) */
-  float delay_msec;             /* VIDEO frame delay (ms) */
-  i32 delay_frames;             /* delay_msec * fps */
+  float sample_rate;            /* audio sample-rate (ie. not video frame rate) */
+  float delay_msec;             /* video frame delay (ms) */
+  i32 delay_frames;             /* delay_msec * sample_rate */
   i32 delay_location;           /* delay_frames counter */
   float input_gain;             /* input signal multiplier */
   bool zero_crossing;           /* sync display to zero crossing (oddly rhs) */
@@ -93,7 +92,7 @@ scope_init(struct scope *s)
   s->data_samples = 512;
   s->draw_frames = 0;
   s->data_location = 0;
-  s->fps = -1.0;
+  s->sample_rate = -1.0;
   s->delay_msec = 100.0;
   s->delay_frames = -1.0;
   s->delay_location = 0;
@@ -116,22 +115,22 @@ scope_init(struct scope *s)
 }
 
 void
-jackscope_print(struct scope *d)
+scope_print(struct scope *d)
 {
-  eprintf("channels            : %d\n", d->channels);
-  eprintf("img_w               : %d\n", d->img_w);
-  eprintf("img_h               : %d\n", d->img_h);
-  eprintf("data_frames         : %d\n", d->data_frames);
-  eprintf("data_samples        : %d\n", d->data_samples);
-  eprintf("draw_frames         : %d\n", d->draw_frames);
-  eprintf("data_location       : %d\n", d->data_location);
-  eprintf("fps (frames/second) : %f\n", d->fps);
-  eprintf("delay_msec          : %f\n", d->delay_msec);
-  eprintf("delay_frames        : %d\n", d->delay_frames);
-  eprintf("delay_location      : %d\n", d->delay_location);
-  eprintf("input_gain          : %f\n", d->input_gain);
-  eprintf("zero_crossing       : %s\n", d->zero_crossing ? "true" : "false");
-  eprintf("mode                : %d\n", d->mode);
+  printf("channels            : %d\n", d->channels);
+  printf("img_w               : %d\n", d->img_w);
+  printf("img_h               : %d\n", d->img_h);
+  printf("data_frames         : %d\n", d->data_frames);
+  printf("data_samples        : %d\n", d->data_samples);
+  printf("draw_frames         : %d\n", d->draw_frames);
+  printf("data_location       : %d\n", d->data_location);
+  printf("sample_rate         : %f\n", d->sample_rate);
+  printf("delay_msec          : %f\n", d->delay_msec);
+  printf("delay_frames        : %d\n", d->delay_frames);
+  printf("delay_location      : %d\n", d->delay_location);
+  printf("input_gain          : %f\n", d->input_gain);
+  printf("zero_crossing       : %s\n", d->zero_crossing ? "true" : "false");
+  printf("mode                : %d\n", d->mode);
 }
 
 #define OSC_PARSE_MSG(command,types)                            \
@@ -242,7 +241,7 @@ i32 img_colour_mode_parse(const char *s)
   } else if (strcmp("grey", s) == 0) {
     e = IMG_GREY;
   } else {
-    eprintf("img_colour_mode_parse: %s\n", s);
+    fprintf(stderr, "img_colour_mode_parse: %s\n", s);
   }
   return e;
 }
@@ -257,7 +256,7 @@ i32 signal_style_parse(const char *style)
   } else if (strcmp("line", style) == 0) {
     e = LINE_STYLE;
   } else {
-    eprintf("signal_style_parse: illegal style, %s\n", style);
+    fprintf(stderr, "signal_style_parse: illegal style, %s\n", style);
   }
   return e;
 }
@@ -283,7 +282,7 @@ hline_init(struct scope *s)
     if(png_w == s->img_w && png_h == s->img_h) {
       return;
     } else {
-      eprintf("img_bg_fn: incorrect size: (%d,%d)/(%d,%d)\n", png_w, png_h, s->img_w, s->img_h);
+      fprintf(stderr, "img_bg_fn: incorrect size: (%d,%d)/(%d,%d)\n", png_w, png_h, s->img_w, s->img_h);
       free(s->img_bg);
     }
   }
@@ -398,12 +397,12 @@ set_mode(struct scope *s, const char *mode)
   } else if (strncmp("hscan", mode, 5) == 0) {
     s->mode = HSCAN_MODE;
   } else {
-    eprintf("rju-scope: illegal mode, %s\n", mode);
+    fprintf(stderr, "rju-scope: illegal mode, %s\n", mode);
   }
 }
 
 void *
-jackscope_osc_thread_procedure(void *ptr)
+scope_osc_thread_procedure(void *ptr)
 {
   struct scope *s = (struct scope *) ptr;
   while (1) {
@@ -415,7 +414,7 @@ jackscope_osc_thread_procedure(void *ptr)
         s->img_colour_mode = img_colour_mode_parse(o[0].s);
     } else if (OSC_PARSE_MSG("/delay", ",f")) {
         s->delay_msec = o[0].f;
-        s->delay_frames = floorf((s->delay_msec / 1000.0) * s->fps);
+        s->delay_frames = floorf((s->delay_msec / 1000.0) * s->sample_rate);
     } else if (OSC_PARSE_MSG("/embed", ",i")) {
         s->embed_n = o[0].i;
     } else if (OSC_PARSE_MSG("/frames", ",i")) {
@@ -427,11 +426,11 @@ jackscope_osc_thread_procedure(void *ptr)
     } else if (OSC_PARSE_MSG("/mode", ",s")) {
         set_mode(s, o[0].s);
     } else if (OSC_PARSE_MSG("/print", ",i")) {
-        if(o[0].i > 0) jackscope_print(s);
+        if(o[0].i > 0) scope_print(s);
     } else if (OSC_PARSE_MSG("/style", ",s")) {
         s->signal_style = signal_style_parse(o[0].s);
     } else {
-        eprintf("rju-scope: dropped packet: %8s\n", packet);
+        fprintf(stderr, "rju-scope: dropped packet: %8s\n", packet);
     }
   }
   return NULL;
@@ -456,13 +455,13 @@ draw_fn_select(i32 mode)
   } else if (mode == HSCAN_MODE) {
      return hscan_draw;
   } else {
-      eprintf("rju-scope: illegal mode, %d\n", mode);
+      fprintf(stderr, "rju-scope: illegal mode, %d\n", mode);
       return signal_draw;
   }
 }
 
 void *
-jackscope_draw_thread_procedure(void *ptr)
+scope_draw_thread_procedure(void *ptr)
 {
   struct scope *s = (struct scope *) ptr;
   Ximg_t *x = ximg_open(s->img_w, s->img_h, "rju-scope");
@@ -493,7 +492,7 @@ jackscope_draw_thread_procedure(void *ptr)
    drawing routine. */
 
 int
-jackscope_process(jack_nframes_t nframes, void *ptr)
+scope_process(jack_nframes_t nframes, void *ptr)
 {
   struct scope *d = (struct scope *) ptr;
   float *in[MAX_CHANNELS];
@@ -522,34 +521,34 @@ jackscope_process(jack_nframes_t nframes, void *ptr)
 }
 
 void
-jackscope_usage(void)
+scope_usage(void)
 {
-  eprintf("Usage: rju-scope [options]\n");
-  eprintf(" -b INT  : Scope size in frames (default=512)\n");
-  eprintf(" -c STR  : Colour mode, grey|ega64 (default=grey)\n");
-  eprintf(" -d REAL : Delay time in ms between scope updates (default=100)\n");
-  eprintf(" -e INT  : Embedding delay in frames (default=6)\n");
-  eprintf(" -f STR  : Request images be stored at location (default=NULL)\n");
-  eprintf(" -g REAL : Set input gain (default=1.0)\n");
-  eprintf(" -h      : Print usage information\n");
-  eprintf(" -h INT  : Scope height in pixels (default=512)\n");
-  eprintf(" -i STR  : PNG file name for hline mask (default=NULL)\n");
-  eprintf(" -k INT  : Port index offset (default=0)\n");
-  eprintf(" -m STR  : Scope operating mode (default=signal)\n");
-  eprintf(" -n INT  : Number of channels (default=1)\n");
-  eprintf(" -p STR  : Jack port pattern to connect to (default=nil)\n");
-  eprintf(" -s STR  : Drawing style for signal mode (default=dot)\n");
-  eprintf(" -u INT  : UDP port number for OSC packets (default=57140)\n");
-  eprintf(" -U      : Do not generate unique jack client name (ie. do not append PID)\n");
-  eprintf(" -w INT  : Scope width in pixels (default=512)\n");
-  eprintf(" -z      : Do not align to zero-crossing\n");
-  FAILURE;
+  printf("Usage: rju-scope [options]\n");
+  printf(" -b INT  : Scope size in frames (default=512)\n");
+  printf(" -c STR  : Colour mode, grey|ega64 (default=grey)\n");
+  printf(" -d REAL : Delay time in ms between scope updates (default=100)\n");
+  printf(" -e INT  : Embedding delay in frames (default=6)\n");
+  printf(" -f STR  : Request images be stored at location (default=NULL)\n");
+  printf(" -g REAL : Set input gain (default=1.0)\n");
+  printf(" -h      : Print usage information\n");
+  printf(" -h INT  : Scope height in pixels (default=512)\n");
+  printf(" -i STR  : PNG file name for hline mask (default=NULL)\n");
+  printf(" -k INT  : Port index offset (default=0)\n");
+  printf(" -m STR  : Scope operating mode (default=signal)\n");
+  printf(" -n INT  : Number of channels (default=1)\n");
+  printf(" -p STR  : Jack port pattern to connect to (default=nil)\n");
+  printf(" -s STR  : Drawing style for signal mode (default=dot)\n");
+  printf(" -u INT  : UDP port number for OSC packets (default=57140)\n");
+  printf(" -U      : Do not generate unique jack client name (ie. do not append PID)\n");
+  printf(" -w INT  : Scope width in pixels (default=512)\n");
+  printf(" -z      : Do not align to zero-crossing\n");
+  exit(1);
 }
 
 #define opt_limit(nm,p,q) \
       if (q > p) { \
-        eprintf("illegal option: %s (%d > %d)", nm, q, p); \
-        FAILURE; \
+        fprintf(stderr, "illegal option: %s (%d > %d)", nm, q, p); \
+        exit(1); \
       }
 
 int
@@ -621,8 +620,8 @@ main(int argc, char **argv)
       d.zero_crossing = false;
       break;
     default:
-      eprintf("rju-scope: illegal option, %c\n", (char) o);
-      jackscope_usage();
+      fprintf(stderr, "rju-scope: illegal option, %c\n", (char) o);
+      scope_usage();
       break;
     }
   }
@@ -637,8 +636,8 @@ main(int argc, char **argv)
   d.fd = socket_udp(0);
   bind_inet(d.fd, NULL, port_n);
   xpipe(d.pipe);
-  pthread_create(&(d.osc_thread), NULL, jackscope_osc_thread_procedure, &d);
-  pthread_create(&(d.draw_thread), NULL, jackscope_draw_thread_procedure, &d);
+  pthread_create(&(d.osc_thread), NULL, scope_osc_thread_procedure, &d);
+  pthread_create(&(d.draw_thread), NULL, scope_draw_thread_procedure, &d);
   char nm[64] = "rju-scope";
   jack_client_t *c = NULL;
   if(unique) {
@@ -649,9 +648,9 @@ main(int argc, char **argv)
   die_when(!c,"rju-scope: could not create jack client: %s", nm);
   jack_set_error_function(jack_client_minimal_error_handler);
   jack_on_shutdown(c, jack_client_minimal_shutdown_handler, 0);
-  jack_set_process_callback(c, jackscope_process, &d);
-  d.fps = (float) jack_get_sample_rate(c);
-  d.delay_frames = floorf((d.delay_msec / 1000.0) * d.fps);
+  jack_set_process_callback(c, scope_process, &d);
+  d.sample_rate = (float) jack_get_sample_rate(c);
+  d.delay_frames = floorf((d.delay_msec / 1000.0) * d.sample_rate);
   jack_port_make_standard(c, d.port, d.channels, false, false);
   die_when(jack_client_activate(c),"rju-scope: jack_activate() failed\n");
   if (!p) {
