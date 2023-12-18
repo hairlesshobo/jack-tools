@@ -60,7 +60,9 @@ uninstall:
 	(cd $(prefix)/bin ; rm -f $(bin))
 
 indent:
-	indent -k r-nut -l96 -i2 -brf rju-scope.c
-	indent -kr -nut -l96 -i4 -blf -bls rju-lxvst.cpp
+	clang-format -i *.c *.h
+
+diff-ignoring-whitespace:
+	git diff --ignore-space-at-eol --ignore-space-change --ignore-all-space
 
 # `pkg-config --libs jack liblo ncurses sndfile samplerate x11 xext`

@@ -5,7 +5,7 @@ import Data.Word {- base -}
 
 import Sound.Osc {- hosc -}
 
--- * IO
+-- * Io
 
 -- | Default jack-lxvst Udp port number.
 lxvst_default_port :: Int
@@ -19,31 +19,32 @@ lxvst_default_udp = openUdp "127.0.0.1" lxvst_default_port
 with_lxvst :: Connection Udp a -> IO a
 with_lxvst = withTransport lxvst_default_udp
 
--- | 'with_lxvst' of 'sendMessage'.
---
--- > to_lxvst lxvst_exit
+{- | 'with_lxvst' of 'sendMessage'.
+
+> to_lxvst lxvst_exit
+-}
 to_lxvst :: [Message] -> IO ()
 to_lxvst = with_lxvst . mapM_ sendMessage
 
--- * MSG
+-- * Msg
 
 -- | User exit.
 lxvst_exit :: Message
 lxvst_exit = message "/exit" []
 
--- | Set VST parameter /k/ to value /v/.
+-- | Set Vst parameter /k/ to value /v/.
 lxvst_set_param :: Int -> Double -> Message
 lxvst_set_param k v = message "/set_param" [int32 k,float v]
 
--- | Set VST parameters from /k/ to values at /v/.
+-- | Set Vst parameters from /k/ to values at /v/.
 lxvst_set_param_seq :: Int -> [Double] -> Message
 lxvst_set_param_seq k v = message "/set_param_seq" (int32 k : int32 (length v) : map float v)
 
--- | Print all VST parameters
+-- | Print all Vst parameters
 lxvst_print_param :: Message
 lxvst_print_param = message "/print_param" []
 
--- | Set VST program to /k/.
+-- | Set Vst program to /k/.
 lxvst_set_program :: Int -> Message
 lxvst_set_program k = message "/set_program" [int32 k]
 
@@ -51,7 +52,7 @@ lxvst_set_program k = message "/set_program" [int32 k]
 lxvst_midi :: [Word8] -> Message
 lxvst_midi b = message "/midi" [Blob (blob_pack b)]
 
--- * HL
+-- * Hl
 
 lxvst_send_set_param :: Int -> Double -> IO ()
 lxvst_send_set_param k = to_lxvst . return . lxvst_set_param k
