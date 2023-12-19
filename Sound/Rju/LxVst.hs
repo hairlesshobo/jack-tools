@@ -12,11 +12,11 @@ lxvst_default_port :: Int
 lxvst_default_port = 57210
 
 -- | Udp at local machine and default port.
-lxvst_default_udp :: IO Udp
-lxvst_default_udp = openUdp "127.0.0.1" lxvst_default_port
+lxvst_default_udp :: IO OscSocket
+lxvst_default_udp = openOscSocket (Udp, "127.0.0.1", lxvst_default_port)
 
 -- | 'withTransport' of 'lxvst_default_udp'
-with_lxvst :: Connection Udp a -> IO a
+with_lxvst :: Connection OscSocket a -> IO a
 with_lxvst = withTransport lxvst_default_udp
 
 {- | 'with_lxvst' of 'sendMessage'.
