@@ -3,6 +3,7 @@
 
 #include <sndfile.h>
 #include <stdbool.h>
+
 #include <jack/jack.h>
 
 #include "r-common/c/ringbuffer.h"
@@ -40,6 +41,8 @@ struct recorder {
 	int multiple_sound_files;
 	int channels;
 	jack_port_t **input_port;
+    char port_name_pattern[256];
+	int port_offset;
 	float **in;
 	ringbuffer_t *rb;
 	pthread_t disk_thread;

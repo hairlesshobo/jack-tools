@@ -7,6 +7,7 @@
 
 #include <pthread.h> /* Posix */
 #include <unistd.h>
+#include <getopt.h>
 
 #include <curses.h>
 
@@ -60,11 +61,11 @@ void write_to_disk(struct recorder *recorder_obj, int nframes)
 void *disk_thread_procedure(void *PTR)
 {
 	struct recorder *recorder_obj = (struct recorder *)PTR;
-	uint64_t loop = 0;
+	// uint64_t loop = 0;
 
 	while (!observe_end_of_process()) {
 		// printf("loop %llu\n", loop);
-		loop++;
+		// loop++;
 
 		/* Wait for data at the ring buffer. */
 		int nbytes = recorder_obj->minimal_frames * sizeof(float) * recorder_obj->channels;
@@ -195,80 +196,94 @@ int process(jack_nframes_t nframes, void *PTR)
 void usage(void)
 {
 	printf("Usage: rju-record [options] sound-file\n");
-	printf("  -b N : Ring buffer size in frames (default=4096).\n");
-	printf("  -f N : File format (wav, rf64).\n");
-	printf("  -r N : file bitrate (16, 24, 32).\n");
-	printf("  -m N : Minimal disk transfer size in frames (default=32).\n");
-	printf("  -n N : Number of channels (default=2).\n");
-	printf("  -o N : Jack port source offset (default=0).\n");
-	printf("  -p S : Jack port pattern to connect to (default=nil).\n");
-	printf("  -s   : Write to multiple single channel sound files.\n");
-	printf("  -t N : Set a timer to record for N seconds (default=-1).\n");
-	printf("  -u   : Do not generate unique jack client name (ie. do not append PID)\n");
+	printf("\n");
+	printf("  --port_pattern         -p  <string>             : Jack port pattern to connect to (default: system:capture_%%d)\n");
+	printf("  --channels             -c  [number]             : Number of channels (default: 2)\n");
+	printf("  --bitrate              -b  [16, 24, 32]         : file bitrate (default: 16)\n");
+	printf("  --format               -f  [wav, rf64]          : File format (default: wav)\n");
+	printf("  --disk_transfer_size   -d  [number]             : Minimal disk transfer size in frames (default: 32)\n");
+	printf("  --time_limit           -l  [number]             : Set a limit timer to record for N seconds (default: unlimited)\n");
+	printf("  --multi_file           -m                       : Write to multiple single channel sound files (defualt: no)\n");
+	printf("  --port_offset          -o  [number]             : Jack port source offset (default: 0)\n");
+	printf("  --no_unique            -u                       : Do not generate unique jack client name (ie. do not append PID)\n");
+	printf("  --buffer_size          -x  [number]             : Ring buffer size in frames (default: 4096)\n");
+	printf("  --help                 -h                       : Show this usage page\n");
 	exit(1);
 }
 
-int main(int argc, char *argv[])
-{
-	observe_signals();
+int parse_opts(int argc, char *argv[], struct recorder *recorder_obj) {
+	recorder_obj->unique_name = true;
+	recorder_obj->buffer_frames = 4096;
+	recorder_obj->minimal_frames = 32;
+	recorder_obj->channels = 2;
+	recorder_obj->timer_seconds = -1.0;
+	recorder_obj->timer_counter = 0;
+	recorder_obj->multiple_sound_files = 0;
+	recorder_obj->do_abort = 0;
+	recorder_obj->bit_rate = 16;
+	recorder_obj->xrun_count = 0;
+	recorder_obj->performance = 0;
+	recorder_obj->file_format = SF_FORMAT_WAV | SF_FORMAT_FLOAT;
 
-	struct recorder recorder_obj;
-	recorder_obj.unique_name = true;
-	recorder_obj.buffer_frames = 4096;
-	recorder_obj.minimal_frames = 32;
-	recorder_obj.channels = 2;
-	recorder_obj.timer_seconds = -1.0;
-	recorder_obj.timer_counter = 0;
-	recorder_obj.multiple_sound_files = 0;
-	recorder_obj.do_abort = 0;
-	recorder_obj.bit_rate = 16;
-	recorder_obj.xrun_count = 0;
-	recorder_obj.performance = 0;
+	strncpy(recorder_obj->port_name_pattern, "system:capture_%d", 255);
 
-	char *port_name_pattern = NULL;
-	char *format_name = NULL;
-	int port_offset = 0;
+    struct option long_options[] = {
+        {"port_pattern", required_argument, NULL, 'p'},
+        {"channels", required_argument, NULL, 'c'},
+        {"bitrate", required_argument, NULL, 'b'},
+        {"format", required_argument, NULL, 'f'},
+        {"disk_transfer_size", required_argument, NULL, 'd'},
+        {"time_limit", required_argument, NULL, 'l'},
+        {"multi_file", no_argument, NULL, 'm'},
+        {"port_offset", required_argument, NULL, 'p'},
+        {"no_unique", no_argument, NULL, 'u'},
+        {"buffer_size", required_argument, NULL, 'x'},
+        {NULL, 0, NULL, 0}
+    };
+
+	// char *port_name_pattern = NULL;
+	char *format_name = "wav";
+	// int port_offset = 0;
 	int c;
 	
-	recorder_obj.file_format = SF_FORMAT_WAV | SF_FORMAT_FLOAT;
 
-
-	while ((c = getopt(argc, argv, "b:f:r:hm:n:o:p:st:u")) != -1) {
+	while ((c = getopt_long(argc, argv, "p:c:b:f:d:l:mo:ux:h",
+					long_options, NULL)) != -1) {
 		switch (c) {
-			case 'b':
-				recorder_obj.buffer_frames = (int)strtol(optarg, NULL, 0);
+			case 'x':
+				recorder_obj->buffer_frames = (int)strtol(optarg, NULL, 0);
 				break;
 			case 'f':
 				format_name = malloc(256);
 				strncpy(format_name, optarg, 255);
 				break;
-			case 'r':
-				recorder_obj.bit_rate = (int)strtol(optarg, NULL, 0);
+			case 'b':
+				recorder_obj->bit_rate = (int)strtol(optarg, NULL, 0);
 				break;
 			case 'h':
 				usage();
 				break;
-			case 'm':
-				recorder_obj.minimal_frames = (int)strtol(optarg, NULL, 0);
+			case 'd':
+				recorder_obj->minimal_frames = (int)strtol(optarg, NULL, 0);
 				break;
-			case 'n':
-				recorder_obj.channels = (int)strtol(optarg, NULL, 0);
+			case 'c':
+				recorder_obj->channels = (int)strtol(optarg, NULL, 0);
 				break;
 			case 'o':
-				port_offset = (int)strtol(optarg, NULL, 0);
+				recorder_obj->port_offset = (int)strtol(optarg, NULL, 0);
 				break;
 			case 'p':
-				port_name_pattern = malloc(256);
-				strncpy(port_name_pattern, optarg, 255);
+				// recorder_obj->port_name_pattern = malloc(256);
+				strncpy(recorder_obj->port_name_pattern, optarg, 255);
 				break;
-			case 's':
-				recorder_obj.multiple_sound_files = 1;
+			case 'm':
+				recorder_obj->multiple_sound_files = 1;
 				break;
-			case 't':
-				recorder_obj.timer_seconds = (float)strtod(optarg, NULL);
+			case 'l':
+				recorder_obj->timer_seconds = (float)strtod(optarg, NULL);
 				break;
 			case 'u':
-				recorder_obj.unique_name = false;
+				recorder_obj->unique_name = false;
 				break;
 			default:
 				fprintf(stderr, "rju-record: illegal option, %c\n", c);
@@ -283,7 +298,7 @@ int main(int argc, char *argv[])
 	int file_format = 0;
 	int file_bitrate = 0;
 
-	switch (recorder_obj.bit_rate) {
+	switch (recorder_obj->bit_rate) {
 		case (16):
 			file_bitrate = SF_FORMAT_PCM_16;
 			break;
@@ -298,29 +313,33 @@ int main(int argc, char *argv[])
 			return EXIT_FAILURE;
 	}
 
-	if (format_name) {
-		if (strcmp(format_name, "wav") == 0) {
-			fprintf(stderr, "Selected format: %d bit wav\n", recorder_obj.bit_rate);
-			file_format = SF_FORMAT_WAV;
-		} else if (strcmp(format_name, "rf64") == 0) {
-			fprintf(stderr, "Selected format: %d bit rf64\n", recorder_obj.bit_rate);
-			file_format = SF_FORMAT_RF64;
-		} else {
-			fprintf(stderr, "ERROR: unknown file format: %s\n", format_name);
-			return EXIT_FAILURE;
-		}
+	if (strcmp(format_name, "wav") == 0) {
+		fprintf(stderr, "Selected format: %d bit wav\n", recorder_obj->bit_rate);
+		file_format = SF_FORMAT_WAV;
+	} else if (strcmp(format_name, "rf64") == 0) {
+		fprintf(stderr, "Selected format: %d bit rf64\n", recorder_obj->bit_rate);
+		file_format = SF_FORMAT_RF64;
 	} else {
-		fprintf(stderr, "ERROR: file format is required\n");
+		fprintf(stderr, "ERROR: unknown file format: %s\n", format_name);
 		return EXIT_FAILURE;
 	}
 
-	recorder_obj.file_format = file_format | file_bitrate;
+	recorder_obj->file_format = file_format | file_bitrate;
 
-	/* Allocate channel based data. */
-	die_when(recorder_obj.channels < 1, "rju-record: channels < 1: %d\n", recorder_obj.channels);
-	recorder_obj.in = xmalloc(recorder_obj.channels * sizeof(float *));
-	recorder_obj.sound_file = xmalloc(recorder_obj.channels * sizeof(SNDFILE *));
-	recorder_obj.input_port = xmalloc(recorder_obj.channels * sizeof(jack_port_t *));
+	die_when(recorder_obj->channels < 1, "ERROR: channels count provided is less than 1: %d\n", recorder_obj->channels);
+
+	return 0;
+}
+
+int main(int argc, char *argv[])
+{
+	observe_signals();
+
+	struct recorder recorder_obj;
+
+	int opt_results = parse_opts(argc, argv, &recorder_obj);
+
+	die_when(opt_results != 0, "Invalid configuration provided");
 
 	/* Connect to Jack. */
 	char client_name[64] = "rju-record";
@@ -336,6 +355,19 @@ int main(int argc, char *argv[])
 
 	recorder_obj.start_frame = jack_frame_time(recorder_obj.client);
 	recorder_obj.sample_rate = jack_get_sample_rate(recorder_obj.client);
+
+	/* Allocate channel based data. */
+	recorder_obj.in = xmalloc(recorder_obj.channels * sizeof(float *));
+	recorder_obj.sound_file = xmalloc(recorder_obj.channels * sizeof(SNDFILE *));
+	recorder_obj.input_port = xmalloc(recorder_obj.channels * sizeof(jack_port_t *));
+
+	/* Allocate buffers. */
+	recorder_obj.buffer_samples = recorder_obj.buffer_frames * recorder_obj.channels;
+	recorder_obj.buffer_bytes = recorder_obj.buffer_samples * sizeof(float);
+	recorder_obj.d_buffer = xmalloc(recorder_obj.buffer_bytes);
+	recorder_obj.j_buffer = xmalloc(recorder_obj.buffer_bytes);
+	recorder_obj.u_buffer = xmalloc(recorder_obj.buffer_bytes);
+	recorder_obj.rb = ringbuffer_create(recorder_obj.buffer_bytes);
 
 	/* Setup timer. */
 	if (recorder_obj.timer_seconds < 0.0)
@@ -367,14 +399,6 @@ int main(int argc, char *argv[])
 		recorder_obj.sound_file[0] = xsf_open(argv[optind], SFM_WRITE, &sfinfo);
 	}
 
-	/* Allocate buffers. */
-	recorder_obj.buffer_samples = recorder_obj.buffer_frames * recorder_obj.channels;
-	recorder_obj.buffer_bytes = recorder_obj.buffer_samples * sizeof(float);
-	recorder_obj.d_buffer = xmalloc(recorder_obj.buffer_bytes);
-	recorder_obj.j_buffer = xmalloc(recorder_obj.buffer_bytes);
-	recorder_obj.u_buffer = xmalloc(recorder_obj.buffer_bytes);
-	recorder_obj.rb = ringbuffer_create(recorder_obj.buffer_bytes);
-
 	/* Create communication pipe. */
 	xpipe(recorder_obj.pipe);
 
@@ -388,10 +412,10 @@ int main(int argc, char *argv[])
 	jack_port_make_standard(recorder_obj.client, recorder_obj.input_port, recorder_obj.channels, false, false);
 	jack_client_activate(recorder_obj.client);
 
-	if (port_name_pattern) {
+	if (strcmp(recorder_obj.port_name_pattern, "")) {
 		char q[128];
 		snprintf(q, 128, "%s:in_%%d", client_name);
-		jack_port_connect_pattern(recorder_obj.client, recorder_obj.channels, port_offset, port_name_pattern, q);
+		jack_port_connect_pattern(recorder_obj.client, recorder_obj.channels, recorder_obj.port_offset, recorder_obj.port_name_pattern, q);
 	}
 
 	/* Start status update thread. */

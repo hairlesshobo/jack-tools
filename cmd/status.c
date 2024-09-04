@@ -11,6 +11,7 @@
 
 #include <curses.h>
 
+#include "rju-record.h"
 #include "r-common/c/observe-signal.h"
 
 // thank you to the answer here: https://stackoverflow.com/a/11765441
