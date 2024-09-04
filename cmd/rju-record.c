@@ -10,6 +10,8 @@
 
 #include <curses.h>
 
+#include "rju-record.h"
+#include "status.c"
 #include "jack/metadata.h"
 
 #include "r-common/c/file.h"
@@ -27,124 +29,6 @@
 // - support partial stero and partial mono files
 // - support passing config with file name and input channel numbers
 
-
-#define MAX_NC 64
-#define METER_STEP_COUNT 21
-// TODO: move to cli option
-#define PEAK_HOLD_MS 750
-
-const float meter_steps[METER_STEP_COUNT] = {0, -1, -2, -3, -4, -6, -8, -10, -12, -15, -18, -21, -24, -27, -30, -36, -42, -48, -54, -60};
-
-#define abort_when(x, ...) \
-	if (x) { \
-		printf("\n"); \
-		fprintf(stderr, __VA_ARGS__); \
-		recorder_obj->do_abort = 1; \
-	}
-
-struct recorder {
-	bool unique_name;
-	int buffer_bytes;
-	int buffer_samples;
-	int buffer_frames;
-	int minimal_frames;
-	int bit_rate;
-	float timer_seconds;
-	int timer_frames;
-	int timer_counter;
-	float sample_rate;
-	float *d_buffer;
-	float *j_buffer;
-	float *u_buffer;
-	int file_format;
-	SNDFILE **sound_file;
-	int multiple_sound_files;
-	int channels;
-	jack_port_t **input_port;
-	float **in;
-	ringbuffer_t *rb;
-	pthread_t disk_thread;
-	pthread_t status_thread;
-	int pipe[2];
-	int do_abort;
-	jack_client_t *client;
-	jack_nframes_t start_frame;
-	jack_nframes_t last_frame;
-	uint32_t xrun_count;
-	double performance;
-	float sig_max[MAX_NC]; /* signal maxima (ie. hold) */
-	float sig_lvl[2][MAX_NC]; /* signal level (ie. level) */
-};
-
-// thank you to the answer here: https://stackoverflow.com/a/11765441
-uint64_t get_time_millis(void)
-{
-	struct timespec tms;
-
-    /* The C11 way */
-    /* if (! timespec_get(&tms, TIME_UTC)) { */
-
-    /* POSIX.1-2008 way */
-    if (clock_gettime(CLOCK_REALTIME, &tms)) {
-        return -1;
-    }
-    /* seconds, multiplied with 1 million */
-    int64_t micros = tms.tv_sec * 1000000;
-
-    /* Add full microseconds */
-    micros += tms.tv_nsec/1000;
-
-    /* round up if necessary */
-    if (tms.tv_nsec % 1000 >= 500) {
-        ++micros;
-    }
-
-	return micros / 1000;
-}
-
-const char *format_size(uint64_t bytes)
-{
-	char *suffix[] = {"B", "KiB", "MiB", "GiB", "TiB"};
-	char length = sizeof(suffix) / sizeof(suffix[0]);
-
-	int i = 0;
-	double dblBytes = bytes;
-
-	if (bytes > 1024) {
-		for (i = 0; (bytes / 1024) > 0 && i<length-1; i++, bytes /= 1024)
-			dblBytes = bytes / 1024.0;
-	}
-
-	static char output[200];
-	sprintf(output, "%.02lf %s", dblBytes, suffix[i]);
-	return output;
-}
-
-const char *format_duration(float duration) {
-	int hours = 0;
-	int minutes = 0;
-	int seconds = 0;
-	int mseconds = 0;
-
-	if (duration > 3600) {
-		hours = duration / 3600;
-		duration -= hours * 3600;
-	}
-
-	if (duration > 60) {
-		minutes = duration / 60;
-		duration -= minutes * 60;
-	}
-
-	seconds = (int)duration;
-	duration -= seconds;
-	mseconds = duration * 1000;
-
-	static char result[16];
-	snprintf(result, 13, "%02d:%02d:%02d.%03d", hours, minutes, seconds, mseconds);
-
-	return result;
-}
 
 
 void write_to_disk(struct recorder *recorder_obj, int nframes)
@@ -167,193 +51,14 @@ void write_to_disk(struct recorder *recorder_obj, int nframes)
 	}
 }
 
-float amp_to_db(float x)
-{
-	return (log10(x) * 20.0);
-}
-
-void clear_peaks(struct recorder *recorder_obj)
-{
-	for (int i = 0; i < recorder_obj->channels; i++) {
-		recorder_obj->sig_max[i] = 0.0;
-	}
-}
-
-void color_by_sig_level(float level)
-{
-	if (level >= -1) {
-		attron(COLOR_PAIR(4));
-	}
-	else if (level >= -6) {
-		attron(COLOR_PAIR(4));
-	}
-	else if (level >= -18) {
-		attron(COLOR_PAIR(3));
-	}
-	else {
-		attron(COLOR_PAIR(2));
-	}
-}
-
-void *status_update_procedure(void *PTR)
-{
-	// setup curses
-	initscr();
-	keypad(stdscr, TRUE);
-	nonl();
-	halfdelay(1);
-	noecho();
-
-	start_color();
-	init_pair(1, COLOR_WHITE, COLOR_BLACK);
-    init_pair(2, COLOR_GREEN, COLOR_BLACK);
-	init_pair(3, COLOR_YELLOW, COLOR_BLACK);
-	init_pair(4, COLOR_RED, COLOR_BLACK);
-	init_pair(5, COLOR_MAGENTA, COLOR_BLACK);
-
-	uint64_t last_reset_time = get_time_millis();
-
-	struct recorder *recorder_obj = (struct recorder *)PTR;
-	while (!observe_end_of_process()) {
-		if (recorder_obj->do_abort == 1)
-			break;
-
-		char c = getch();
-		switch (c) {
-			case 'x':
-				clear_peaks(recorder_obj);
-				break;
-		}
-
-		if (get_time_millis() - last_reset_time > PEAK_HOLD_MS) {
-			last_reset_time = get_time_millis();
-			clear_peaks(recorder_obj);
-		}
-
-		erase();
-
-		uint64_t file_size = (recorder_obj->timer_counter * recorder_obj->bit_rate) / 8;
-		int file_count = 1;
-		jack_nframes_t jack_frames = jack_frame_time(recorder_obj->client);
-		float elapsed_time = ((float)(jack_frames - recorder_obj->start_frame)) / (float)recorder_obj->sample_rate;
-
-		if (recorder_obj->multiple_sound_files == 1)
-			file_count = recorder_obj->channels;
-
-		attron(COLOR_PAIR(1));
-		printw("Recording | Channels: %d, Files: %d, Elapsed: %s, size: %s, xruns: %d\n", 
-			recorder_obj->channels, 
-			file_count, 
-			format_duration(elapsed_time), 
-			format_size(file_size),
-			recorder_obj->xrun_count
-			);
-			// (recorder_obj->performance / (1.0 / (float)recorder_obj->sample_rate)) * 100.0);
-
-		printw("\n");
-		char *set_max = malloc(sizeof(char) * recorder_obj->channels);
-		memset(set_max, 0, sizeof(char) * recorder_obj->channels);
-
-		for (int l = -2; l < METER_STEP_COUNT; l++) {
-			if (l == -2) {
-				printw("     |");
-
-				for (int channel = 0; channel < recorder_obj->channels; channel++) {
-					int leftover = (channel+1) % 10;
-
-					// we only care to show the decade digit at the top of each decade
-					if (leftover == 0) {
-						int decade = (int)((channel+1) / 10);
-						printw("  %d", decade);
-					}
-					else
-						printw("   ");
-				}
-
-				printw("\n");
-			}
-
-			else if (l == -1) {
-				attron(COLOR_PAIR(1));
-				printw("     |");
-
-				for (int channel = 0; channel < recorder_obj->channels; channel++) {
-					int leftover = (channel+1) % 10;
-
-					printw("  %1d", leftover);
-				}
-
-				printw("\n");
-			}
-
-			else if (l == METER_STEP_COUNT-1) {
-				attron(COLOR_PAIR(1));
-				printw("     |");
-				for (int channel = 0; channel < recorder_obj->channels; channel++) {
-					float level = amp_to_db(recorder_obj->sig_lvl[0][channel]);
-
-					if (level <= -99)
-						level = -99;
-
-					printw("%3.0f", level*-1);
-				}
-				printw("\n");
-			}
-
-			else {
-				float meter_step = meter_steps[l];
-				attron(COLOR_PAIR(1));
-				printw(" %3.0f |", meter_steps[l]);
-
-				for (int channel = 0; channel < recorder_obj->channels; channel++) {
-					float level = amp_to_db(recorder_obj->sig_lvl[0][channel]);
-					float max_level = amp_to_db(recorder_obj->sig_max[channel]);
-
-
-					if (max_level > meter_step && set_max[channel] == 0) {
-						color_by_sig_level(max_level);
-						printw("  @");
-						set_max[channel] = 1;
-					}
-					else if (level > meter_step) {
-						color_by_sig_level(meter_step);
-
-						if (meter_step >= -1) {
-							printw("  X");
-						}
-						else if (meter_step >= -6) {
-							printw("  #");
-						}
-						else if (meter_step >= -18) {
-							printw("  ^");
-						}
-						else {
-							printw("  *");
-						}
-					}
-
-					else
-						printw("   ");
-				}
-
-				printw("\n");
-			}
-		}
-
-
-		refresh();
-	}
-
-	endwin();
-
-	return NULL;
-}
-
 void *disk_thread_procedure(void *PTR)
 {
 	struct recorder *recorder_obj = (struct recorder *)PTR;
+	uint64_t loop = 0;
 
 	while (!observe_end_of_process()) {
+		printf("loop %llu\n", loop);
+		loop++;
 		/* Wait for data at the ring buffer. */
 		int nbytes = recorder_obj->minimal_frames * sizeof(float) * recorder_obj->channels;
 		nbytes = ringbuffer_wait_for_read(recorder_obj->rb, nbytes, recorder_obj->pipe[0]);
@@ -388,6 +93,20 @@ void *disk_thread_procedure(void *PTR)
 	recorder_obj->do_abort = 1;
 
 	return NULL;
+}
+
+void jack_shutdown(void *PTR)
+{
+	struct recorder *recorder_obj = (struct recorder *)PTR;
+
+	recorder_obj->do_abort = 1;
+
+	fprintf(stderr, "jack shutdown\n");
+}
+
+void jack_error_handler(const char *desc)
+{
+	fprintf(stderr, "jack error: %s\n", desc);
 }
 
 /* Write data from the Jack input ports to the ring buffer.  If the
@@ -604,9 +323,10 @@ int main(int argc, char *argv[])
 	else
 		recorder_obj.client = jack_client_open(client_name, JackNullOption, NULL);
 
-	jack_set_error_function(jack_client_minimal_error_handler);
-	jack_on_shutdown(recorder_obj.client, jack_client_minimal_shutdown_handler, 0);
+	jack_set_error_function(jack_error_handler);
+	jack_on_shutdown(recorder_obj.client, jack_shutdown, &recorder_obj);
 	jack_set_process_callback(recorder_obj.client, process, &recorder_obj);
+
 	recorder_obj.start_frame = jack_frame_time(recorder_obj.client);
 	recorder_obj.sample_rate = jack_get_sample_rate(recorder_obj.client);
 
@@ -629,9 +349,8 @@ int main(int argc, char *argv[])
 		}
 
 		sfinfo.channels = 1;
-		int i;
 
-		for (i = 0; i < recorder_obj.channels; i++) {
+		for (int i = 0; i < recorder_obj.channels; i++) {
 			char name[512];
 			snprintf(name, 512, argv[optind], i+1);
 			recorder_obj.sound_file[i] = xsf_open(name, SFM_WRITE, &sfinfo);
@@ -669,27 +388,26 @@ int main(int argc, char *argv[])
 	}
 
 	/* Start status update thread. */
-	pthread_create(&(recorder_obj.status_thread),
-		NULL,
-		status_update_procedure,
-		&recorder_obj);
+	// pthread_create(&(recorder_obj.status_thread),
+	// 	NULL,
+	// 	status_update_procedure,
+	// 	&recorder_obj);
 
 	/* Wait for disk thread to end, which it does when it reaches the
 	   end of the file or is interrupted. */
+	printf("waiting for disk thread\n");
 	pthread_join(recorder_obj.disk_thread, NULL);
-	pthread_join(recorder_obj.status_thread, NULL);
+	printf("disk thread joined\n");
+	// pthread_join(recorder_obj.status_thread, NULL);
 
 	/* Close sound file, free ring buffer, close Jack connection, close
 	   pipe, free data buffers, indicate success. */
 	jack_client_close(recorder_obj.client);
-	if (recorder_obj.multiple_sound_files) {
-		int i;
-		for (i = 0; i < recorder_obj.channels; i++)
+	if (recorder_obj.multiple_sound_files)
+		for (int i = 0; i < recorder_obj.channels; i++)
 			sf_close(recorder_obj.sound_file[i]);
-
-	} else {
+	else
 		sf_close(recorder_obj.sound_file[0]);
-	}
 
 	ringbuffer_free(recorder_obj.rb);
 	close(recorder_obj.pipe[0]);
