@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <locale.h>
 
 #include <pthread.h> /* Posix */
 #include <unistd.h>
@@ -96,23 +97,27 @@ void clear_peaks(struct recorder *recorder_obj)
 
 void color_by_sig_level(float level)
 {
-	if (level >= -1) {
+	if (level > -1) {
 		attron(COLOR_PAIR(4));
 	}
-	else if (level >= -6) {
-		attron(COLOR_PAIR(4));
-	}
-	else if (level >= -18) {
+	// else if (level >= -1) {
+	// 	attron(COLOR_PAIR(4));
+	// }
+    else if (level >= -6) {
 		attron(COLOR_PAIR(3));
 	}
-	else {
+	else if (level >= -18) {
 		attron(COLOR_PAIR(2));
+	}
+	else {
+		attron(COLOR_PAIR(6));
 	}
 }
 
 void *status_update_procedure(void *PTR)
 {
 	// setup curses
+    setlocale(LC_ALL, "");
 	initscr();
 	keypad(stdscr, TRUE);
 	nonl();
@@ -125,6 +130,7 @@ void *status_update_procedure(void *PTR)
 	init_pair(3, COLOR_YELLOW, COLOR_BLACK);
 	init_pair(4, COLOR_RED, COLOR_BLACK);
 	init_pair(5, COLOR_MAGENTA, COLOR_BLACK);
+    init_pair(6, COLOR_CYAN, COLOR_BLACK);
 
 	uint64_t last_reset_time = get_time_millis();
 
@@ -227,24 +233,27 @@ void *status_update_procedure(void *PTR)
 
 					if (max_level > meter_step && set_max[channel] == 0) {
 						color_by_sig_level(max_level);
-						printw("  @");
+						printw("  ");
+                        addch(ACS_CKBOARD);
 						set_max[channel] = 1;
 					}
 					else if (level > meter_step) {
 						color_by_sig_level(meter_step);
+                        printw("  ");
+                        addch(ACS_CKBOARD);
 
-						if (meter_step >= -1) {
-							printw("  X");
-						}
-						else if (meter_step >= -6) {
-							printw("  #");
-						}
-						else if (meter_step >= -18) {
-							printw("  ^");
-						}
-						else {
-							printw("  *");
-						}
+						// if (meter_step >= -1) {
+						// 	printw("  X");
+						// }
+						// else if (meter_step >= -6) {
+						// 	printw("  #");
+						// }
+						// else if (meter_step >= -18) {
+						// 	printw("  ^");
+						// }
+						// else {
+						// 	printw("  *");
+						// }
 					}
 
 					else

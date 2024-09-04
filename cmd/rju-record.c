@@ -26,10 +26,16 @@
 #include "r-common/c/sf-sndfile.c"
 
 // TODO list:
-// - support partial stero and partial mono files
-// - support passing config with file name and input channel numbers
-
-
+// gracefully handle jack server shutdown
+// gracefully handle jack hardware removal
+// long options support
+// option for output directory, create if doesn't exist
+// option for meter peak hold time
+// option to enable console output status
+// option to output status as json lines?
+// option to specify what to do on stream error (xrun, etc) - quit or continue (with audible glitch - possible silence?)
+// support combination file types, single and multiple channel files in a single project
+// support passing config with file name and input channel numbers
 
 void write_to_disk(struct recorder *recorder_obj, int nframes)
 {
@@ -57,8 +63,9 @@ void *disk_thread_procedure(void *PTR)
 	uint64_t loop = 0;
 
 	while (!observe_end_of_process()) {
-		printf("loop %llu\n", loop);
+		// printf("loop %llu\n", loop);
 		loop++;
+
 		/* Wait for data at the ring buffer. */
 		int nbytes = recorder_obj->minimal_frames * sizeof(float) * recorder_obj->channels;
 		nbytes = ringbuffer_wait_for_read(recorder_obj->rb, nbytes, recorder_obj->pipe[0]);
@@ -388,17 +395,17 @@ int main(int argc, char *argv[])
 	}
 
 	/* Start status update thread. */
-	// pthread_create(&(recorder_obj.status_thread),
-	// 	NULL,
-	// 	status_update_procedure,
-	// 	&recorder_obj);
+	pthread_create(&(recorder_obj.status_thread),
+		NULL,
+		status_update_procedure,
+		&recorder_obj);
 
 	/* Wait for disk thread to end, which it does when it reaches the
 	   end of the file or is interrupted. */
 	printf("waiting for disk thread\n");
 	pthread_join(recorder_obj.disk_thread, NULL);
 	printf("disk thread joined\n");
-	// pthread_join(recorder_obj.status_thread, NULL);
+	pthread_join(recorder_obj.status_thread, NULL);
 
 	/* Close sound file, free ring buffer, close Jack connection, close
 	   pipe, free data buffers, indicate success. */

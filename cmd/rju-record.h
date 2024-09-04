@@ -1,3 +1,6 @@
+#ifndef RJU_RECORD_H
+#define RJU_RECORD_H
+
 #include <sndfile.h>
 #include <stdbool.h>
 #include <jack/jack.h>
@@ -51,3 +54,5 @@ struct recorder {
 	float sig_max[MAX_NC]; /* signal maxima (ie. hold) */
 	float sig_lvl[2][MAX_NC]; /* signal level (ie. level) */
 };
+
+#endif
