@@ -14,6 +14,15 @@
 #include "rju-record.h"
 #include "r-common/c/observe-signal.h"
 
+#define COLOR_CLIP_FG 4
+#define COLOR_CLIP_BG 10
+#define COLOR_HOT_FG 3
+#define COLOR_HOT_BG 11
+#define COLOR_OK_FG 2
+#define COLOR_OK_BG 12
+#define COLOR_WEAK_FG 6
+#define COLOR_WEAK_BG 13
+
 // thank you to the answer here: https://stackoverflow.com/a/11765441
 uint64_t get_time_millis(void)
 {
@@ -103,29 +112,36 @@ void clear_max(struct recorder *recorder_obj)
 	}
 }
 
-
-void color_by_sig_level(short level)
+void foreground_color_by_sig_level(WINDOW* win, short level)
 {
-	if (level > -1) {
-		attron(COLOR_PAIR(4));
-	}
-	// else if (level >= -1) {
-	// 	attron(COLOR_PAIR(4));
-	// }
-    else if (level >= -6) {
-		attron(COLOR_PAIR(3));
-	}
-	else if (level >= -18) {
-		attron(COLOR_PAIR(2));
-	}
-	else {
-		attron(COLOR_PAIR(6));
-	}
+	if (level > -1)
+		wattron(win, COLOR_PAIR(COLOR_CLIP_FG));
+    else if (level >= -6) 
+		wattron(win, COLOR_PAIR(COLOR_HOT_FG));
+	else if (level >= -18) 
+		wattron(win, COLOR_PAIR(COLOR_OK_FG));
+	else 
+		wattron(win, COLOR_PAIR(COLOR_WEAK_FG));
+}
+
+void background_color_by_sig_level(WINDOW* win, short level)
+{
+	if (level > -1) 
+		wattron(win, COLOR_PAIR(COLOR_CLIP_BG));
+    else if (level >= -6) 
+		wattron(win, COLOR_PAIR(COLOR_HOT_BG));
+	else if (level >= -18) 
+		wattron(win, COLOR_PAIR(COLOR_OK_BG));
+	else 
+		wattron(win, COLOR_PAIR(COLOR_WEAK_BG));
 }
 
 void *status_update_procedure(void *PTR)
 {
 	struct recorder *recorder_obj = (struct recorder *)PTR;
+
+	WINDOW* window_status;
+	WINDOW* window_logs;
 
 	if (USE_CURSES == true) {
 		// setup curses
@@ -135,6 +151,20 @@ void *status_update_procedure(void *PTR)
 		nonl();
 		halfdelay(1);
 		noecho();
+		curs_set(0);
+		window_status = newwin(34, 0, 0, 0);
+		window_logs = newwin(0, 0, 34, 0);
+
+		refresh();
+
+		box(window_status, 0, 0);
+		box(window_logs, 0, 0);
+		mvwprintw(window_logs, 1, 1, "subwindow");
+
+
+		refresh();
+		wrefresh(window_status);
+		wrefresh(window_logs);
 
 		start_color();
 		init_pair(1, COLOR_WHITE, COLOR_BLACK);
@@ -143,6 +173,11 @@ void *status_update_procedure(void *PTR)
 		init_pair(4, COLOR_RED, COLOR_BLACK);
 		init_pair(5, COLOR_MAGENTA, COLOR_BLACK);
 		init_pair(6, COLOR_CYAN, COLOR_BLACK);
+
+		init_pair(10, COLOR_WHITE, COLOR_RED);
+		init_pair(11, COLOR_WHITE, COLOR_YELLOW);
+		init_pair(12, COLOR_WHITE, COLOR_GREEN);
+		init_pair(13, COLOR_WHITE, COLOR_CYAN);
 	}
 
 	uint64_t last_reset_time = get_time_millis();
@@ -170,7 +205,11 @@ void *status_update_procedure(void *PTR)
 					break;
 			}
 
-			erase();
+			wmove(window_status, 0, 0);
+
+			werase(window_status);
+			wattron(window_status, COLOR_PAIR(1));
+			box(window_status, 0, 0);
 		}
 
 		uint64_t file_size = (recorder_obj->timer_counter * recorder_obj->bit_rate) / 8;
@@ -178,10 +217,13 @@ void *status_update_procedure(void *PTR)
 		float elapsed_time = ((float)(jack_frames - recorder_obj->start_frame)) / (float)recorder_obj->sample_rate;
 
 		if (USE_CURSES == true) {
-			attron(COLOR_PAIR(1));
-			printw("Status      : Recording\n");
-			printw("Elapsed     : %s\n", format_duration(elapsed_time));
-			printw("Format      : %dbit/%2.0fk %s, Channels: %d\n",
+			int sc = 2;
+			int sl = 1; /* track the line number */
+
+			wattron(window_status, COLOR_PAIR(1));
+			mvwprintw(window_status, sl++, sc, "Status      : Recording");
+			mvwprintw(window_status, sl++, sc, "Elapsed     : %s", format_duration(elapsed_time));
+			mvwprintw(window_status, sl++, sc, "Format      : %dbit/%2.0fk %s, Channels: %d",
 				recorder_obj->bit_rate,
 				(float)recorder_obj->sample_rate/(float)1000,
 				recorder_obj->format_name,
@@ -189,10 +231,9 @@ void *status_update_procedure(void *PTR)
 			);
 
 			// TODO: logic needs to change to prepare for varied file layouts
-			printw("File size   : %s", format_size(file_size));
+			mvwprintw(window_status, sl++, sc, "File size   : %s", format_size(file_size));
 			if (recorder_obj->multiple_sound_files == 1)
-				printw(" x %d, total size: %s", recorder_obj->channels, format_size(recorder_obj->channels * file_size));
-			printw("\n");
+				wprintw(window_status, " x %d, total size: %s", recorder_obj->channels, format_size(recorder_obj->channels * file_size));
 			
 			
 			// calculate the buffer performance
@@ -215,20 +256,22 @@ void *status_update_procedure(void *PTR)
 				diviser = BUFFER_PERF_SAMPLES;
 			}
 
-			printw("Buffer state: %1.0f%%\n", (sum / (float)diviser));
+			mvwprintw(window_status, sl++, sc, "Buffer state: %1.0f%%", (sum / (float)diviser));
 
-			printw("Error count : %d\n", recorder_obj->xrun_count);
+			mvwprintw(window_status, sl++, sc, "Error count : %d", recorder_obj->xrun_count);
 				// (recorder_obj->performance / (1.0 / (float)recorder_obj->sample_rate)) * 100.0);
 
 			// draw the channel input level meter on the screen
-			printw("\n");
+			sl++;
 			char *set_max = malloc(sizeof(char) * recorder_obj->channels);
 			memset(set_max, 0, sizeof(char) * recorder_obj->channels);
 
-			for (int l = -2; l < METER_STEP_COUNT; l++) {
+			for (int l = -3; l < METER_STEP_COUNT+1; l++) {
 				// first of two header lines containing channel number
-				if (l == -2) {
-					printw("     |");
+				if (l == -3) {
+					wmove(window_status, sl++, sc);
+					wprintw(window_status, "     ");
+					waddch(window_status, ACS_VLINE);
 
 					for (int channel = 0; channel < recorder_obj->channels; channel++) {
 						int leftover = (channel+1) % 10;
@@ -236,77 +279,95 @@ void *status_update_procedure(void *PTR)
 						// we only care to show the decade digit at the top of each decade
 						if (leftover == 0) {
 							int decade = (int)((channel+1) / 10);
-							printw("  %d", decade);
+							wprintw(window_status, "   %d", decade);
 						}
 						else
-							printw("   ");
+							wprintw(window_status, "    ");
 					}
-
-					printw("\n");
 				}
 
 				// second of two header lines containing channel count
-				else if (l == -1) {
-					attron(COLOR_PAIR(1));
-					printw("     |");
+				else if (l == -2) {
+					wmove(window_status, sl++, sc);
+					wattron(window_status, COLOR_PAIR(1));
+					wprintw(window_status, "     ");
+					waddch(window_status, ACS_VLINE);
 
 					for (int channel = 0; channel < recorder_obj->channels; channel++) {
 						int leftover = (channel+1) % 10;
 
-						printw("  %1d", leftover);
+						wprintw(window_status, "   %1d", leftover);
 					}
-
-					printw("\n");
 				}
 
-				// TODO: change this to show the long-term max signal level with red background on clip
 				// footer showing the input signal level
-				else if (l == METER_STEP_COUNT-1) {
-					attron(COLOR_PAIR(1));
-					printw("     |");
+				else if (l == METER_STEP_COUNT) {
+					wmove(window_status, sl++, sc);
+					wattron(window_status, COLOR_PAIR(1));
+					wprintw(window_status, "     ");
+					waddch(window_status, ACS_VLINE);
+
 					for (int channel = 0; channel < recorder_obj->channels; channel++) {
 						short level = recorder_obj->sig_max[channel];
 
 						if (level <= -99)
 							level = -99;
 
-						printw("%3d", level*-1);
+						foreground_color_by_sig_level(window_status, level);
+						wprintw(window_status, " %3d", level);
 					}
-					printw("\n");
+				}
+
+				else if (l == -1 || l == METER_STEP_COUNT-1) {
+					wmove(window_status, sl++, sc);
+					wattron(window_status, COLOR_PAIR(1));
+					waddch(window_status, ACS_HLINE);
+					waddch(window_status, ACS_HLINE);
+					waddch(window_status, ACS_HLINE);
+					waddch(window_status, ACS_HLINE);
+					waddch(window_status, ACS_HLINE);
+					waddch(window_status, ACS_PLUS);
+					
+
+					for (int channel = 0; channel < recorder_obj->channels+1; channel++)
+						for (int i = 0; i < 5; i++)
+							waddch(window_status, ACS_HLINE);
 				}
 
 				// draw the input level lines
 				else {
+					wmove(window_status, sl++, sc);
 					float meter_step = meter_steps[l];
-					attron(COLOR_PAIR(1));
-					printw(" %3.0f |", meter_steps[l]);
+					wattron(window_status, COLOR_PAIR(1));
+					wprintw(window_status, " %3.0f ", meter_steps[l]);
+					waddch(window_status, ACS_VLINE);
 
 					for (int channel = 0; channel < recorder_obj->channels; channel++) {
 						short level = recorder_obj->sig_lvl[0][channel];
 						short peak_level = recorder_obj->sig_peak[channel];
 
 						if (peak_level > meter_step && set_max[channel] == false) {
-							color_by_sig_level(peak_level);
-							printw("  ");
-							addch(ACS_CKBOARD);
+							foreground_color_by_sig_level(window_status, peak_level);
+							wprintw(window_status, "   ");
+							waddch(window_status, ACS_CKBOARD | A_BOLD);
 							set_max[channel] = true;
 						}
 						else if (level > meter_step) {
-							color_by_sig_level(meter_step);
-							printw("  ");
-							addch(ACS_CKBOARD);
+							foreground_color_by_sig_level(window_status, meter_step);
+							wprintw(window_status, "   ");
+							waddch(window_status, ACS_CKBOARD | A_BOLD);
 						}
 
 						else
-							printw("   ");
+							wprintw(window_status, "    ");
 					}
-
-					printw("\n");
 				}
 			}
 
 
 			refresh();
+			wrefresh(window_status);
+			wrefresh(window_logs);
 		}
 	}
 
