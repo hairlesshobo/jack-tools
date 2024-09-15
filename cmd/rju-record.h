@@ -77,9 +77,9 @@ struct recorder {
 	jack_nframes_t last_frame;
 
 	// level and peak metering
-	float sig_lvl[2][MAX_NC]; /* signal level (ie. level) */
-	float sig_max[MAX_NC]; /* signal maximum (since reset) */
-	float sig_peak[MAX_NC]; /* signal peaks (peak hold) */
+	short sig_lvl[2][MAX_NC]; /* signal level (ie. level) */
+	short sig_max[MAX_NC]; /* signal maximum (since reset) */
+	short sig_peak[MAX_NC]; /* signal peaks (peak hold) */
 
 	// threading and IPC
 	pthread_t disk_thread;

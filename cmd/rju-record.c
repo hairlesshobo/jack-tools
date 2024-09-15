@@ -191,23 +191,26 @@ int process(jack_nframes_t nframes, void *PTR)
 
 	/* Get port data buffers. */
 	// TODO: This will have to be adjusted when we add diverse file channel support
-	for (int i = 0; i < recorder_obj->channels; i++) {
-		recorder_obj->in[i] = (float *)jack_port_get_buffer(recorder_obj->input_port[i], nframes);
+	for (int channel_number = 0; channel_number < recorder_obj->channels; channel_number++) {
+		recorder_obj->in[channel_number] = (float *)jack_port_get_buffer(recorder_obj->input_port[channel_number], nframes);
 
 		// calculate level meters
-		recorder_obj->sig_lvl[0][i] = 0.0;
+		recorder_obj->sig_lvl[0][channel_number] = -99;
 
-		for (int j = 0; j < nframes; j++) {
-			float sig_level = fabsf(recorder_obj->in[i][j]);
+		for (int frame_number = 0; frame_number < nframes; frame_number++) {
+			short sig_level = amp_to_db(fabsf(recorder_obj->in[channel_number][frame_number]));
 
-			if (sig_level > recorder_obj->sig_peak[i])
-				recorder_obj->sig_peak[i] = sig_level;
+			if (sig_level > recorder_obj->sig_peak[channel_number])
+				recorder_obj->sig_peak[channel_number] = sig_level;
 
-			if (sig_level > recorder_obj->sig_lvl[0][i])
-				recorder_obj->sig_lvl[0][i] = sig_level;
+			if (sig_level > recorder_obj->sig_max[channel_number])
+				recorder_obj->sig_max[channel_number] = sig_level;
+
+			if (sig_level > recorder_obj->sig_lvl[0][channel_number])
+				recorder_obj->sig_lvl[0][channel_number] = sig_level;
 		}
 
-		recorder_obj->sig_lvl[1][i] = (recorder_obj->sig_lvl[0][i] + recorder_obj->sig_lvl[1][i]) / 2.0;
+		// recorder_obj->sig_lvl[1][channel_number] = ((recorder_obj->sig_lvl[0][channel_number] + recorder_obj->sig_lvl[1][channel_number]) / 2.0);
 	}
 
 	/* Check period size is workable. If the buffer is large, ie 4096

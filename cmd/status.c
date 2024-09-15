@@ -86,25 +86,25 @@ const char *format_duration(float duration) {
 
 short amp_to_db(float x)
 {
-	return (log10(x) * 20.0);
+	return (short)(log10(x) * 20.0);
 }
 
 void clear_peaks(struct recorder *recorder_obj)
 {
 	for (int i = 0; i < MAX_NC; i++) {
-		recorder_obj->sig_peak[i] = 0.0;
+		recorder_obj->sig_peak[i] = -99;
 	}
 }
 
 void clear_max(struct recorder *recorder_obj)
 {
 	for (int i = 0; i < MAX_NC; i++) {
-		recorder_obj->sig_max[i] = 0.0;
+		recorder_obj->sig_max[i] = -99;
 	}
 }
 
 
-void color_by_sig_level(float level)
+void color_by_sig_level(short level)
 {
 	if (level > -1) {
 		attron(COLOR_PAIR(4));
@@ -265,12 +265,12 @@ void *status_update_procedure(void *PTR)
 					attron(COLOR_PAIR(1));
 					printw("     |");
 					for (int channel = 0; channel < recorder_obj->channels; channel++) {
-						float level = amp_to_db(recorder_obj->sig_lvl[0][channel]);
+						short level = recorder_obj->sig_max[channel];
 
 						if (level <= -99)
 							level = -99;
 
-						printw("%3.0f", level*-1);
+						printw("%3d", level*-1);
 					}
 					printw("\n");
 				}
@@ -282,15 +282,14 @@ void *status_update_procedure(void *PTR)
 					printw(" %3.0f |", meter_steps[l]);
 
 					for (int channel = 0; channel < recorder_obj->channels; channel++) {
-						float level = amp_to_db(recorder_obj->sig_lvl[0][channel]);
-						float peak_level = amp_to_db(recorder_obj->sig_peak[channel]);
+						short level = recorder_obj->sig_lvl[0][channel];
+						short peak_level = recorder_obj->sig_peak[channel];
 
-
-						if (peak_level > meter_step && set_max[channel] == 0) {
+						if (peak_level > meter_step && set_max[channel] == false) {
 							color_by_sig_level(peak_level);
 							printw("  ");
 							addch(ACS_CKBOARD);
-							set_max[channel] = 1;
+							set_max[channel] = true;
 						}
 						else if (level > meter_step) {
 							color_by_sig_level(meter_step);
