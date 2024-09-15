@@ -1,6 +1,8 @@
 {
     "files.associations": {
         "pthread.h": "c",
-        "curses.h": "c"
+        "curses.h": "c",
+        "file.h": "c",
+        "ringbuffer.h": "c"
     }
 }

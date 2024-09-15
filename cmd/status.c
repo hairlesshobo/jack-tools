@@ -84,17 +84,25 @@ const char *format_duration(float duration) {
 	return result;
 }
 
-float amp_to_db(float x)
+short amp_to_db(float x)
 {
 	return (log10(x) * 20.0);
 }
 
 void clear_peaks(struct recorder *recorder_obj)
 {
-	for (int i = 0; i < recorder_obj->channels; i++) {
+	for (int i = 0; i < MAX_NC; i++) {
+		recorder_obj->sig_peak[i] = 0.0;
+	}
+}
+
+void clear_max(struct recorder *recorder_obj)
+{
+	for (int i = 0; i < MAX_NC; i++) {
 		recorder_obj->sig_max[i] = 0.0;
 	}
 }
+
 
 void color_by_sig_level(float level)
 {
@@ -117,34 +125,36 @@ void color_by_sig_level(float level)
 
 void *status_update_procedure(void *PTR)
 {
-	// setup curses
-    setlocale(LC_ALL, "");
-	initscr();
-	keypad(stdscr, TRUE);
-	nonl();
-	halfdelay(1);
-	noecho();
+	struct recorder *recorder_obj = (struct recorder *)PTR;
 
-	start_color();
-	init_pair(1, COLOR_WHITE, COLOR_BLACK);
-    init_pair(2, COLOR_GREEN, COLOR_BLACK);
-	init_pair(3, COLOR_YELLOW, COLOR_BLACK);
-	init_pair(4, COLOR_RED, COLOR_BLACK);
-	init_pair(5, COLOR_MAGENTA, COLOR_BLACK);
-    init_pair(6, COLOR_CYAN, COLOR_BLACK);
+	if (USE_CURSES == true) {
+		// setup curses
+		setlocale(LC_ALL, "");
+		initscr();
+		keypad(stdscr, TRUE);
+		nonl();
+		halfdelay(1);
+		noecho();
+
+		start_color();
+		init_pair(1, COLOR_WHITE, COLOR_BLACK);
+		init_pair(2, COLOR_GREEN, COLOR_BLACK);
+		init_pair(3, COLOR_YELLOW, COLOR_BLACK);
+		init_pair(4, COLOR_RED, COLOR_BLACK);
+		init_pair(5, COLOR_MAGENTA, COLOR_BLACK);
+		init_pair(6, COLOR_CYAN, COLOR_BLACK);
+	}
 
 	uint64_t last_reset_time = get_time_millis();
 
-	struct recorder *recorder_obj = (struct recorder *)PTR;
 	while (!observe_end_of_process()) {
 		if (recorder_obj->do_abort == 1)
 			break;
 
-		char c = getch();
-		switch (c) {
-			case 'x':
-				clear_peaks(recorder_obj);
-				break;
+		if (recorder_obj->last_received_data_time > 0 && time(NULL) - recorder_obj->last_received_data_time > TIMEOUT_NO_DATA) {
+			fprintf(stderr, "rju-record: No data received from jack after %d seconds (hardware removed?), aborting recording.\n", TIMEOUT_NO_DATA);
+			recorder_obj->do_abort = 1;
+			break;
 		}
 
 		if (get_time_millis() - last_reset_time > PEAK_HOLD_MS) {
@@ -152,124 +162,157 @@ void *status_update_procedure(void *PTR)
 			clear_peaks(recorder_obj);
 		}
 
-		erase();
+		if (USE_CURSES == true) {
+			char c = getch();
+			switch (c) {
+				case 'x':
+					clear_max(recorder_obj);
+					break;
+			}
+
+			erase();
+		}
 
 		uint64_t file_size = (recorder_obj->timer_counter * recorder_obj->bit_rate) / 8;
-		int file_count = 1;
 		jack_nframes_t jack_frames = jack_frame_time(recorder_obj->client);
 		float elapsed_time = ((float)(jack_frames - recorder_obj->start_frame)) / (float)recorder_obj->sample_rate;
 
-		if (recorder_obj->multiple_sound_files == 1)
-			file_count = recorder_obj->channels;
-
-		attron(COLOR_PAIR(1));
-		printw("Recording | Channels: %d, Files: %d, Elapsed: %s, size: %s, xruns: %d\n", 
-			recorder_obj->channels, 
-			file_count, 
-			format_duration(elapsed_time), 
-			format_size(file_size),
-			recorder_obj->xrun_count
+		if (USE_CURSES == true) {
+			attron(COLOR_PAIR(1));
+			printw("Status      : Recording\n");
+			printw("Elapsed     : %s\n", format_duration(elapsed_time));
+			printw("Format      : %dbit/%2.0fk %s, Channels: %d\n",
+				recorder_obj->bit_rate,
+				(float)recorder_obj->sample_rate/(float)1000,
+				recorder_obj->format_name,
+				recorder_obj->channels
 			);
-			// (recorder_obj->performance / (1.0 / (float)recorder_obj->sample_rate)) * 100.0);
 
-		printw("\n");
-		char *set_max = malloc(sizeof(char) * recorder_obj->channels);
-		memset(set_max, 0, sizeof(char) * recorder_obj->channels);
+			// TODO: logic needs to change to prepare for varied file layouts
+			printw("File size   : %s", format_size(file_size));
+			if (recorder_obj->multiple_sound_files == 1)
+				printw(" x %d, total size: %s", recorder_obj->channels, format_size(recorder_obj->channels * file_size));
+			printw("\n");
+			
+			
+			// calculate the buffer performance
+			// int buffer_read_space = (int)ringbuffer_read_space(recorder_obj->rb);
+			// float buffer_used = ((float)buffer_read_space / (float)recorder_obj->buffer_bytes) * 100.0;
+			
 
-		for (int l = -2; l < METER_STEP_COUNT; l++) {
-			if (l == -2) {
-				printw("     |");
+			float sum = 0.0;
+			int diviser = 0;
 
-				for (int channel = 0; channel < recorder_obj->channels; channel++) {
-					int leftover = (channel+1) % 10;
+			if (recorder_obj->buffer_performance_filled == false) {
+				for (int i = 0; i < recorder_obj->buffer_performance_index; i++) 
+					sum += recorder_obj->buffer_performance[i];
 
-					// we only care to show the decade digit at the top of each decade
-					if (leftover == 0) {
-						int decade = (int)((channel+1) / 10);
-						printw("  %d", decade);
-					}
-					else
-						printw("   ");
-				}
+				diviser = recorder_obj->buffer_performance_index;
+			} else {
+				for (int i = 0; i < BUFFER_PERF_SAMPLES; i++)
+					sum += recorder_obj->buffer_performance[i];
 
-				printw("\n");
+				diviser = BUFFER_PERF_SAMPLES;
 			}
 
-			else if (l == -1) {
-				attron(COLOR_PAIR(1));
-				printw("     |");
+			printw("Buffer state: %1.0f%%\n", (sum / (float)diviser));
 
-				for (int channel = 0; channel < recorder_obj->channels; channel++) {
-					int leftover = (channel+1) % 10;
+			printw("Error count : %d\n", recorder_obj->xrun_count);
+				// (recorder_obj->performance / (1.0 / (float)recorder_obj->sample_rate)) * 100.0);
 
-					printw("  %1d", leftover);
-				}
+			// draw the channel input level meter on the screen
+			printw("\n");
+			char *set_max = malloc(sizeof(char) * recorder_obj->channels);
+			memset(set_max, 0, sizeof(char) * recorder_obj->channels);
 
-				printw("\n");
-			}
+			for (int l = -2; l < METER_STEP_COUNT; l++) {
+				// first of two header lines containing channel number
+				if (l == -2) {
+					printw("     |");
 
-			else if (l == METER_STEP_COUNT-1) {
-				attron(COLOR_PAIR(1));
-				printw("     |");
-				for (int channel = 0; channel < recorder_obj->channels; channel++) {
-					float level = amp_to_db(recorder_obj->sig_lvl[0][channel]);
+					for (int channel = 0; channel < recorder_obj->channels; channel++) {
+						int leftover = (channel+1) % 10;
 
-					if (level <= -99)
-						level = -99;
-
-					printw("%3.0f", level*-1);
-				}
-				printw("\n");
-			}
-
-			else {
-				float meter_step = meter_steps[l];
-				attron(COLOR_PAIR(1));
-				printw(" %3.0f |", meter_steps[l]);
-
-				for (int channel = 0; channel < recorder_obj->channels; channel++) {
-					float level = amp_to_db(recorder_obj->sig_lvl[0][channel]);
-					float max_level = amp_to_db(recorder_obj->sig_max[channel]);
-
-
-					if (max_level > meter_step && set_max[channel] == 0) {
-						color_by_sig_level(max_level);
-						printw("  ");
-                        addch(ACS_CKBOARD);
-						set_max[channel] = 1;
-					}
-					else if (level > meter_step) {
-						color_by_sig_level(meter_step);
-                        printw("  ");
-                        addch(ACS_CKBOARD);
-
-						// if (meter_step >= -1) {
-						// 	printw("  X");
-						// }
-						// else if (meter_step >= -6) {
-						// 	printw("  #");
-						// }
-						// else if (meter_step >= -18) {
-						// 	printw("  ^");
-						// }
-						// else {
-						// 	printw("  *");
-						// }
+						// we only care to show the decade digit at the top of each decade
+						if (leftover == 0) {
+							int decade = (int)((channel+1) / 10);
+							printw("  %d", decade);
+						}
+						else
+							printw("   ");
 					}
 
-					else
-						printw("   ");
+					printw("\n");
 				}
 
-				printw("\n");
+				// second of two header lines containing channel count
+				else if (l == -1) {
+					attron(COLOR_PAIR(1));
+					printw("     |");
+
+					for (int channel = 0; channel < recorder_obj->channels; channel++) {
+						int leftover = (channel+1) % 10;
+
+						printw("  %1d", leftover);
+					}
+
+					printw("\n");
+				}
+
+				// TODO: change this to show the long-term max signal level with red background on clip
+				// footer showing the input signal level
+				else if (l == METER_STEP_COUNT-1) {
+					attron(COLOR_PAIR(1));
+					printw("     |");
+					for (int channel = 0; channel < recorder_obj->channels; channel++) {
+						float level = amp_to_db(recorder_obj->sig_lvl[0][channel]);
+
+						if (level <= -99)
+							level = -99;
+
+						printw("%3.0f", level*-1);
+					}
+					printw("\n");
+				}
+
+				// draw the input level lines
+				else {
+					float meter_step = meter_steps[l];
+					attron(COLOR_PAIR(1));
+					printw(" %3.0f |", meter_steps[l]);
+
+					for (int channel = 0; channel < recorder_obj->channels; channel++) {
+						float level = amp_to_db(recorder_obj->sig_lvl[0][channel]);
+						float peak_level = amp_to_db(recorder_obj->sig_peak[channel]);
+
+
+						if (peak_level > meter_step && set_max[channel] == 0) {
+							color_by_sig_level(peak_level);
+							printw("  ");
+							addch(ACS_CKBOARD);
+							set_max[channel] = 1;
+						}
+						else if (level > meter_step) {
+							color_by_sig_level(meter_step);
+							printw("  ");
+							addch(ACS_CKBOARD);
+						}
+
+						else
+							printw("   ");
+					}
+
+					printw("\n");
+				}
 			}
+
+
+			refresh();
 		}
-
-
-		refresh();
 	}
 
-	endwin();
+	if (USE_CURSES == true)
+		endwin();
 
 	return NULL;
 }
