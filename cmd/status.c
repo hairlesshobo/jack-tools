@@ -12,6 +12,7 @@
 #include <curses.h>
 
 #include "rju-record.h"
+#include "r-common/c/file.h"
 #include "r-common/c/observe-signal.h"
 
 #define COLOR_CLIP_FG 4
@@ -22,6 +23,43 @@
 #define COLOR_OK_BG 12
 #define COLOR_WEAK_FG 6
 #define COLOR_WEAK_BG 13
+
+
+int printlg(int fdes, char* fmt, ...)
+{
+	va_list args;
+    va_start(args, fmt);
+
+	char* string = malloc(256);
+	vsnprintf(string, 256, fmt, args);
+	int char_count = xwrite(fdes, string, 255);
+	free(string);
+
+    va_end(args);
+
+	return char_count;
+}
+
+int abort_or_alert_when(struct recorder *recorder_obj, int condition, char* fmt, ...)
+{
+	va_list args;
+    va_start(args, fmt);
+
+	if (condition)
+	{
+		printlg(recorder_obj->messaging_pipe[1], fmt, args);
+
+		if (recorder_obj->abort_on_error == true) {
+			recorder_obj->do_abort = 1;
+		}
+
+		return 1;
+	}
+
+	va_end(args);
+
+	return 0;
+}
 
 // thank you to the answer here: https://stackoverflow.com/a/11765441
 uint64_t get_time_millis(void)
@@ -143,6 +181,8 @@ void *status_update_procedure(void *PTR)
 	WINDOW* window_status;
 	WINDOW* window_logs;
 
+	char status_line[256];
+
 	if (USE_CURSES == true) {
 		// setup curses
 		setlocale(LC_ALL, "");
@@ -154,13 +194,12 @@ void *status_update_procedure(void *PTR)
 		curs_set(0);
 		window_status = newwin(34, 0, 0, 0);
 		window_logs = newwin(0, 0, 34, 0);
+		scrollok(window_logs, TRUE);
 
 		refresh();
 
 		box(window_status, 0, 0);
-		box(window_logs, 0, 0);
-		mvwprintw(window_logs, 1, 1, "subwindow");
-
+		// box(window_logs, 0, 0);
 
 		refresh();
 		wrefresh(window_status);
@@ -212,7 +251,18 @@ void *status_update_procedure(void *PTR)
 			box(window_status, 0, 0);
 		}
 
-		uint64_t file_size = (recorder_obj->timer_counter * recorder_obj->bit_rate) / 8;
+		if (read(recorder_obj->messaging_pipe[0], &status_line, 255) >= 0) {
+    		time_t timer = time(NULL);
+    		struct tm* tm_info = localtime(&timer);
+
+			char buffer[26];
+    		strftime(buffer, 26, "%Y-%m-%d %H:%M:%S", tm_info);
+
+			wprintw(window_logs, "[%s]:   %s", buffer, status_line);
+			memset(&status_line, 0, 256);
+		}
+
+		uint64_t file_size = ((uint64_t)recorder_obj->timer_counter * (uint64_t)recorder_obj->bit_rate) / 8ULL;
 		jack_nframes_t jack_frames = jack_frame_time(recorder_obj->client);
 		float elapsed_time = ((float)(jack_frames - recorder_obj->start_frame)) / (float)recorder_obj->sample_rate;
 
@@ -258,7 +308,7 @@ void *status_update_procedure(void *PTR)
 
 			mvwprintw(window_status, sl++, sc, "Buffer state: %1.0f%%", (sum / (float)diviser));
 
-			mvwprintw(window_status, sl++, sc, "Error count : %d", recorder_obj->xrun_count);
+			mvwprintw(window_status, sl++, sc, "Error count : %d", recorder_obj->error_count);
 				// (recorder_obj->performance / (1.0 / (float)recorder_obj->sample_rate)) * 100.0);
 
 			// draw the channel input level meter on the screen

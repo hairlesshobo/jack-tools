@@ -6,6 +6,7 @@
 #include <time.h>
 
 #include <pthread.h> /* Posix */
+#include <fcntl.h> 
 #include <unistd.h>
 #include <getopt.h>
 
@@ -26,15 +27,13 @@
 #include "r-common/c/jack-port.c"
 #include "r-common/c/sf-sndfile.c"
 
+
 // TODO list:
-// track long-term max separate from peak
-// bottom number should show the max level since reset, and red background on clip
 // gracefully handle jack server shutdown
 // gracefully handle jack hardware removal
 // option for output directory, create if doesn't exist
 // option for meter peak hold time
-// option to enable console output status
-// option to output status as json lines?
+// option to select console output status type (none, curses, json, text)
 // possibly add silence on xrun error?
 // support combination file types, single and multiple channel files in a single project
 // support passing config with file name and input channel numbers
@@ -110,14 +109,14 @@ void *disk_thread_procedure(void *PTR)
 
 		/* Wait for data at the ring buffer. */
 		int needed_byte_count = recorder_obj->minimal_frames * sizeof(float) * recorder_obj->channels;
-		int available_byte_count = ringbuffer_wait_read(recorder_obj->rb, needed_byte_count, recorder_obj->pipe[0], recorder_obj);
+		int available_byte_count = ringbuffer_wait_read(recorder_obj->rb, needed_byte_count, recorder_obj->disk_pipe[0], recorder_obj);
 
 		// the number of bytes available in the ring buffer exceeds what we want, so 
 		// we have to drop the excess
 		// TODO: why is this necessary? is it even?
 		/* Drop excessive data to not overflow the local buffer. */
 		if (available_byte_count > recorder_obj->buffer_bytes) {
-			fprintf(stderr, "rju-record: impossible condition, read space.\n");
+			printlg(recorder_obj->messaging_pipe[1], "rju-record: impossible condition, read space.\n");
 			available_byte_count = recorder_obj->buffer_bytes;
 		}
 
@@ -178,7 +177,6 @@ void jack_error_handler(const char *desc)
 /// @return 0 on success, non-zero on error
 int process(jack_nframes_t nframes, void *PTR)
 {
-	// clock_t tic = clock();
 	struct recorder *recorder_obj = (struct recorder *)PTR;
 
 	// TODO: this should be done more elegantly - write out the available frames and THEN abort
@@ -210,12 +208,15 @@ int process(jack_nframes_t nframes, void *PTR)
 				recorder_obj->sig_lvl[0][channel_number] = sig_level;
 		}
 
-		// recorder_obj->sig_lvl[1][channel_number] = ((recorder_obj->sig_lvl[0][channel_number] + recorder_obj->sig_lvl[1][channel_number]) / 2.0);
+		recorder_obj->sig_lvl[1][channel_number] = ((recorder_obj->sig_lvl[0][channel_number] + recorder_obj->sig_lvl[1][channel_number]) / 2.0);
 	}
 
 	/* Check period size is workable. If the buffer is large, ie 4096
 	   frames, this should never be of practical concern. */
-	abort_or_alert_when(received_byte_count >= recorder_obj->buffer_bytes, "rju-record: period size exceeds limit\n");
+	recorder_obj->error_count += abort_or_alert_when(
+		recorder_obj,
+		received_byte_count >= recorder_obj->buffer_bytes,
+		"rju-record: period size exceeds limit\n");
 
 	/* Check that there is adequate space in the ringbuffer. */
 	int space = (int)ringbuffer_write_space(recorder_obj->rb);
@@ -238,7 +239,10 @@ int process(jack_nframes_t nframes, void *PTR)
 	// buffer size. A high buffer size can add latency, but in our use case of simply 
 	// writing channels to disk, it doesn't matter and the improved stability
 	// is the highest priority
-	abort_or_alert_when(space < received_byte_count, "rju-record: overflow error (xrun?), %d > %d\n", received_byte_count, space);
+	recorder_obj->error_count += abort_or_alert_when(
+		recorder_obj,
+		space < received_byte_count,
+		"rju-record: overflow error (xrun?), %d > %d\n", received_byte_count, space);
 
 	/* Interleave input to buffer */
 	signal_interleave_to(recorder_obj->interleaved_buffer,
@@ -249,17 +253,16 @@ int process(jack_nframes_t nframes, void *PTR)
 	// copy input data to ring buffer
 	int err = ringbuffer_write(recorder_obj->rb, (char *)recorder_obj->interleaved_buffer, (size_t)received_byte_count);
 
-	abort_or_alert_when(err != received_byte_count, "rju-record: ringbuffer write error, %d != %d\n", err, received_byte_count);
+	recorder_obj->error_count += abort_or_alert_when(
+		recorder_obj,
+		err != received_byte_count,
+		"rju-record: ringbuffer write error, %d != %d\n", err, received_byte_count);
 
 	/* Poke the disk thread to indicate data is on the ring buffer. */
 	char b = 1;
-	xwrite(recorder_obj->pipe[1], &b, 1);
+	xwrite(recorder_obj->disk_pipe[1], &b, 1);
 
 	recorder_obj->last_frame = jack_last_frame_time(recorder_obj->client);
-	// clock_t toc = clock();
-
-	// recorder_obj->performance = (double)(toc - tic) / CLOCKS_PER_SEC;
-
 	recorder_obj->last_received_data_time = time(NULL);
 
 	return 0;
@@ -295,7 +298,7 @@ int parse_opts(int argc, char *argv[], struct recorder *recorder_obj) {
 	recorder_obj->do_abort = 0;
 	recorder_obj->abort_on_error = 0;
 	recorder_obj->bit_rate = 16;
-	recorder_obj->xrun_count = 0;
+	recorder_obj->error_count = 0;
 	// recorder_obj->performance = 0;
 	recorder_obj->file_format = SF_FORMAT_WAV | SF_FORMAT_FLOAT;
 	recorder_obj->last_received_data_time = 0;
@@ -419,6 +422,9 @@ int parse_opts(int argc, char *argv[], struct recorder *recorder_obj) {
 
 int main(int argc, char *argv[])
 {
+	// printf("%s\n", format_size(1024 * 1024 * 64 * 32));
+
+	// exit(0);
 	observe_signals();
 
 	struct recorder recorder_obj;
@@ -486,8 +492,11 @@ int main(int argc, char *argv[])
 		recorder_obj.sound_file[0] = xsf_open(argv[optind], SFM_WRITE, &sfinfo);
 	}
 
-	/* Create communication pipe. */
-	xpipe(recorder_obj.pipe);
+	/* Create communication pipes. */
+	xpipe(recorder_obj.disk_pipe);
+	xpipe(recorder_obj.messaging_pipe);
+	fcntl(recorder_obj.messaging_pipe[0], F_SETFL, O_NONBLOCK);
+	recorder_obj.msgout = fdopen(recorder_obj.messaging_pipe[1], "a");
 
 	/* Start disk thread. */
 	pthread_create(&(recorder_obj.disk_thread), NULL, disk_thread_procedure, &recorder_obj);
@@ -520,8 +529,11 @@ int main(int argc, char *argv[])
 		sf_close(recorder_obj.sound_file[0]);
 
 	ringbuffer_free(recorder_obj.rb);
-	close(recorder_obj.pipe[0]);
-	close(recorder_obj.pipe[1]);
+	fclose(recorder_obj.msgout);
+	close(recorder_obj.disk_pipe[0]);
+	close(recorder_obj.disk_pipe[1]);
+	close(recorder_obj.messaging_pipe[0]);
+	close(recorder_obj.messaging_pipe[1]);
 	free(recorder_obj.disk_write_buffer);
 	free(recorder_obj.interleaved_buffer);
 	free(recorder_obj.uninterleave_buffer);

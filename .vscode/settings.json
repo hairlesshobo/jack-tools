@@ -3,6 +3,8 @@
         "pthread.h": "c",
         "curses.h": "c",
         "file.h": "c",
-        "ringbuffer.h": "c"
+        "ringbuffer.h": "c",
+        "ringbuffer-fd.h": "c",
+        "observe-signal.h": "c"
     }
 }

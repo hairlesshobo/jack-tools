@@ -28,14 +28,15 @@ const float meter_steps[METER_STEP_COUNT] = {
 	-36, -42, -48, -54, -60
 };
 
-#define abort_or_alert_when(x, ...) \
-	if (x) { \
-		printf("\n"); \
-		fprintf(stderr, __VA_ARGS__); \
-		if (recorder_obj->abort_on_error == true) { \
-			recorder_obj->do_abort = 1; \
-		} \
-	}
+// #define abort_or_alert_when(fdes, x, ...) \
+// 	if (x) { \
+// 		printlg(fdes, __VA_ARGS__); \
+// 		if (recorder_obj->abort_on_error == true) { \
+// 			recorder_obj->do_abort = 1; \
+// 		} \
+// 		return 1; \
+// 	} \
+// 	return 0;
 
 struct recorder {
 	// user options
@@ -84,7 +85,9 @@ struct recorder {
 	// threading and IPC
 	pthread_t disk_thread;
 	pthread_t status_thread;
-	int pipe[2];
+	int disk_pipe[2];
+	int messaging_pipe[2];
+	FILE *msgout;
 	int do_abort;
 
 	int file_format;
@@ -96,7 +99,7 @@ struct recorder {
 	float sample_rate;
 	int buffer_bytes;
 	int buffer_samples;
-	uint32_t xrun_count;
+	uint32_t error_count;
 	float buffer_performance[BUFFER_PERF_SAMPLES];
 	int buffer_performance_index;
 	int buffer_performance_filled;
