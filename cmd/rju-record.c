@@ -1,19 +1,20 @@
 #include <math.h> /* C99 */
-#include <stdbool.h>
-#include <stdio.h> /* C99 */
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
+// #include <stdbool.h>
+// #include <stdio.h> /* C99 */
+// #include <stdlib.h>
+// #include <string.h>
+// #include <time.h>
 
 #include <pthread.h> /* Posix */
 #include <fcntl.h> 
-#include <unistd.h>
+// #include <unistd.h>
 #include <getopt.h>
 
-#include <curses.h>
+// #include <curses.h>
 
 #include "rju-record.h"
-#include "status.c"
+#include "status_utils.h"
+#include "status.h"
 #include "jack/metadata.h"
 
 #include "r-common/c/file.h"
@@ -272,24 +273,28 @@ void usage(void)
 {
 	printf("Usage: rju-record [options] sound-file\n");
 	printf("\n");
-	printf("  --port_pattern         -p  <string>             : Jack port pattern to connect to (default: system:capture_%%d)\n");
-	printf("  --channels             -c  [number]             : Number of channels (default: 2)\n");
-	printf("  --bitrate              -b  [16, 24, 32]         : file bitrate (default: 16)\n");
-	printf("  --format               -f  [wav, bwf/rf64]      : File format (default: wav)\n");
-	printf("  --disk_transfer_size   -d  [number]             : Minimal disk transfer size in frames (default: 32)\n");
-	printf("  --time_limit           -l  [number]             : Set a limit timer to record for N seconds (default: unlimited)\n");
-	printf("  --port_offset          -o  [number]             : Jack port source offset (default: 0)\n");
-	printf("  --buffer_size          -x  [number]             : Ring buffer size in frames (default: 4096)\n");
-	printf("  --abort_on_error       -a                       : Abort recording if an error occurs (default: no)\n");
-	printf("  --multi_file           -m                       : Write to multiple single channel sound files (defualt: no)\n");
-	printf("  --no_unique            -u                       : Do not generate unique jack client name (ie. do not append PID)\n");
-	printf("  --help                 -h                       : Show this usage page\n");
+	printf("  -a, --abort_on_error                : Abort recording if an error occurs (default: no)\n");
+	printf("  -b, --bitrate [option]              : file bitrate (default: 16)\n");
+	printf("                                        valid options: 16, 24, 32\n\n");
+	printf("  -c, --channels [number]             : Number of channels (default: 2)\n");
+	printf("  -d, --disk_transfer_size [number]   : Minimal disk transfer size in frames (default: 32)\n");
+	printf("  -f, --format [option]               : File format (default: wav)\n");
+	printf("                                        valid options: wav, bwf, rf64\n\n");
+	printf("  -h, --help                          : Show this usage page\n");
+	printf("  -l, --time_limit [number]           : Set a limit timer to record for N seconds (default: unlimited)\n");
+	printf("  -m, --multi_file                    : Write to multiple single channel sound files (defualt: no)\n");
+	printf("  -o, --output_type [option]          : Output type to generate when running\n");
+	printf("                                        valid options: none, curses, json, text\n\n");
+	printf("  -p, --port_pattern [string]         : Jack port pattern to connect to (default: system:capture_%%d)\n");
+	printf("  -q, --port_offset [number]          : Jack port source offset (default: 0)\n");
+	printf("  -u, --no_unique                     : Do not generate unique jack client name (ie. do not append PID)\n");
+	printf("  -x, --buffer_size [number]          : Ring buffer size in frames (default: 16384)\n");
 	exit(1);
 }
 
 int parse_opts(int argc, char *argv[], struct recorder *recorder_obj) {
 	recorder_obj->unique_name = true;
-	recorder_obj->buffer_frames = 4096;
+	recorder_obj->buffer_frames = 16384;
 	recorder_obj->minimal_frames = 32;
 	recorder_obj->channels = 2;
 	recorder_obj->timer_seconds = -1.0;
@@ -299,24 +304,26 @@ int parse_opts(int argc, char *argv[], struct recorder *recorder_obj) {
 	recorder_obj->abort_on_error = 0;
 	recorder_obj->bit_rate = 16;
 	recorder_obj->error_count = 0;
-	// recorder_obj->performance = 0;
 	recorder_obj->file_format = SF_FORMAT_WAV | SF_FORMAT_FLOAT;
 	recorder_obj->last_received_data_time = 0;
 	recorder_obj->buffer_performance_index = 0;
 	recorder_obj->buffer_performance_filled = false;
+	recorder_obj->output_type = OUTPUT_CURSES;
 
 	strncpy(recorder_obj->port_name_pattern, "system:capture_%d", PORT_NAME_PATTERN_WIDTH-1);
 
     struct option long_options[] = {
-        {"port_pattern", required_argument, NULL, 'p'},
-        {"channels", required_argument, NULL, 'c'},
+        {"abort_on_error", no_argument, NULL, 'a'},
         {"bitrate", required_argument, NULL, 'b'},
-        {"format", required_argument, NULL, 'f'},
+        {"channels", required_argument, NULL, 'c'},
         {"disk_transfer_size", required_argument, NULL, 'd'},
+        {"format", required_argument, NULL, 'f'},
+		{"help", no_argument, NULL, 'h'},
         {"time_limit", required_argument, NULL, 'l'},
         {"multi_file", no_argument, NULL, 'm'},
-        {"abort_on_error", no_argument, NULL, 'a'},
-        {"port_offset", required_argument, NULL, 'p'},
+		{"output_type", required_argument, NULL, 'o'},
+        {"port_pattern", required_argument, NULL, 'p'},
+        {"port_offset", required_argument, NULL, 'q'},
         {"no_unique", no_argument, NULL, 'u'},
         {"buffer_size", required_argument, NULL, 'x'},
         {NULL, 0, NULL, 0}
@@ -328,47 +335,91 @@ int parse_opts(int argc, char *argv[], struct recorder *recorder_obj) {
 	int c;
 	
 
-	while ((c = getopt_long(argc, argv, "p:c:b:f:d:l:mo:ux:ha",
+	while ((c = getopt_long(argc, argv, "ab:c:d:f:hl:mo:p:q:ux:",
 					long_options, NULL)) != -1) {
 		switch (c) {
-			case 'x':
-				recorder_obj->buffer_frames = (int)strtol(optarg, NULL, 0);
-				break;
-			case 'f':
-				format_name = malloc(256);
-				strncpy(format_name, optarg, 255);
-				break;
-			case 'b':
-				recorder_obj->bit_rate = (int)strtol(optarg, NULL, 0);
-				break;
-			case 'h':
-				usage();
-				break;
-			case 'd':
-				recorder_obj->minimal_frames = (int)strtol(optarg, NULL, 0);
-				break;
-			case 'c':
-				recorder_obj->channels = (int)strtol(optarg, NULL, 0);
-				break;
-			case 'o':
-				recorder_obj->port_offset = (int)strtol(optarg, NULL, 0);
-				break;
-			case 'p':
-				// recorder_obj->port_name_pattern = malloc(256);
-				strncpy(recorder_obj->port_name_pattern, optarg, PORT_NAME_PATTERN_WIDTH-1);
-				break;
-			case 'm':
-				recorder_obj->multiple_sound_files = 1;
-				break;
-			case 'l':
-				recorder_obj->timer_seconds = (float)strtod(optarg, NULL);
-				break;
-			case 'u':
-				recorder_obj->unique_name = false;
-				break;
+			// abort_on_error
 			case 'a':
 				recorder_obj->abort_on_error = true;
 				break;
+
+			// bitrate
+			case 'b':
+				recorder_obj->bit_rate = (int)strtol(optarg, NULL, 0);
+				break;
+
+			// channels
+			case 'c':
+				recorder_obj->channels = (int)strtol(optarg, NULL, 0);
+				break;
+
+			// disk_transfer_size
+			case 'd':
+				recorder_obj->minimal_frames = (int)strtol(optarg, NULL, 0);
+				break;
+
+			// format
+			case 'f':
+				format_name = malloc(12);
+				strncpy(format_name, optarg, 11);
+				break;
+
+			// help
+			case 'h':
+				usage();
+				break;
+
+			// time_limit
+			case 'l':
+				recorder_obj->timer_seconds = (float)strtod(optarg, NULL);
+				break;
+
+			// multi_file
+			case 'm':
+				recorder_obj->multiple_sound_files = 1;
+				break;
+
+			// output_type
+			case 'o':
+				if (strcmp(optarg, "none") == 0)
+					recorder_obj->output_type = OUTPUT_NONE;
+				else if (strcmp(optarg, "curses") == 0)
+					recorder_obj->output_type = OUTPUT_CURSES;
+				else if (strcmp(optarg, "json") == 0) {
+					fprintf(stderr, "ERROR: 'json' output type not yet implemented\n");
+					recorder_obj->output_type = OUTPUT_JSON;
+					exit(1);
+				} else if (strcmp(optarg, "text") == 0) {
+					fprintf(stderr, "ERROR: 'text' output type not yet implemented\n");
+					recorder_obj->output_type = OUTPUT_TEXT;
+					exit(1);
+				} else {
+					fprintf(stderr, "ERROR: unknown output type provided: '%s'\n", optarg);
+					exit(1);
+				}
+				break;
+
+			// port_pattern
+			case 'p':
+				strncpy(recorder_obj->port_name_pattern, optarg, PORT_NAME_PATTERN_WIDTH-1);
+				break;
+
+			// port_offset
+			case 'q':
+				recorder_obj->port_offset = (int)strtol(optarg, NULL, 0);
+				break;
+
+			// no_unique
+			case 'u':
+				recorder_obj->unique_name = false;
+				break;
+
+			// buffer_size
+			case 'x':
+				recorder_obj->buffer_frames = (int)strtol(optarg, NULL, 0);
+				break;
+
+			// handle unknown options provided
 			default:
 				fprintf(stderr, "\n");
 				usage();

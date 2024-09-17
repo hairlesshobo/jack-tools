@@ -15,28 +15,15 @@
 #define MAX_NC 48
 // TODO: move to cli option
 #define PEAK_HOLD_MS 750
-// TODO: move to cli option
-#define USE_CURSES 1
 
 // number of seconds to abort recording if no data received from jack
 // TODO: move to CLI option
 #define TIMEOUT_NO_DATA 2
 
-const float meter_steps[METER_STEP_COUNT] = {
-	0, -1, -2, -3, -4, -6, -8, -10, 
-	-12, -15, -18, -21, -24, -27, -30, 
-	-36, -42, -48, -54, -60
-};
-
-// #define abort_or_alert_when(fdes, x, ...) \
-// 	if (x) { \
-// 		printlg(fdes, __VA_ARGS__); \
-// 		if (recorder_obj->abort_on_error == true) { \
-// 			recorder_obj->do_abort = 1; \
-// 		} \
-// 		return 1; \
-// 	} \
-// 	return 0;
+#define OUTPUT_NONE 0
+#define OUTPUT_CURSES 1
+#define OUTPUT_JSON 2
+#define OUTPUT_TEXT 3
 
 struct recorder {
 	// user options
@@ -50,6 +37,7 @@ struct recorder {
 	int minimal_frames;
 	int buffer_frames;
 	float timer_seconds;
+	uint8_t output_type;
 
 	// for time-limited recording
 	int timer_frames;
