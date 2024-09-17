@@ -1,12 +1,5 @@
-// #include <math.h> /* C99 */
-// #include <stdbool.h>
-// #include <stdio.h> /* C99 */
 #include <stdlib.h>
 #include <string.h>
-// #include <time.h>
-// #include <locale.h>
-
-// #include <pthread.h> /* Posix */
 #include <unistd.h>
 
 #include "rju-record.h"
@@ -70,27 +63,14 @@ void *status_update_procedure(void *PTR)
 		float elapsed_time = ((float)(jack_frames - recorder_obj->start_frame)) / (float)recorder_obj->sample_rate;
 
 		// calculate buffer state
-		float sum = 0.0;
-		int diviser = 0;
-
-		if (recorder_obj->buffer_performance_filled == false) {
-			for (int i = 0; i < recorder_obj->buffer_performance_index; i++) 
-				sum += recorder_obj->buffer_performance[i];
-
-			diviser = recorder_obj->buffer_performance_index;
-		} else {
-			for (int i = 0; i < BUFFER_PERF_SAMPLES; i++)
-				sum += recorder_obj->buffer_performance[i];
-
-			diviser = BUFFER_PERF_SAMPLES;
-		}
-
-		float buffer_state = (sum / (float)diviser);
+		float buffer_state = calculate_buffer_state(recorder_obj);
 
 		// handle writing log messages
 		if (read(recorder_obj->messaging_pipe[0], &status_line, 255) >= 0) {
 			if (recorder_obj->output_type == OUTPUT_CURSES)
     			write_curses_log_line(cursesSupport, status_line);
+
+			memset(&status_line, 0, 256);
 		}
 
 		if (recorder_obj->output_type == OUTPUT_CURSES) {

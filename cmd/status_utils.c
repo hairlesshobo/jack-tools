@@ -1,4 +1,5 @@
 #include <math.h> /* C99 */
+#include <stdarg.h>
 #include <unistd.h>
 
 #include "rju-record.h"
@@ -53,6 +54,26 @@ const char *format_duration(float duration)
 short amp_to_db(float x)
 {
 	return (short)(log10(x) * 20.0);
+}
+
+float calculate_buffer_state(struct recorder* recorder_obj)
+{
+    float sum = 0.0;
+    int diviser = 0;
+
+    if (recorder_obj->buffer_performance_filled == false) {
+        for (int i = 0; i < recorder_obj->buffer_performance_index; i++) 
+            sum += recorder_obj->buffer_performance[i];
+
+        diviser = recorder_obj->buffer_performance_index;
+    } else {
+        for (int i = 0; i < BUFFER_PERF_SAMPLES; i++)
+            sum += recorder_obj->buffer_performance[i];
+
+        diviser = BUFFER_PERF_SAMPLES;
+    }
+
+    return sum / (float)diviser;
 }
 
 int abort_or_alert_when(struct recorder *recorder_obj, int condition, char* fmt, ...)

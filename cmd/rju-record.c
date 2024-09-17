@@ -1,20 +1,12 @@
 #include <math.h> /* C99 */
-// #include <stdbool.h>
-// #include <stdio.h> /* C99 */
-// #include <stdlib.h>
-// #include <string.h>
-// #include <time.h>
-
 #include <pthread.h> /* Posix */
 #include <fcntl.h> 
-// #include <unistd.h>
 #include <getopt.h>
-
-// #include <curses.h>
 
 #include "rju-record.h"
 #include "status_utils.h"
 #include "status.h"
+
 #include "jack/metadata.h"
 
 #include "r-common/c/file.h"

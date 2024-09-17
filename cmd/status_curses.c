@@ -93,7 +93,6 @@ void write_curses_log_line(struct CursesSupport* cursesSupport, char* status_lin
     strftime(buffer, 26, "%Y-%m-%d %H:%M:%S", tm_info);
 
     wprintw(cursesSupport->window_logs, "[%s]:   %s", buffer, status_line);
-    memset(&status_line, 0, 256);
 }
 
 void update_curses_status(
