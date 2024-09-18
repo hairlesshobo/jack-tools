@@ -16,10 +16,11 @@ CPPFLAGS += -Wall -pedantic -O3 -g -ffast-math $(INCLUDES) $(LIBS)
 CFLAGS += -D_POSIX_C_SOURCE=200809 -std=c99
 CXXFLAGS +=
 LDLIBS = r-common/c/lib-r-common.a $(OUTDIR)lib-common.a -ljack -lpthread -lm
-obj = status.o \
-      status_utils.o \
+obj = args.o \
+	  status.o \
       status_curses.o \
-	  status_json.o 
+	  status_json.o \
+      status_utils.o
 
 %.o : %.c %.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $*.c
