@@ -568,6 +568,7 @@ int main(int argc, char *argv[])
 	pthread_join(recorder_obj->disk_thread, NULL);
 	printlg(recorder_obj->messaging_pipe[1], recorder_obj->log_file, "DEBUG: Disk thread joined\n");
 	pthread_join(recorder_obj->status_thread, NULL);
+	printlg(recorder_obj->messaging_pipe[1], recorder_obj->log_file, "DEBUG: Status thread joined\n");
 
 	/* Close sound file, free ring buffer, close Jack connection, close
 	   pipe, free data buffers, indicate success. */
@@ -593,8 +594,6 @@ int main(int argc, char *argv[])
 	free(recorder_obj->in);
 	free(recorder_obj->input_port);
 	free(recorder_obj->sound_file);
-
-	printf("\n");
 
 	if (recorder_obj->do_abort == 1)
 		return EXIT_FAILURE;
