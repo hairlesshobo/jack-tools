@@ -1,8 +1,6 @@
 #ifndef STATUS_JSON_H
 #define STATUS_JSON_H
 
-#include <curses.h>
-
 void write_json_log_line(char* status_line);
 void write_json_status(
 	struct recorder* recorder_obj,

@@ -6,7 +6,9 @@
         "ringbuffer.h": "c",
         "ringbuffer-fd.h": "c",
         "observe-signal.h": "c",
-        "stdlib.h": "c"
+        "stdlib.h": "c",
+        "rju-record.h": "c",
+        "sndfile.h": "c"
     },
     "makefile.makefilePath": "cmd/Makefile"
 }
