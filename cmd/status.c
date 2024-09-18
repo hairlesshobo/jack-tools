@@ -6,16 +6,18 @@
 #include "status.h"
 #include "status_utils.h"
 #include "status_curses.h"
+#include "status_json.h"
 #include "r-common/c/file.h"
 #include "r-common/c/observe-signal.h"
 
-int printlg(int fdes, char* fmt, ...)
+int printlg(int fdes, FILE** log_file, char* fmt, ...)
 {
 	va_list args;
     va_start(args, fmt);
 
 	char* string = malloc(256);
 	vsnprintf(string, 256, fmt, args);
+	fprintf(*log_file, "%s", string);
 	int char_count = xwrite(fdes, string, 255);
 	free(string);
 
@@ -34,17 +36,19 @@ void *status_update_procedure(void *PTR)
 	if (recorder_obj->output_type == OUTPUT_CURSES) {
 		cursesSupport = (struct CursesSupport*)malloc(sizeof(struct CursesSupport));
 		init_curses(cursesSupport);
+	} else if (recorder_obj->output_type == OUTPUT_JSON) {
+		write_json_config_line(recorder_obj);
 	}
 
 	uint64_t last_reset_time = get_time_millis();
-	// uint64_t last_status_time = get_time_millis();
+	uint64_t last_status_time = get_time_millis();
 
 	while (!observe_end_of_process()) {
 		if (recorder_obj->do_abort == 1)
 			break;
 
 		if (recorder_obj->last_received_data_time > 0 && time(NULL) - recorder_obj->last_received_data_time > TIMEOUT_NO_DATA) {
-			fprintf(stderr, "rju-record: No data received from jack after %d seconds (hardware removed?), aborting recording.\n", TIMEOUT_NO_DATA);
+			printlg(recorder_obj->messaging_pipe[1], recorder_obj->log_file, "rju-record: No data received from jack after %d seconds (hardware removed?), aborting recording.\n", TIMEOUT_NO_DATA);
 			recorder_obj->do_abort = 1;
 			break;
 		}
@@ -69,19 +73,37 @@ void *status_update_procedure(void *PTR)
 		if (read(recorder_obj->messaging_pipe[0], &status_line, 255) >= 0) {
 			if (recorder_obj->output_type == OUTPUT_CURSES)
     			write_curses_log_line(cursesSupport, status_line);
+			else if (recorder_obj->output_type == OUTPUT_JSON)
+				write_json_log_line(status_line);
 
 			memset(&status_line, 0, 256);
 		}
 
 		if (recorder_obj->output_type == OUTPUT_CURSES) {
-			update_curses_status(
-				cursesSupport, 
-				recorder_obj,
-				individual_file_size,
-				total_output_size,
-				elapsed_time,
-				buffer_state);
+			if (get_time_millis() - last_status_time >= 10) {
+				update_curses_status(
+					cursesSupport, 
+					recorder_obj,
+					individual_file_size,
+					total_output_size,
+					elapsed_time,
+					buffer_state);
+					last_status_time = get_time_millis();
+			}
+		} else if (recorder_obj->output_type == OUTPUT_JSON) {
+			if (get_time_millis() - last_status_time >= 1000) {
+				write_json_status(
+					recorder_obj,
+					individual_file_size,
+					total_output_size,
+					elapsed_time,
+					buffer_state);
+
+				last_status_time = get_time_millis();
+			}
 		}
+
+		usleep(5000);
 	}
 
 	if (recorder_obj->output_type == OUTPUT_CURSES)

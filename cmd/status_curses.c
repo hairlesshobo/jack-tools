@@ -48,7 +48,8 @@ void init_curses(struct CursesSupport* cursesSupport)
 	initscr();
 	keypad(stdscr, TRUE);
 	nonl();
-	halfdelay(1);
+	// halfdelay(1);
+	nodelay(stdscr, true);
 	noecho();
 	curs_set(0);
 	cursesSupport->window_status = newwin(34, 0, 0, 0);
@@ -241,7 +242,7 @@ void update_curses_status(
 	}
 
 
-	refresh();
+	// refresh();
 	wrefresh(cursesSupport->window_status);
 	wrefresh(cursesSupport->window_logs);
 }

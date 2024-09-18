@@ -20,6 +20,8 @@
 #include "r-common/c/jack-port.c"
 #include "r-common/c/sf-sndfile.c"
 
+int stdlog = -1;
+FILE** log_file;
 
 // TODO list:
 // gracefully handle jack server shutdown
@@ -51,7 +53,7 @@ int ringbuffer_wait_read(const ringbuffer_t *rb, int needed_byte_count, int fd, 
 		// least better for error handling so we don't end up with corrupt output files
 		char b;
 		if (read(fd, &b, 1) == -1) {
-			fprintf(stderr, "%s: error reading communication pipe\n", __func__);
+			printlg(recorder_obj->messaging_pipe[1], recorder_obj->log_file, "%s: error reading communication pipe\n", __func__);
 			exit(1);
 		}
 
@@ -109,12 +111,12 @@ void *disk_thread_procedure(void *PTR)
 		// TODO: why is this necessary? is it even?
 		/* Drop excessive data to not overflow the local buffer. */
 		if (available_byte_count > recorder_obj->buffer_bytes) {
-			printlg(recorder_obj->messaging_pipe[1], "rju-record: impossible condition, read space.\n");
+			printlg(recorder_obj->messaging_pipe[1], recorder_obj->log_file, "ERROR: impossible condition, read space.\n");
 			available_byte_count = recorder_obj->buffer_bytes;
 		}
 
 		if (recorder_obj->do_abort == true) {
-			fprintf(stderr, "rju-record: aborting file write\n");
+			printlg(recorder_obj->messaging_pipe[1], recorder_obj->log_file, "Aborting file write\n");
 			break;
 		}
 
@@ -149,7 +151,7 @@ void jack_shutdown(void *PTR)
 	recorder_obj->rb->write_ptr = 0;
 	recorder_obj->rb->read_ptr = 0;
 
-	fprintf(stderr, "jack shutdown\n");
+	printlg(recorder_obj->messaging_pipe[1], recorder_obj->log_file, "Jack shutdown\n");
 }
 
 
@@ -157,7 +159,7 @@ void jack_shutdown(void *PTR)
 /// @param desc String description of the error
 void jack_error_handler(const char *desc)
 {
-	fprintf(stderr, "jack error: %s\n", desc);
+	printlg(stdlog, log_file, "jack error: %s\n", desc);
 }
 
 /* Write data from the Jack input ports to the ring buffer.  If the
@@ -377,11 +379,9 @@ int parse_opts(int argc, char *argv[], struct recorder *recorder_obj) {
 					recorder_obj->output_type = OUTPUT_NONE;
 				else if (strcmp(optarg, "curses") == 0)
 					recorder_obj->output_type = OUTPUT_CURSES;
-				else if (strcmp(optarg, "json") == 0) {
-					fprintf(stderr, "ERROR: 'json' output type not yet implemented\n");
+				else if (strcmp(optarg, "json") == 0)
 					recorder_obj->output_type = OUTPUT_JSON;
-					exit(1);
-				} else if (strcmp(optarg, "text") == 0) {
+				else if (strcmp(optarg, "text") == 0) {
 					fprintf(stderr, "ERROR: 'text' output type not yet implemented\n");
 					recorder_obj->output_type = OUTPUT_TEXT;
 					exit(1);
@@ -465,128 +465,138 @@ int parse_opts(int argc, char *argv[], struct recorder *recorder_obj) {
 
 int main(int argc, char *argv[])
 {
-	// printf("%s\n", format_size(1024 * 1024 * 64 * 32));
-
-	// exit(0);
 	observe_signals();
 
-	struct recorder recorder_obj;
+	struct recorder* recorder_obj = malloc(sizeof(struct recorder));
 
-	int opt_results = parse_opts(argc, argv, &recorder_obj);
+	int opt_results = parse_opts(argc, argv, recorder_obj);
 
 	die_when(opt_results != 0, "Invalid configuration provided");
 
 	/* Connect to Jack. */
 	char client_name[64] = "rju-record";
 
-	if (recorder_obj.unique_name) 
-		recorder_obj.client = jack_client_unique_store(client_name);
+	if (recorder_obj->unique_name) 
+		recorder_obj->client = jack_client_unique_store(client_name);
 	else
-		recorder_obj.client = jack_client_open(client_name, JackNullOption, NULL);
+		recorder_obj->client = jack_client_open(client_name, JackNullOption, NULL);
 
 	jack_set_error_function(jack_error_handler);
-	jack_on_shutdown(recorder_obj.client, jack_shutdown, &recorder_obj);
-	jack_set_process_callback(recorder_obj.client, process, &recorder_obj);
+	jack_on_shutdown(recorder_obj->client, jack_shutdown, recorder_obj);
+	jack_set_process_callback(recorder_obj->client, process, recorder_obj);
 
-	recorder_obj.start_frame = jack_frame_time(recorder_obj.client);
-	recorder_obj.sample_rate = jack_get_sample_rate(recorder_obj.client);
+	recorder_obj->start_frame = jack_frame_time(recorder_obj->client);
+	recorder_obj->sample_rate = jack_get_sample_rate(recorder_obj->client);
 
 	/* Allocate channel based data. */
-	recorder_obj.in = xmalloc(recorder_obj.channels * sizeof(float *));
-	recorder_obj.sound_file = xmalloc(recorder_obj.channels * sizeof(SNDFILE *));
-	recorder_obj.input_port = xmalloc(recorder_obj.channels * sizeof(jack_port_t *));
+	recorder_obj->in = xmalloc(recorder_obj->channels * sizeof(float *));
+	recorder_obj->sound_file = xmalloc(recorder_obj->channels * sizeof(SNDFILE *));
+	recorder_obj->input_port = xmalloc(recorder_obj->channels * sizeof(jack_port_t *));
 
 	/* Allocate buffers. */
-	recorder_obj.buffer_samples = recorder_obj.buffer_frames * recorder_obj.channels;
-	recorder_obj.buffer_bytes = recorder_obj.buffer_samples * sizeof(float);
-	recorder_obj.disk_write_buffer = xmalloc(recorder_obj.buffer_bytes);
-	recorder_obj.interleaved_buffer = xmalloc(recorder_obj.buffer_bytes);
-	recorder_obj.uninterleave_buffer = xmalloc(recorder_obj.buffer_bytes);
-	recorder_obj.rb = ringbuffer_create(recorder_obj.buffer_bytes);
-	recorder_obj.buffer_bytes = recorder_obj.rb->size;
+	recorder_obj->buffer_samples = recorder_obj->buffer_frames * recorder_obj->channels;
+	recorder_obj->buffer_bytes = recorder_obj->buffer_samples * sizeof(float);
+	recorder_obj->disk_write_buffer = xmalloc(recorder_obj->buffer_bytes);
+	recorder_obj->interleaved_buffer = xmalloc(recorder_obj->buffer_bytes);
+	recorder_obj->uninterleave_buffer = xmalloc(recorder_obj->buffer_bytes);
+	recorder_obj->rb = ringbuffer_create(recorder_obj->buffer_bytes);
+	recorder_obj->buffer_bytes = recorder_obj->rb->size;
+
+	/* Create communication pipes. */
+	xpipe(recorder_obj->disk_pipe);
+	xpipe(recorder_obj->messaging_pipe);
+	fcntl(recorder_obj->messaging_pipe[0], F_SETFL, O_NONBLOCK);
+	recorder_obj->log_file = malloc(sizeof(FILE *));
+	*recorder_obj->log_file = fopen("rju-record.log", "w");
+	log_file = recorder_obj->log_file;
+
+	stdlog = recorder_obj->messaging_pipe[1];
 
 	/* Setup timer. */
-	if (recorder_obj.timer_seconds <= 0.0)
-		recorder_obj.timer_frames = -1;
+	if (recorder_obj->timer_seconds <= 0.0)
+		recorder_obj->timer_frames = -1;
 	else
-		recorder_obj.timer_frames = recorder_obj.timer_seconds * recorder_obj.sample_rate;
+		recorder_obj->timer_frames = recorder_obj->timer_seconds * recorder_obj->sample_rate;
 
 	/* Create sound file. */
 	SF_INFO sfinfo;
-	sfinfo.samplerate = (int)recorder_obj.sample_rate;
+	sfinfo.samplerate = (int)recorder_obj->sample_rate;
 	sfinfo.frames = 0;
-	sfinfo.format = recorder_obj.file_format;
+	sfinfo.format = recorder_obj->file_format;
 	sfinfo.channels = 1;
 
-	if (recorder_obj.multiple_sound_files) {
+	if (recorder_obj->multiple_sound_files) {
 		// TODO: improve or remove this altogether
 		if (!strstr(argv[optind], "%d") && !strstr(argv[optind], "%02d")) {
 			fprintf(stderr, "rju-record: illegal template, '%s'\n", argv[optind]);
 			usage();
 		}
 
-		for (int i = 0; i < recorder_obj.channels; i++) {
+		for (int i = 0; i < recorder_obj->channels; i++) {
 			char name[512];
 			snprintf(name, 512, argv[optind], i+1);
-			recorder_obj.sound_file[i] = xsf_open(name, SFM_WRITE, &sfinfo);
+			recorder_obj->sound_file[i] = xsf_open(name, SFM_WRITE, &sfinfo);
 		}
 	} else {
-		sfinfo.channels = recorder_obj.channels;
-		recorder_obj.sound_file[0] = xsf_open(argv[optind], SFM_WRITE, &sfinfo);
+		sfinfo.channels = recorder_obj->channels;
+		recorder_obj->sound_file[0] = xsf_open(argv[optind], SFM_WRITE, &sfinfo);
 	}
 
-	/* Create communication pipes. */
-	xpipe(recorder_obj.disk_pipe);
-	xpipe(recorder_obj.messaging_pipe);
-	fcntl(recorder_obj.messaging_pipe[0], F_SETFL, O_NONBLOCK);
-	recorder_obj.msgout = fdopen(recorder_obj.messaging_pipe[1], "a");
+	printlg(recorder_obj->messaging_pipe[1], recorder_obj->log_file, "test123\n");
+
+	jack_error_handler("meow");
+
+	/* Start status update thread. */
+	pthread_create(&(recorder_obj->status_thread), NULL, status_update_procedure, recorder_obj);
 
 	/* Start disk thread. */
-	pthread_create(&(recorder_obj.disk_thread), NULL, disk_thread_procedure, &recorder_obj);
+	pthread_create(&(recorder_obj->disk_thread), NULL, disk_thread_procedure, recorder_obj);
 
 	/* Create ports, connect to if given, activate client. */
 	char connect_pattern[128];
 	snprintf(connect_pattern, 128, "%s:in_%%d", client_name);
 
-	jack_port_make_standard(recorder_obj.client, recorder_obj.input_port, recorder_obj.channels, false, false);
-	jack_client_activate(recorder_obj.client);
-	jack_port_connect_pattern(recorder_obj.client, recorder_obj.channels, recorder_obj.port_offset, recorder_obj.port_name_pattern, connect_pattern);
+	jack_port_make_standard(recorder_obj->client, recorder_obj->input_port, recorder_obj->channels, false, false);
+	jack_client_activate(recorder_obj->client);
+	jack_port_connect_pattern(recorder_obj->client, recorder_obj->channels, recorder_obj->port_offset, recorder_obj->port_name_pattern, connect_pattern);
 
-	/* Start status update thread. */
-	pthread_create(&(recorder_obj.status_thread), NULL, status_update_procedure, &recorder_obj);
+	printlg(recorder_obj->messaging_pipe[1], recorder_obj->log_file, "Recording started\n");
 
 	/* Wait for disk thread to end, which it does when it reaches the
 	   end of the file or is interrupted. */
-	fprintf(stderr, "waiting for disk thread\n");
-	pthread_join(recorder_obj.disk_thread, NULL);
-	fprintf(stderr, "disk thread joined\n");
-	pthread_join(recorder_obj.status_thread, NULL);
+	printlg(recorder_obj->messaging_pipe[1], recorder_obj->log_file, "DEBUG: Waiting for disk thread\n");
+	pthread_join(recorder_obj->disk_thread, NULL);
+	printlg(recorder_obj->messaging_pipe[1], recorder_obj->log_file, "DEBUG: Disk thread joined\n");
+	pthread_join(recorder_obj->status_thread, NULL);
 
 	/* Close sound file, free ring buffer, close Jack connection, close
 	   pipe, free data buffers, indicate success. */
-	jack_client_close(recorder_obj.client);
-	if (recorder_obj.multiple_sound_files)
-		for (int i = 0; i < recorder_obj.channels; i++)
-			sf_close(recorder_obj.sound_file[i]);
+	jack_client_close(recorder_obj->client);
+	if (recorder_obj->multiple_sound_files)
+		for (int i = 0; i < recorder_obj->channels; i++)
+			sf_close(recorder_obj->sound_file[i]);
 	else
-		sf_close(recorder_obj.sound_file[0]);
+		sf_close(recorder_obj->sound_file[0]);
 
-	ringbuffer_free(recorder_obj.rb);
-	fclose(recorder_obj.msgout);
-	close(recorder_obj.disk_pipe[0]);
-	close(recorder_obj.disk_pipe[1]);
-	close(recorder_obj.messaging_pipe[0]);
-	close(recorder_obj.messaging_pipe[1]);
-	free(recorder_obj.disk_write_buffer);
-	free(recorder_obj.interleaved_buffer);
-	free(recorder_obj.uninterleave_buffer);
-	free(recorder_obj.in);
-	free(recorder_obj.input_port);
-	free(recorder_obj.sound_file);
+	ringbuffer_free(recorder_obj->rb);
+	
+	close(recorder_obj->disk_pipe[0]);
+	close(recorder_obj->disk_pipe[1]);
+	close(recorder_obj->messaging_pipe[0]);
+	close(recorder_obj->messaging_pipe[1]);
+	fflush(*recorder_obj->log_file);
+	fclose(*recorder_obj->log_file);
+
+	free(recorder_obj->disk_write_buffer);
+	free(recorder_obj->interleaved_buffer);
+	free(recorder_obj->uninterleave_buffer);
+	free(recorder_obj->in);
+	free(recorder_obj->input_port);
+	free(recorder_obj->sound_file);
 
 	printf("\n");
 
-	if (recorder_obj.do_abort == 1)
+	if (recorder_obj->do_abort == 1)
 		return EXIT_FAILURE;
 	else
 		return EXIT_SUCCESS;

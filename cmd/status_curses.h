@@ -3,6 +3,8 @@
 
 #include <curses.h>
 
+#define METER_STEP_COUNT 21
+
 #define COLOR_CLIP_FG 4
 #define COLOR_CLIP_BG 10
 #define COLOR_HOT_FG 3

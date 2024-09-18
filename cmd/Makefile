@@ -18,7 +18,11 @@ CXXFLAGS +=
 LDLIBS = r-common/c/lib-r-common.a $(OUTDIR)lib-common.a -ljack -lpthread -lm
 obj = status.o \
       status_utils.o \
-      status_curses.o
+      status_curses.o \
+	  status_json.o 
+
+%.o : %.c %.h
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c $*.c
 
 mk-r-common:
 	(cd r-common/c ; make)
@@ -30,7 +34,7 @@ all: $(obj)
 
 #rju-play: rju-play.c
 #	$(CC) $(CPPFLAGS) $(CFLAGS) -o rju-play rju-play.c $(LDLIBS) -lsndfile -lsamplerate
-
+	
 rju-record: rju-record.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o $(OUTDIR)rju-record rju-record.c $(LDLIBS) -lsndfile -lncurses 
 

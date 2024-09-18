@@ -83,7 +83,7 @@ int abort_or_alert_when(struct recorder *recorder_obj, int condition, char* fmt,
 
 	if (condition)
 	{
-		printlg(recorder_obj->messaging_pipe[1], fmt, args);
+		printlg(recorder_obj->messaging_pipe[1], recorder_obj->log_file, fmt, args);
 
 		if (recorder_obj->abort_on_error == true) {
 			recorder_obj->do_abort = 1;

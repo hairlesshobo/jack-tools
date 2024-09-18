@@ -10,7 +10,6 @@
 
 #define BUFFER_PERF_SAMPLES 4
 #define PORT_NAME_PATTERN_WIDTH 64
-#define METER_STEP_COUNT 21
 // TODO: Add option validation that the provided channel count is > 0 and <= MAX_NC
 #define MAX_NC 48
 // TODO: move to cli option
@@ -75,14 +74,12 @@ struct recorder {
 	pthread_t status_thread;
 	int disk_pipe[2];
 	int messaging_pipe[2];
-	FILE *msgout;
 	int do_abort;
 
 	int file_format;
 	SNDFILE **sound_file;
 	jack_port_t **input_port;
 	float **in;
-	jack_client_t *client;
 	bool unique_name;
 	float sample_rate;
 	int buffer_bytes;
@@ -93,6 +90,9 @@ struct recorder {
 	int buffer_performance_filled;
 
 	time_t last_received_data_time;
+
+	FILE **log_file;
+	jack_client_t *client;
 };
 
 #endif
