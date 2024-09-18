@@ -40,7 +40,7 @@ rju-record: rju-record.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o $(OUTDIR)rju-record rju-record.c $(LDLIBS) -lsndfile -lncurses 
 
 clean:
-	rm -f $(bin) *.o
+	rm -fr $(bin) *.o *.wav *.a *.log
 	(cd r-common/c ; make clean)
 
 install:

@@ -1,1 +1,0 @@
-(connect "system:capture_(.*)" "rju-scope[-0-9]*:in_\1")

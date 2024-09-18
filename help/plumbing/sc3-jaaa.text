@@ -1,1 +1,0 @@
-(connect "SuperCollider:out_(.*)" "jaaa:in_\1")

@@ -1,1 +1,0 @@
-(connect "SuperCollider:out_(.*)" "rju-scope-[0-9]*:in_\1")
