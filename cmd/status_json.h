@@ -1,5 +1,5 @@
-#ifndef STATUS_JSON_H
-#define STATUS_JSON_H
+#ifndef _STATUS_JSON_H
+#define _STATUS_JSON_H
 
 void write_json_log_line(char* status_line);
 void write_json_status(

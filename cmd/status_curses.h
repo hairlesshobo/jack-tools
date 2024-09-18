@@ -1,5 +1,5 @@
-#ifndef STATUS_CURSES_H
-#define STATUS_CURSES_H
+#ifndef _STATUS_CURSES_H
+#define _STATUS_CURSES_H
 
 #include <curses.h>
 

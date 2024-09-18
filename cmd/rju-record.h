@@ -1,5 +1,5 @@
-#ifndef RJU_RECORD_H
-#define RJU_RECORD_H
+#ifndef _RJU_RECORD_H
+#define _RJU_RECORD_H
 
 #include <sndfile.h>
 #include <stdbool.h>
@@ -10,7 +10,6 @@
 
 #define BUFFER_PERF_SAMPLES 4
 #define PORT_NAME_PATTERN_WIDTH 64
-// TODO: Add option validation that the provided channel count is > 0 and <= MAX_NC
 #define MAX_NC 48
 // TODO: move to cli option
 #define PEAK_HOLD_MS 750
