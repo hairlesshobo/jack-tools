@@ -1,15 +1,8 @@
 all:
-	echo "rju"
-
-mk-cmd:
-	(cd cmd ; make all install)
+	(cd src ; make all)
 
 clean:
-	rm -fR dist dist-newstyle *~
-	(cd cmd ; make clean)
-
-push-all:
-	r.gitlab-push.sh rju
+	(cd src ; make clean)
 
 debian:
 	sudo apt-get install liblo-dev libsamplerate0-dev
