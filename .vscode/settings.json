@@ -9,7 +9,8 @@
         "stdlib.h": "c",
         "recorder.h": "c",
         "sndfile.h": "c",
-        "stdbool.h": "c"
+        "stdbool.h": "c",
+        "jack.h": "c"
     },
     "makefile.makefilePath": "cmd/Makefile"
 }

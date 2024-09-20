@@ -12,8 +12,8 @@
 #define PORT_NAME_PATTERN_WIDTH 64
 #define MAX_NC 48
 
-// number of seconds to abort recording if no data received from jack
 // TODO: move to CLI option
+// number of seconds to abort recording if no data received from jack
 #define TIMEOUT_NO_DATA 2
 
 #define OUTPUT_NONE 0

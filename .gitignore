@@ -1,0 +1,5 @@
+*.wav
+src/bin
+*.a
+*.o
+*.log
