@@ -1,3 +1,0 @@
-[submodule "cmd/r-common"]
-	path = cmd/r-common
-	url = git@github.com:hairlesshobo/jack-tools-common.git

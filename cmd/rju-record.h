@@ -11,8 +11,6 @@
 #define BUFFER_PERF_SAMPLES 4
 #define PORT_NAME_PATTERN_WIDTH 64
 #define MAX_NC 48
-// TODO: move to cli option
-#define PEAK_HOLD_MS 750
 
 // number of seconds to abort recording if no data received from jack
 // TODO: move to CLI option
@@ -36,6 +34,7 @@ struct recorder {
 	int buffer_frames;
 	float timer_seconds;
 	uint8_t output_type;
+	uint16_t peak_hold_ms;
 
 	// for time-limited recording
 	int timer_frames;

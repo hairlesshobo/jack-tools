@@ -305,10 +305,10 @@ int main(int argc, char *argv[])
 	xpipe(recorder_obj->disk_pipe);
 	xpipe(recorder_obj->messaging_pipe);
 	fcntl(recorder_obj->messaging_pipe[0], F_SETFL, O_NONBLOCK);
+
 	recorder_obj->log_file = malloc(sizeof(FILE *));
 	*recorder_obj->log_file = fopen("rju-record.log", "w");
 	log_file = recorder_obj->log_file;
-
 	stdlog = recorder_obj->messaging_pipe[1];
 
 	/* Setup timer. */
@@ -341,12 +341,9 @@ int main(int argc, char *argv[])
 		recorder_obj->sound_file[0] = xsf_open(argv[optind], SFM_WRITE, &sfinfo);
 	}
 
-	printlg(recorder_obj->messaging_pipe[1], recorder_obj->log_file, "test123\n");
-
-	jack_error_handler("meow");
-
 	/* Start status update thread. */
-	pthread_create(&(recorder_obj->status_thread), NULL, status_update_procedure, recorder_obj);
+	if (recorder_obj->output_type != OUTPUT_NONE)
+		pthread_create(&(recorder_obj->status_thread), NULL, status_update_procedure, recorder_obj);
 
 	/* Start disk thread. */
 	pthread_create(&(recorder_obj->disk_thread), NULL, disk_thread_procedure, recorder_obj);
@@ -366,8 +363,11 @@ int main(int argc, char *argv[])
 	printlg(recorder_obj->messaging_pipe[1], recorder_obj->log_file, "DEBUG: Waiting for disk thread\n");
 	pthread_join(recorder_obj->disk_thread, NULL);
 	printlg(recorder_obj->messaging_pipe[1], recorder_obj->log_file, "DEBUG: Disk thread joined\n");
-	pthread_join(recorder_obj->status_thread, NULL);
-	printlg(recorder_obj->messaging_pipe[1], recorder_obj->log_file, "DEBUG: Status thread joined\n");
+	
+	if (recorder_obj->output_type != OUTPUT_NONE) {
+		pthread_join(recorder_obj->status_thread, NULL);
+		printlg(recorder_obj->messaging_pipe[1], recorder_obj->log_file, "DEBUG: Status thread joined\n");
+	}
 
 	/* Close sound file, free ring buffer, close Jack connection, close
 	   pipe, free data buffers, indicate success. */
@@ -386,7 +386,8 @@ int main(int argc, char *argv[])
 	close(recorder_obj->messaging_pipe[1]);
 	fflush(*recorder_obj->log_file);
 	fclose(*recorder_obj->log_file);
-
+	
+	free(recorder_obj->log_file);
 	free(recorder_obj->disk_write_buffer);
 	free(recorder_obj->interleaved_buffer);
 	free(recorder_obj->uninterleave_buffer);

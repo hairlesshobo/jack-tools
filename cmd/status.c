@@ -53,7 +53,7 @@ void *status_update_procedure(void *PTR)
 			break;
 		}
 
-		if (get_time_millis() - last_reset_time > PEAK_HOLD_MS) {
+		if (get_time_millis() - last_reset_time > recorder_obj->peak_hold_ms) {
 			last_reset_time = get_time_millis();
 			clear_peaks(recorder_obj);
 		}

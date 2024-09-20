@@ -14,6 +14,7 @@ void usage(void)
 	printf("                                        valid options: 16, 24, 32\n\n");
 	printf("  -c, --channels [number]             : Number of channels (default: 2)\n");
 	printf("  -d, --disk_transfer_size [number]   : Minimal disk transfer size in frames (default: 32)\n");
+	printf("  -e, --peak_hold_time [number]       : Peak hold time, in milliseconds (default: 750)\n");
 	printf("  -f, --format [option]               : File format (default: wav)\n");
 	printf("                                        valid options: wav, bwf, rf64\n\n");
 	printf("  -h, --help                          : Show this usage page\n");
@@ -46,6 +47,7 @@ int parse_opts(int argc, char *argv[], struct recorder *recorder_obj)
 	recorder_obj->buffer_performance_index = 0;
 	recorder_obj->buffer_performance_filled = false;
 	recorder_obj->output_type = OUTPUT_CURSES;
+    recorder_obj->peak_hold_ms = 750;
 
 	strncpy(recorder_obj->port_name_pattern, "system:capture_%d", PORT_NAME_PATTERN_WIDTH-1);
 
@@ -54,6 +56,7 @@ int parse_opts(int argc, char *argv[], struct recorder *recorder_obj)
         {"bitrate", required_argument, NULL, 'b'},
         {"channels", required_argument, NULL, 'c'},
         {"disk_transfer_size", required_argument, NULL, 'd'},
+        {"peak_hold_time", required_argument, NULL, '3'},
         {"format", required_argument, NULL, 'f'},
 		{"help", no_argument, NULL, 'h'},
         {"time_limit", required_argument, NULL, 'l'},
@@ -70,7 +73,7 @@ int parse_opts(int argc, char *argv[], struct recorder *recorder_obj)
 	int c;
 	
 
-	while ((c = getopt_long(argc, argv, "ab:c:d:f:hl:mo:p:q:ux:",
+	while ((c = getopt_long(argc, argv, "ab:c:d:e:f:hl:mo:p:q:ux:",
 					long_options, NULL)) != -1) {
 		switch (c) {
 			// abort_on_error
@@ -91,6 +94,11 @@ int parse_opts(int argc, char *argv[], struct recorder *recorder_obj)
 			// disk_transfer_size
 			case 'd':
 				recorder_obj->minimal_frames = (int)strtol(optarg, NULL, 0);
+				break;
+
+			// disk_transfer_size
+			case 'e':
+				recorder_obj->peak_hold_ms = (uint16_t)strtol(optarg, NULL, 0);
 				break;
 
 			// format
