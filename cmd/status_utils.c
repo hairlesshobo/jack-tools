@@ -2,7 +2,7 @@
 #include <stdarg.h>
 #include <unistd.h>
 
-#include "rju-record.h"
+#include "recorder.h"
 #include "status.h"
 #include "status_utils.h"
 

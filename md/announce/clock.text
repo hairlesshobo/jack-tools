@@ -1,9 +1,0 @@
-From: "Rohan Drape" <rohan_drape@hotmail.com>
-Subject: Announce - jack.clock - JACK Transport Publication Daemon
-Date: Fri, 16 Jan 2004 08:55:35 +1100
-
-jack.clock publishes the transport state of the local JACK server as
-OSC packets over a UDP connection.  jack.clock allows any OSC enabled
-application to act as a JACK transport client, receiving sample
-accurate pulse stream timing data, and monitoring and initiating
-transport state change.

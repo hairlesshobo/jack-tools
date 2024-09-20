@@ -2,7 +2,7 @@
 #include <pthread.h> /* Posix */
 #include <fcntl.h> 
 
-#include "rju-record.h"
+#include "recorder.h"
 
 #include "args.h"
 #include "status.h"

@@ -1,5 +1,5 @@
-#ifndef _RJU_RECORD_H
-#define _RJU_RECORD_H
+#ifndef _RECORDER_H
+#define _RECORDER_H
 
 #include <sndfile.h>
 #include <stdbool.h>

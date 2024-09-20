@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "rju-record.h"
+#include "recorder.h"
 #include "status_utils.h"
 
 void usage(void)

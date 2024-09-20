@@ -1,13 +1,13 @@
-RJU-RECORD(1)
+fox-recorder(1)
 =============
 
-NAME
+Name
 ----
-rju-record - JACK Capture Client
+fox-recorder - Multitrack JACK audio recorder
 
 SYNOPSIS
 --------
-rju-record [options] sound-file
+rju-record [options] output_pattern
 
 OPTIONS
 -------

@@ -3,7 +3,7 @@
 
 #include <unistd.h>
 
-#include "rju-record.h"
+#include "recorder.h"
 #include "status_utils.h"
 
 char* json_config_line =

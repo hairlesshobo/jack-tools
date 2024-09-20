@@ -1,6 +1,6 @@
 prefix = $(HOME)/opt
 
-bin = rju-record
+bin = recorder
 
 CC = gcc # gcc clang
 CXX = g++ # g++ clang++
@@ -33,11 +33,8 @@ support: $(obj)
 all:
 	make libs support $(bin)
 
-#rju-play: rju-play.c
-#	$(CC) $(CPPFLAGS) $(CFLAGS) -o rju-play rju-play.c $(LDLIBS) -lsndfile -lsamplerate
-	
-rju-record: rju-record.c
-	$(CC) $(CPPFLAGS) $(CFLAGS) -o $(OUTDIR)rju-record rju-record.c $(LDLIBS) -lsndfile -lncurses 
+recorder: recorder.c
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o $(OUTDIR)recorder recorder.c $(LDLIBS) -lsndfile -lncurses 
 
 clean:
 	rm -fr $(OUTDIR) $(bin) *.o *.wav *.a *.log
