@@ -6,7 +6,7 @@
 
 #include <jack/jack.h>
 
-#include "r-common/c/ringbuffer.h"
+#include "lib/ringbuffer.h"
 
 #define BUFFER_PERF_SAMPLES 4
 #define PORT_NAME_PATTERN_WIDTH 64

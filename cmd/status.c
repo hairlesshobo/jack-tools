@@ -7,8 +7,8 @@
 #include "status_utils.h"
 #include "status_curses.h"
 #include "status_json.h"
-#include "r-common/c/file.h"
-#include "r-common/c/observe-signal.h"
+#include "lib/file.h"
+#include "lib/observe-signal.h"
 
 int printlg(int fdes, FILE** log_file, char* fmt, ...)
 {

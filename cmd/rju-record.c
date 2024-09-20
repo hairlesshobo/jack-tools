@@ -10,14 +10,14 @@
 
 #include "jack/metadata.h"
 
-#include "r-common/c/file.h"
-#include "r-common/c/observe-signal.h"
-#include "r-common/c/ringbuffer.h"
-#include "r-common/c/signal-interleave.h"
+#include "lib/file.h"
+#include "lib/observe-signal.h"
+#include "lib/ringbuffer.h"
+#include "lib/signal-interleave.h"
 
-#include "r-common/c/jack-client.c"
-#include "r-common/c/jack-port.c"
-#include "r-common/c/sf-sndfile.c"
+#include "lib/jack-client.c"
+#include "lib/jack-port.c"
+#include "lib/sf-sndfile.c"
 
 int stdlog = -1;
 FILE** log_file;
