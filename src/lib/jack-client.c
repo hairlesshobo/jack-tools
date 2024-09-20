@@ -42,6 +42,7 @@ jack_client_t *jack_client_unique(const char *name)
 	return jack_client_unique_store(uniq);
 }
 
+// TODO: convert to recorder struct
 int jack_client_activate(jack_client_t *client)
 {
 	int err = jack_activate(client);

@@ -10,7 +10,9 @@
         "recorder.h": "c",
         "sndfile.h": "c",
         "stdbool.h": "c",
-        "jack.h": "c"
+        "jack.h": "c",
+        "jack-port.h": "c",
+        "failure.h": "c"
     },
     "makefile.makefilePath": "cmd/Makefile"
 }

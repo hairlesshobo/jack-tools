@@ -8,8 +8,15 @@
 
 #include "lib/ringbuffer.h"
 
+// number of samples to average for buffer status
 #define BUFFER_PERF_SAMPLES 4
+
+// TODO: make this dynamic
+// maximum number of characters for port name pattern
 #define PORT_NAME_PATTERN_WIDTH 64
+
+// TODO: convert this to dynamic allocation to remove the fixed limit
+// maximum number of channels supported.
 #define MAX_NC 48
 
 // TODO: move to CLI option

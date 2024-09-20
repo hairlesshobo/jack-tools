@@ -26,8 +26,6 @@ FILE** log_file;
 // gracefully handle jack server shutdown
 // gracefully handle jack hardware removal
 // option for output directory, create if doesn't exist
-// option for meter peak hold time
-// option to select console output status type (none, curses, json, text)
 // possibly add silence on xrun error?
 // support combination file types, single and multiple channel files in a single project
 // support passing config with file name and input channel numbers
@@ -273,7 +271,7 @@ int main(int argc, char *argv[])
 	die_when(opt_results != 0, "Invalid configuration provided");
 
 	/* Connect to Jack. */
-	char client_name[64] = "rju-record";
+	char client_name[64] = "fox-recorder";
 
 	if (recorder_obj->unique_name) 
 		recorder_obj->client = jack_client_unique_store(client_name);
@@ -307,7 +305,7 @@ int main(int argc, char *argv[])
 	fcntl(recorder_obj->messaging_pipe[0], F_SETFL, O_NONBLOCK);
 
 	recorder_obj->log_file = malloc(sizeof(FILE *));
-	*recorder_obj->log_file = fopen("rju-record.log", "w");
+	*recorder_obj->log_file = fopen("fox-recorder.log", "w");
 	log_file = recorder_obj->log_file;
 	stdlog = recorder_obj->messaging_pipe[1];
 
@@ -352,9 +350,9 @@ int main(int argc, char *argv[])
 	char connect_pattern[128];
 	snprintf(connect_pattern, 128, "%s:in_%%d", client_name);
 
-	jack_port_make_standard(recorder_obj->client, recorder_obj->input_port, recorder_obj->channels, false, false);
+	jack_register_input_ports(recorder_obj);
 	jack_client_activate(recorder_obj->client);
-	jack_port_connect_pattern(recorder_obj->client, recorder_obj->channels, recorder_obj->port_offset, recorder_obj->port_name_pattern, connect_pattern);
+	jack_port_connect_pattern(recorder_obj, connect_pattern);
 
 	printlg(recorder_obj->messaging_pipe[1], recorder_obj->log_file, "Recording started\n");
 
