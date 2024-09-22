@@ -7,9 +7,9 @@
 #define FAILURE exit(1)
 #endif
 
-#define die_when(x, ...) \
+#define die_when(logging, x, ...) \
 	if (x) { \
-		fprintf(stderr, __VA_ARGS__); \
+		writelog(logging, L_ERROR, __VA_ARGS__); \
 		exit(1); \
 	}
 

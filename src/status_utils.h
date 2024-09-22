@@ -1,6 +1,8 @@
 #ifndef _STATUS_UTILS_H
 #define _STATUS_UTILS_H
 
+#include <stdarg.h>
+
 const char *format_size(uint64_t bytes);
 const char *format_duration(float duration);
 short amp_to_db(float x);

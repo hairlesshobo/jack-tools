@@ -12,16 +12,15 @@
 #include "../recorder.h"
 #include "../status.h"
 
-void jack_register_input_ports(struct recorder *recorder_obj)
+void jack_register_input_ports(struct logging* logging, struct recorder *recorder_obj)
 {
-	int i;
-	for (i = 0; i < recorder_obj->channels; i++) {
+	for (int i = 0; i < recorder_obj->channels; i++) {
 		char name[64];
 		snprintf(name, 64, "in_%d", i + 1);
 		recorder_obj->input_port[i] = jack_port_register(recorder_obj->client, name, JACK_DEFAULT_AUDIO_TYPE, JackPortIsInput, 0);
 
 		if (!recorder_obj->input_port[i]) {
-			printlg(recorder_obj->messaging_pipe[1], recorder_obj->log_file, "ERROR: jack_port_register() failed\n");
+			writelog(logging, L_DEBUG, "ERROR: jack_port_register() failed\n");
 			FAILURE;
 		}
 	}

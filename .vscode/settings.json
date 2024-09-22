@@ -12,7 +12,9 @@
         "stdbool.h": "c",
         "jack.h": "c",
         "jack-port.h": "c",
-        "failure.h": "c"
+        "failure.h": "c",
+        "logging.h": "c",
+        "sf-sndfile.h": "c"
     },
     "makefile.makefilePath": "cmd/Makefile"
 }

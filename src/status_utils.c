@@ -1,5 +1,4 @@
 #include <math.h> /* C99 */
-#include <stdarg.h>
 #include <unistd.h>
 
 #include "recorder.h"

@@ -1,6 +1,9 @@
 #ifndef _COMMON_FILE_H
 #define _COMMON_FILE_H
 
+#include <stdbool.h>
+#include <time.h>
+
 bool file_exists_p(const char *filename);
 time_t stat_mtime(const char *filename);
 size_t stat_size(const char *filename);

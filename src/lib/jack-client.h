@@ -3,10 +3,11 @@
 
 #include <jack/jack.h>
 
+#include "logging.h"
+
 void jack_client_minimal_error_handler(const char *desc);
 void jack_client_minimal_shutdown_handler(void *arg);
-jack_client_t *jack_client_unique_store(char *name);
-jack_client_t *jack_client_unique(const char *name);
+jack_client_t *jack_client_unique_store(struct logging* logging, char *name);
 int jack_client_activate(jack_client_t *client);
 
 #endif

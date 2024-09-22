@@ -5,6 +5,8 @@
 #include "recorder.h"
 #include "status_utils.h"
 
+#include "lib/logging.h"
+
 void usage(void)
 {
 	printf("Usage: rju-record [options] sound-file\n");
@@ -24,12 +26,11 @@ void usage(void)
 	printf("                                        valid options: none, curses, json, text\n\n");
 	printf("  -p, --port_pattern [string]         : Jack port pattern to connect to (default: system:capture_%%d)\n");
 	printf("  -q, --port_offset [number]          : Jack port source offset (default: 0)\n");
-	printf("  -u, --no_unique                     : Do not generate unique jack client name (ie. do not append PID)\n");
 	printf("  -x, --buffer_size [number]          : Ring buffer size in frames (default: 16384)\n");
 	exit(1);
 }
 
-int parse_opts(int argc, char *argv[], struct recorder *recorder_obj)
+bool parse_opts(struct logging* logging, int argc, char *argv[], struct recorder *recorder_obj)
 {
 	recorder_obj->unique_name = true;
 	recorder_obj->buffer_frames = 16384;
@@ -64,7 +65,6 @@ int parse_opts(int argc, char *argv[], struct recorder *recorder_obj)
 		{"output_type", required_argument, NULL, 'o'},
         {"port_pattern", required_argument, NULL, 'p'},
         {"port_offset", required_argument, NULL, 'q'},
-        {"no_unique", no_argument, NULL, 'u'},
         {"buffer_size", required_argument, NULL, 'x'},
         {NULL, 0, NULL, 0}
     };
@@ -73,8 +73,7 @@ int parse_opts(int argc, char *argv[], struct recorder *recorder_obj)
 	int c;
 	
 
-	while ((c = getopt_long(argc, argv, "ab:c:d:e:f:hl:mo:p:q:ux:",
-					long_options, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv, "ab:c:d:e:f:hl:mo:p:q:x:", long_options, NULL)) != -1) {
 		switch (c) {
 			// abort_on_error
 			case 'a':
@@ -131,12 +130,12 @@ int parse_opts(int argc, char *argv[], struct recorder *recorder_obj)
 				else if (strcmp(optarg, "json") == 0)
 					recorder_obj->output_type = OUTPUT_JSON;
 				else if (strcmp(optarg, "text") == 0) {
-					fprintf(stderr, "ERROR: 'text' output type not yet implemented\n");
+					writelog(logging, L_ERROR,"'text' output type not yet implemented\n");
 					recorder_obj->output_type = OUTPUT_TEXT;
-					exit(1);
+					return false;
 				} else {
-					fprintf(stderr, "ERROR: unknown output type provided: '%s'\n", optarg);
-					exit(1);
+					writelog(logging, L_ERROR,"unknown output type provided: '%s'\n", optarg);
+					return false;
 				}
 				break;
 
@@ -150,11 +149,6 @@ int parse_opts(int argc, char *argv[], struct recorder *recorder_obj)
 				recorder_obj->port_offset = (int)strtol(optarg, NULL, 0);
 				break;
 
-			// no_unique
-			case 'u':
-				recorder_obj->unique_name = false;
-				break;
-
 			// buffer_size
 			case 'x':
 				recorder_obj->buffer_frames = (int)strtol(optarg, NULL, 0);
@@ -162,9 +156,7 @@ int parse_opts(int argc, char *argv[], struct recorder *recorder_obj)
 
 			// handle unknown options provided
 			default:
-				fprintf(stderr, "\n");
-				usage();
-				break;
+				return false;
 		}
 	}
 
@@ -186,8 +178,6 @@ int parse_opts(int argc, char *argv[], struct recorder *recorder_obj)
 			break;
 		default:
 			fprintf(stderr, "Unknown bitrate provided: %d\n", recorder_obj->bit_rate);
-
-			usage();
 			return EXIT_FAILURE;
 	}
 
@@ -198,18 +188,18 @@ int parse_opts(int argc, char *argv[], struct recorder *recorder_obj)
 		strncpy(recorder_obj->format_name, "BWF", 4);
 		file_format = SF_FORMAT_RF64;
 	} else {
-		fprintf(stderr, "ERROR: unknown file format: %s\n", format_name);
-		return EXIT_FAILURE;
+		writelog(logging, L_ERROR,"unknown file format: %s\n", format_name);
+		return false;
 	}
 
 	recorder_obj->file_format = file_format | file_bitrate;
 
     if (recorder_obj->channels < 1) {
-	    fprintf(stderr, "ERROR: channels count provided is less than 1: %d\n", recorder_obj->channels);
-        return EXIT_FAILURE;
+	    writelog(logging, L_ERROR,"channels count provided is less than 1: %d\n", recorder_obj->channels);
+        return false;
     } else if (recorder_obj->channels > MAX_NC) {
-        fprintf(stderr, "ERROR: channels count provided is too high: %d (max is %d)\n", recorder_obj->channels, MAX_NC);
-        return EXIT_FAILURE;
+        writelog(logging, L_ERROR,"channels count provided is too high: %d (max is %d)\n", recorder_obj->channels, MAX_NC);
+        return false;
     }
 
     // clear the signal levels initially
@@ -221,5 +211,5 @@ int parse_opts(int argc, char *argv[], struct recorder *recorder_obj)
 	clear_peaks(recorder_obj);
 	clear_max(recorder_obj);
 
-	return 0;
+	return true;
 }

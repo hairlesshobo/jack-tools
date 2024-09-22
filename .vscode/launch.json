@@ -8,15 +8,17 @@
             "name": "(lldb) Launch",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/cmd/bin/rju-record",
+            "program": "${workspaceFolder}/src/bin/recorder",
             "args": [
                 // when i want to force errors, use a small buffer (32)
-                "-b", "24", "-f", "bwf", "-x", "32", "-c", "1", "-d", "4", "-m", "-o", "json", "\"channel_%d.wav\""
+                //"-b", "24", "-f", "bwf", "-x", "32", "-c", "1", "-d", "4", "-m", "-o", "json", "\"channel_%d.wav\""
+
+                "-b", "24", "-f", "bwf", "-x", "16384", "-c", "4", "-d", "4", "-m", "-o", "curses", "\"channel_%d.wav\""
             ],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",
             "environment": [],
-            "externalConsole": false,
+            "externalConsole": true,
             "MIMode": "lldb"
         }
 

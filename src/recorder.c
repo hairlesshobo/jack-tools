@@ -11,12 +11,14 @@
 #include "jack/metadata.h"
 
 #include "lib/file.h"
+#include "lib/logging.h"
 #include "lib/observe-signal.h"
 #include "lib/ringbuffer.h"
 #include "lib/signal-interleave.h"
 
 #include "lib/jack-client.c"
 #include "lib/jack-port.c"
+
 #include "lib/sf-sndfile.c"
 
 int stdlog = -1;
@@ -264,19 +266,20 @@ int main(int argc, char *argv[])
 {
 	observe_signals();
 
+	struct logging* logging = setup_logging("fox-recorder.log", "w");
 	struct recorder* recorder_obj = malloc(sizeof(struct recorder));
 
-	int opt_results = parse_opts(argc, argv, recorder_obj);
+	bool opt_results = parse_opts(logging, argc, argv, recorder_obj);
 
-	die_when(opt_results != 0, "Invalid configuration provided");
+	if (opt_results != true) {
+		writelog(logging, L_ERROR, "Invalid configuration provided");
+		usage();
+		exit(EXIT_FAILURE);
+	}
 
 	/* Connect to Jack. */
 	char client_name[64] = "fox-recorder";
-
-	if (recorder_obj->unique_name) 
-		recorder_obj->client = jack_client_unique_store(client_name);
-	else
-		recorder_obj->client = jack_client_open(client_name, JackNullOption, NULL);
+	recorder_obj->client = jack_client_unique_store(logging, client_name);
 
 	jack_set_error_function(jack_error_handler);
 	jack_on_shutdown(recorder_obj->client, jack_shutdown, recorder_obj);
@@ -350,7 +353,7 @@ int main(int argc, char *argv[])
 	char connect_pattern[128];
 	snprintf(connect_pattern, 128, "%s:in_%%d", client_name);
 
-	jack_register_input_ports(recorder_obj);
+	jack_register_input_ports(logging, recorder_obj);
 	jack_client_activate(recorder_obj->client);
 	jack_port_connect_pattern(recorder_obj, connect_pattern);
 

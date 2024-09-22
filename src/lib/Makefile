@@ -9,6 +9,7 @@ sf =	sf-sndfile.o
 
 obj =	file.o \
 	float.o \
+	logging.o \
 	memory.o \
 	observe-signal.o \
 	ringbuffer.o \

@@ -21,11 +21,13 @@ void jack_client_minimal_shutdown_handler(void *arg)
 	FAILURE;
 }
 
-jack_client_t *jack_client_unique_store(char *name)
+jack_client_t *jack_client_unique_store(struct logging* logging, char *name)
 {
-	int n = (int)getpid();
+	writelog(logging, L_INFO, "Connecting to JACK");
+	
+	int pid = (int)getpid();
 	char uniq[64];
-	snprintf(uniq, 64, "%.*s-%.*d", 50, name, 12, n);
+	snprintf(uniq, 64, "%.*s-%.*d", 50, name, 12, pid);
 	strncpy(name, uniq, 64);
 	jack_client_t *client = jack_client_open(uniq, JackNullOption, NULL);
 	if (!client) {
@@ -35,12 +37,6 @@ jack_client_t *jack_client_unique_store(char *name)
 	return client;
 }
 
-jack_client_t *jack_client_unique(const char *name)
-{
-	char uniq[64];
-	strncpy(uniq, name, 64 - 1);
-	return jack_client_unique_store(uniq);
-}
 
 // TODO: convert to recorder struct
 int jack_client_activate(jack_client_t *client)
